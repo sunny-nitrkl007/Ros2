@@ -1,0 +1,48 @@
+#include "rclcpp/rclcpp.hpp"
+#include "{{ msg_include }}"
+#include "{{ node.name }}.hpp"
+
+using namespace std::chrono_literals;
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    this->declare_parameter<double>("publish_rate", {{ node.parameters.publish_rate | default(1.0) }});
+    publish_rate_ = this->get_parameter("publish_rate").as_double();
+
+    rclcpp::QoS qos(rclcpp::KeepLast({{ node.qos.depth | default(10) }}));
+
+    {% if node.qos.reliability == "reliable" %}
+    qos.reliable();
+    {% else %}
+    qos.best_effort();
+    {% endif %}
+
+    publisher_ = this->create_publisher<{{ msg_type }}>(
+        "{{ node.topic }}", qos);
+
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(static_cast<int>(1000.0 / publish_rate_)),
+        std::bind(&{{ node.name | capitalize }}::publish_message, this));
+}
+
+void {{ node.name | capitalize }}::publish_message()
+{
+    auto msg = {{ msg_type }}();
+    msg.data = "Hello from {{ node.name }}! count=" + std::to_string(count_++);
+    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", msg.data.c_str());
+    publisher_->publish(msg);
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<{{ node.name | capitalize }}>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
+}

@@ -1,0 +1,8 @@
+application:
+  name: fan_out_system
+  domain_id: 10
+  nodes:
+    - talker
+    - listener_1
+    - listener_2
+    - listener_3

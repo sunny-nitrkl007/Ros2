@@ -4,8 +4,6 @@ import argparse
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
-# tool/ lives inside discoveryTesting/
-# project folder is a sibling of tool/
 TOOL_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR  = os.path.dirname(TOOL_DIR)
 
@@ -13,20 +11,31 @@ parser = argparse.ArgumentParser(description="ROS2 code generator")
 parser.add_argument("--project", required=True, help="Project folder name (sibling of tool/)")
 args = parser.parse_args()
 
-PROJECT_PATH  = os.path.join(ROOT_DIR, args.project)
-TEMPLATE_PATH = os.path.join(PROJECT_PATH, "templates")
+PROJECT_PATH      = os.path.join(ROOT_DIR, args.project)
+TOOL_TEMPLATES    = os.path.join(TOOL_DIR, "templates")
+PROJECT_TEMPLATES = os.path.join(PROJECT_PATH, "templates")
 
 if not os.path.isdir(PROJECT_PATH):
     print(f"ERROR: project folder not found: {PROJECT_PATH}")
     sys.exit(1)
 
-env = Environment(loader=FileSystemLoader(TEMPLATE_PATH))
+if not os.path.isdir(TOOL_TEMPLATES):
+    print(f"ERROR: tool/templates/ not found: {TOOL_TEMPLATES}")
+    sys.exit(1)
+
+# Project templates override tool templates when a file with the same name exists
+template_dirs = []
+if os.path.isdir(PROJECT_TEMPLATES):
+    template_dirs.append(PROJECT_TEMPLATES)
+template_dirs.append(TOOL_TEMPLATES)
+
+env = Environment(loader=FileSystemLoader(template_dirs))
 
 
 def load_yaml(rel_path):
     full_path = os.path.join(PROJECT_PATH, rel_path)
     print(f"Loading: {full_path}")
-    with open(full_path) as f:
+    with open(full_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -35,9 +44,9 @@ def out(rel_path):
 
 
 application  = load_yaml("config/application.yaml")["application"]
-topics       = load_yaml("config/topics.yaml")["topics"]
-qos_profiles = load_yaml("config/qos_profiles.yaml")["qos_profiles"]
-parameters   = load_yaml("config/parameters.yaml")["parameters"]
+topics       = load_yaml("config/topics.yaml").get("topics") or {}
+qos_profiles = load_yaml("config/qos_profiles.yaml").get("qos_profiles") or {}
+parameters   = load_yaml("config/parameters.yaml").get("parameters") or {}
 
 print("\n===== CONFIG LOAD SUMMARY =====")
 print(f"Project           : {args.project}")
@@ -50,24 +59,6 @@ print(f"Parameter groups  : {list(parameters.keys())}")
 print("================================\n")
 
 
-def resolve_node(node_name):
-    node_yaml  = load_yaml(f"config/nodes/{node_name}.yaml")["node"]
-    topic_name = node_yaml["topic"]
-    topic_info = topics[topic_name]
-    qos        = qos_profiles[node_yaml["qos"]]
-    params     = parameters[node_yaml["parameters"]]
-    return {
-        "name":         node_name,
-        "type":         node_yaml["type"],
-        "topic":        topic_name,
-        "message_type": topic_info["type"],
-        "qos":          qos,
-        "parameters":   params,
-        "qos_name":     node_yaml["qos"],
-        "param_group":  node_yaml["parameters"],
-    }
-
-
 def msg_to_cpp(msg):
     return msg.replace("/", "::")
 
@@ -78,14 +69,72 @@ def msg_to_include(msg):
     return "/".join(parts) + ".hpp"
 
 
+def srv_to_cpp(srv):
+    return srv.replace("/", "::")
+
+
+def srv_to_include(srv):
+    parts = srv.split("/")
+    parts[-1] = parts[-1].lower()
+    return "/".join(parts) + ".hpp"
+
+
+def collect_deps(nodes):
+    deps = {"rclcpp"}
+    for node in nodes:
+        if node.get("message_type"):
+            deps.add(node["message_type"].split("/")[0])
+        if node.get("srv_type_raw"):
+            deps.add(node["srv_type_raw"].split("/")[0])
+    return sorted(deps)
+
+
+def resolve_node(node_name):
+    node_yaml = load_yaml(f"config/nodes/{node_name}.yaml")["node"]
+    node_type = node_yaml["type"]
+
+    result = {
+        "name":        node_name,
+        "type":        node_type,
+        "namespace":   node_yaml.get("namespace", ""),
+        "param_group": node_yaml.get("parameters", ""),
+        "parameters":  parameters.get(node_yaml.get("parameters", ""), {}),
+    }
+
+    if node_type in ("publisher", "subscriber"):
+        topic_name = node_yaml["topic"]
+        topic_info = topics[topic_name]
+        result.update({
+            "topic":        topic_name,
+            "message_type": topic_info["type"],
+            "qos":          qos_profiles.get(node_yaml.get("qos", ""), {}),
+            "qos_name":     node_yaml.get("qos", ""),
+        })
+    elif node_type in ("service_server", "service_client"):
+        result.update({
+            "service":      node_yaml["service"],
+            "srv_type_raw": node_yaml["srv_type"],
+        })
+
+    return result
+
+
 def generate_node(node):
-    print(f"\n>> Node: {node['name']}  type={node['type']}  topic={node['topic']}")
+    node_type   = node["type"]
+    msg_type    = msg_include = srv_type = srv_include = ""
 
-    msg_type    = msg_to_cpp(node["message_type"])
-    msg_include = msg_to_include(node["message_type"])
+    if node_type in ("publisher", "subscriber"):
+        msg_type    = msg_to_cpp(node["message_type"])
+        msg_include = msg_to_include(node["message_type"])
+        print(f"\n>> Node: {node['name']}  type={node_type}  topic={node.get('topic', '')}  ns='{node.get('namespace', '')}'")
+    elif node_type in ("service_server", "service_client"):
+        srv_type    = srv_to_cpp(node["srv_type_raw"])
+        srv_include = srv_to_include(node["srv_type_raw"])
+        print(f"\n>> Node: {node['name']}  type={node_type}  service={node.get('service', '')}  ns='{node.get('namespace', '')}'")
 
-    rendered_cpp = env.get_template(f"{node['type']}.cpp.jinja").render(
-        node=node, msg_type=msg_type, msg_include=msg_include
+    rendered_cpp = env.get_template(f"{node_type}.cpp.jinja").render(
+        node=node, msg_type=msg_type, msg_include=msg_include,
+        srv_type=srv_type, srv_include=srv_include,
     )
     cpp_path = out(f"generated_pkg/src/{node['name']}.cpp")
     with open(cpp_path, "w", encoding="utf-8") as f:
@@ -93,7 +142,8 @@ def generate_node(node):
     print(f"   -> {cpp_path}")
 
     rendered_hpp = env.get_template("node.hpp.jinja").render(
-        node=node, msg_type=msg_type, msg_include=msg_include
+        node=node, msg_type=msg_type, msg_include=msg_include,
+        srv_type=srv_type, srv_include=srv_include,
     )
     hpp_path = out(f"generated_pkg/include/{node['name']}.hpp")
     with open(hpp_path, "w", encoding="utf-8") as f:
@@ -103,16 +153,17 @@ def generate_node(node):
 
 def generate_package(nodes):
     print("\n>> Package files")
+    deps = collect_deps(nodes)
 
-    cmake = env.get_template("CMakeLists.txt.jinja").render(nodes=nodes)
+    cmake = env.get_template("CMakeLists.txt.jinja").render(nodes=nodes, deps=deps)
     with open(out("generated_pkg/CMakeLists.txt"), "w", encoding="utf-8") as f:
         f.write(cmake)
 
-    package = env.get_template("package.xml.jinja").render()
+    package = env.get_template("package.xml.jinja").render(deps=deps)
     with open(out("generated_pkg/package.xml"), "w", encoding="utf-8") as f:
         f.write(package)
 
-    print("   -> CMakeLists.txt")
+    print(f"   -> CMakeLists.txt  (deps: {', '.join(deps)})")
     print("   -> package.xml")
 
 

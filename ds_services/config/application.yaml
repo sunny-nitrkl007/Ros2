@@ -1,0 +1,6 @@
+application:
+  name: services_system
+  domain_id: 10
+  nodes:
+    - reset_server
+    - reset_client

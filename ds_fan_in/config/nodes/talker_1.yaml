@@ -1,0 +1,6 @@
+node:
+  name: talker_1
+  type: publisher
+  topic: chatter
+  qos: default_qos
+  parameters: talker_1

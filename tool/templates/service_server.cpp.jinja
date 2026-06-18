@@ -1,0 +1,34 @@
+#include "rclcpp/rclcpp.hpp"
+#include "{{ srv_include }}"
+#include "{{ node.name }}.hpp"
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    service_ = this->create_service<{{ srv_type }}>(
+        "{{ node.service }}",
+        std::bind(&{{ node.name | capitalize }}::handle_request, this,
+            std::placeholders::_1, std::placeholders::_2));
+    RCLCPP_INFO(this->get_logger(), "Service '%s' ready.", "{{ node.service }}");
+}
+
+void {{ node.name | capitalize }}::handle_request(
+    const {{ srv_type }}::Request::SharedPtr /*request*/,
+    {{ srv_type }}::Response::SharedPtr response)
+{
+    RCLCPP_INFO(this->get_logger(), "Received service request.");
+    response->success = true;
+    response->message = "OK from {{ node.name }}";
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<{{ node.name | capitalize }}>());
+    rclcpp::shutdown();
+    return 0;
+}

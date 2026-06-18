@@ -1,0 +1,5 @@
+node:
+  name: reset_server
+  type: service_server
+  service: /reset_system
+  srv_type: std_srvs/srv/Trigger

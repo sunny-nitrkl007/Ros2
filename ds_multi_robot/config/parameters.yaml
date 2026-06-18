@@ -1,0 +1,9 @@
+parameters:
+  robot1_talker:
+    publish_rate: 2.0
+  robot1_listener:
+    log_prefix: "[robot1] Received:"
+  robot2_talker:
+    publish_rate: 1.0
+  robot2_listener:
+    log_prefix: "[robot2] Received:"

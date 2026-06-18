@@ -1,0 +1,47 @@
+#pragma once
+
+#include "rclcpp/rclcpp.hpp"
+{% if node.type in ["publisher", "subscriber"] %}
+#include "{{ msg_include }}"
+{% elif node.type in ["service_server", "service_client"] %}
+#include "{{ srv_include }}"
+{% endif %}
+
+class {{ node.name | capitalize }} : public rclcpp::Node
+{
+public:
+    {{ node.name | capitalize }}();
+
+{% if node.type == "publisher" %}
+private:
+    void publish_message();
+
+    rclcpp::Publisher<{{ msg_type }}>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    double publish_rate_;
+    size_t count_ = 0;
+
+{% elif node.type == "subscriber" %}
+private:
+    void callback(const {{ msg_type }}::SharedPtr msg);
+
+    rclcpp::Subscription<{{ msg_type }}>::SharedPtr subscription_;
+    std::string log_prefix_;
+
+{% elif node.type == "service_server" %}
+private:
+    void handle_request(
+        const {{ srv_type }}::Request::SharedPtr request,
+        {{ srv_type }}::Response::SharedPtr response);
+
+    rclcpp::Service<{{ srv_type }}>::SharedPtr service_;
+
+{% elif node.type == "service_client" %}
+private:
+    void send_request();
+
+    rclcpp::Client<{{ srv_type }}>::SharedPtr client_;
+    rclcpp::TimerBase::SharedPtr timer_;
+
+{% endif %}
+};

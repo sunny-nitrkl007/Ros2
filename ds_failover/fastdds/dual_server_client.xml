@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Fast-DDS SUPER_CLIENT profile for failover testing.
+  Nodes connect to TWO discovery servers (primary + backup).
+  If the primary (port 11811) goes down, Fast-DDS automatically
+  re-registers through the backup (port 11812).
+
+  Usage (instead of ROS_DISCOVERY_SERVER env var):
+    export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/dual_server_client.xml
+
+  Or combined with env var for both servers:
+    export ROS_DISCOVERY_SERVER="127.0.0.1:11811;127.0.0.1:11812"
+
+  Start both servers before running nodes:
+    Terminal A: fastdds discovery -i 0 -p 11811
+    Terminal B: fastdds discovery -i 1 -p 11812
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <participant profile_name="super_client_dual_server" is_default_profile="true">
+    <rtps>
+      <builtin>
+        <discovery_config>
+          <discoveryProtocol>SUPER_CLIENT</discoveryProtocol>
+          <discoveryServersList>
+
+            <!-- Primary server — ID 0, port 11811 -->
+            <RemoteServer prefix="44.53.00.5f.45.50.52.4f.53.49.4d.41">
+              <metatrafficUnicastLocatorList>
+                <locator>
+                  <udpv4>
+                    <address>127.0.0.1</address>
+                    <port>11811</port>
+                  </udpv4>
+                </locator>
+              </metatrafficUnicastLocatorList>
+            </RemoteServer>
+
+            <!-- Backup server — ID 1, port 11812 -->
+            <RemoteServer prefix="44.53.01.5f.45.50.52.4f.53.49.4d.41">
+              <metatrafficUnicastLocatorList>
+                <locator>
+                  <udpv4>
+                    <address>127.0.0.1</address>
+                    <port>11812</port>
+                  </udpv4>
+                </locator>
+              </metatrafficUnicastLocatorList>
+            </RemoteServer>
+
+          </discoveryServersList>
+        </discovery_config>
+      </builtin>
+    </rtps>
+  </participant>
+</profiles>

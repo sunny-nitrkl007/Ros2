@@ -1,10 +1,15 @@
+ARG PROJECT=discovery_server_single_pub_sub
+
 FROM ros:jazzy
+
+# Re-declare ARG so it is usable after FROM
+ARG PROJECT=discovery_server_single_pub_sub
 
 # Create workspace
 RUN mkdir -p /ros2_ws/src
 
-# Copy the generated package into the workspace
-COPY discovery_server_single_pub_sub/generated_pkg/ /ros2_ws/src/generated_pkg/
+# Copy the generated package for the selected project
+COPY ${PROJECT}/generated_pkg/ /ros2_ws/src/generated_pkg/
 
 # Build the package
 WORKDIR /ros2_ws

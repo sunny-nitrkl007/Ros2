@@ -1,0 +1,7 @@
+node:
+  name: robot2_talker
+  type: publisher
+  namespace: /robot2
+  topic: chatter
+  qos: default_qos
+  parameters: robot2_talker

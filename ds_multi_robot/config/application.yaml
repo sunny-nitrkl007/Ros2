@@ -1,0 +1,8 @@
+application:
+  name: multi_robot_system
+  domain_id: 10
+  nodes:
+    - robot1_talker
+    - robot1_listener
+    - robot2_talker
+    - robot2_listener

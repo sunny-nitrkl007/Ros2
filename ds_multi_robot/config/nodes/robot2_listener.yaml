@@ -1,0 +1,7 @@
+node:
+  name: robot2_listener
+  type: subscriber
+  namespace: /robot2
+  topic: chatter
+  qos: best_effort_qos
+  parameters: robot2_listener

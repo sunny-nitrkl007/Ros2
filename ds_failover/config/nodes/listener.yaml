@@ -1,0 +1,6 @@
+node:
+  name: listener
+  type: subscriber
+  topic: chatter
+  qos: best_effort_qos
+  parameters: listener

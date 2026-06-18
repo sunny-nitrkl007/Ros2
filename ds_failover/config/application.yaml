@@ -1,0 +1,6 @@
+application:
+  name: failover_system
+  domain_id: 10
+  nodes:
+    - talker
+    - listener

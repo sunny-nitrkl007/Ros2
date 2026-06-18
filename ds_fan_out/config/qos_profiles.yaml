@@ -1,0 +1,10 @@
+qos_profiles:
+  default_qos:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 10
+  best_effort_qos:
+    reliability: best_effort
+    history: keep_last
+    depth: 10
