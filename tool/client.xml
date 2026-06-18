@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Fast-DDS client profile for ROS2 nodes (talker / listener).
+
+    This makes every ROS2 node a SUPER_CLIENT that registers with the
+    discovery server instead of using DDS multicast (Simple Discovery).
+
+    Usage:
+        set FASTRTPS_DEFAULT_PROFILES_FILE=<full_path_to_this_file>   (Windows CMD)
+        $env:FASTRTPS_DEFAULT_PROFILES_FILE="<full_path>"             (PowerShell)
+
+    The server prefix below matches "fastdds discovery -i 0"  (server ID 0).
+    If you use a different server ID (-i 1, -i 2, ...) update the prefix:
+        ID 0 -> 44.53.00.5f.45.50.52.4f.53.49.4d.41
+        ID 1 -> 44.53.01.5f.45.50.52.4f.53.49.4d.41
+        ID 2 -> 44.53.02.5f.45.50.52.4f.53.49.4d.41
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+
+    <participant profile_name="ros_default_participant" is_default_qos="true">
+        <rtps>
+            <builtin>
+                <discovery_config>
+                    <!-- SUPER_CLIENT: connects to server, gets full picture of the network -->
+                    <discoveryProtocol>SUPER_CLIENT</discoveryProtocol>
+
+                    <discoveryServersList>
+                        <!-- Server ID 0, started with: fastdds discovery -i 0 -p 11811 -->
+                        <RemoteServer prefix="44.53.00.5f.45.50.52.4f.53.49.4d.41">
+                            <metatrafficUnicastLocatorList>
+                                <locator>
+                                    <udpv4>
+                                        <address>127.0.0.1</address>
+                                        <port>11811</port>
+                                    </udpv4>
+                                </locator>
+                            </metatrafficUnicastLocatorList>
+                        </RemoteServer>
+                    </discoveryServersList>
+                </discovery_config>
+            </builtin>
+        </rtps>
+    </participant>
+
+</profiles>

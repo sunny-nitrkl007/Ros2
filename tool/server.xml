@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Fast-DDS discovery server profile.
+
+    This is OPTIONAL. By default "fastdds discovery -i 0 -p 11811"
+    already starts a server with these exact settings.
+
+    Use this only if you want to start the server via XML instead of CLI flags:
+        fastdds discovery --xml-file <full_path_to_this_file>
+
+    Or if you need to customize the server (e.g. multiple listening ports,
+    different address, custom GUID prefix).
+
+    Prefix format for server ID N: 44.53.NN.5f.45.50.52.4f.53.49.4d.41
+        ID 0 -> 44.53.00.5f.45.50.52.4f.53.49.4d.41   <- this file uses ID 0
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+
+    <participant profile_name="discovery_server" is_default_qos="false">
+        <rtps>
+            <!-- Must match the prefix clients use in RemoteServer -->
+            <prefix>44.53.00.5f.45.50.52.4f.53.49.4d.41</prefix>
+
+            <builtin>
+                <discovery_config>
+                    <discoveryProtocol>SERVER</discoveryProtocol>
+
+                    <!-- Address and port the server listens on -->
+                    <metatrafficUnicastLocatorList>
+                        <locator>
+                            <udpv4>
+                                <address>127.0.0.1</address>
+                                <port>11811</port>
+                            </udpv4>
+                        </locator>
+                    </metatrafficUnicastLocatorList>
+                </discovery_config>
+            </builtin>
+        </rtps>
+    </participant>
+
+</profiles>
