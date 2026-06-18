@@ -4,7 +4,7 @@ FROM ros:jazzy
 RUN mkdir -p /ros2_ws/src
 
 # Copy the generated package into the workspace
-COPY generated_pkg/ /ros2_ws/src/generated_pkg/
+COPY discovery_server_single_pub_sub/generated_pkg/ /ros2_ws/src/generated_pkg/
 
 # Build the package
 WORKDIR /ros2_ws
@@ -22,7 +22,7 @@ ENV ROS_DOMAIN_ID=10
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc
 
 # Entrypoint sources ROS jazzy, then runs whatever command is passed
-COPY entrypoint.sh /entrypoint.sh
+COPY tool/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

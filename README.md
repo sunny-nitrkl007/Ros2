@@ -153,15 +153,20 @@ Generated files:
 
 ## Step 3 — Build the Docker Image
 
-From `discoveryTesting/`:
+From `discoveryTesting/` (**always run from here, not from inside `tool/`**):
 
 ```bash
 cd discoveryTesting/
-docker build -f tool/Dockerfile -t ros2_discovery_test .
+docker build --no-cache -f tool/Dockerfile -t ros2_discovery_test .
 ```
 
-> Note: The Dockerfile is inside `tool/` so pass `-f tool/Dockerfile`.
-> The build context (`.`) must be `discoveryTesting/` so Docker can find `generated_pkg/`.
+> **Important:** Two flags are required:
+> - `-f tool/Dockerfile` — Dockerfile lives inside `tool/`
+> - `.` — build context must be `discoveryTesting/` so Docker can reach both
+>   `discovery_server_single_pub_sub/generated_pkg/` and `tool/entrypoint.sh`
+>
+> Running `docker build` from inside `tool/` will fail with `not found` errors
+> because Docker cannot see the project folder from there.
 
 This step:
 1. Pulls `ros:jazzy` base image
@@ -331,4 +336,6 @@ For server ID N, change byte 3: `44.53.NN.5f.45.50.52.4f.53.49.4d.41`
 | `Package 'generated_pkg' not found` | `AMENT_PREFIX_PATH` not set | The Dockerfile sets it via `ENV` — rebuild with `--no-cache` |
 | `fastdds: command not found` | ROS2 not sourced | Run `source /opt/ros/jazzy/setup.bash` first |
 | Listener receives nothing | Discovery server not running or env var missing | Ensure Terminal 1 server is up; check `ROS_DISCOVERY_SERVER` is set in both Terminal 2 and 3 |
-| Docker build uses stale cache | Old layer cached | Run `docker build --no-cache -t ros2_discovery_test .` |
+| Docker build uses stale cache | Old layer cached | Run `docker build --no-cache -f tool/Dockerfile -t ros2_discovery_test .` |
+| `"/generated_pkg" not found: not found` | `docker build` run from wrong directory | Must run from `discoveryTesting/` not from inside `tool/`. Use `-f tool/Dockerfile` with `.` as context |
+| `"/entrypoint.sh" not found: not found` | Same wrong build directory | Same fix — run `docker build -f tool/Dockerfile .` from `discoveryTesting/` |
