@@ -1,0 +1,7 @@
+application:
+  name: demo_system
+  domain_id: 10
+
+  nodes:
+    - talker
+    - listener

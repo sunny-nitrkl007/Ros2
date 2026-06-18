@@ -1,0 +1,9 @@
+node:
+  name: talker
+  type: publisher
+
+  topic: chatter
+  qos: default_qos
+  parameters: talker
+
+  executor: multi_threaded

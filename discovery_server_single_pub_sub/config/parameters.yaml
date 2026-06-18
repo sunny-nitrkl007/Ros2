@@ -1,0 +1,6 @@
+parameters:
+  talker:
+    publish_rate: 2.0
+
+  listener:
+    log_prefix: "Received:"
