@@ -178,6 +178,61 @@ No changes to `tool/` are needed for pub/sub or service projects.
 
 ---
 
+## Discovery Server vs Normal DDS — What Actually Differs
+
+The generated `talker.cpp` and `listener.cpp` are plain ROS2 nodes — no mention of the discovery server anywhere in the C++ code. The discovery mode is a **runtime environment decision** controlled entirely by the `ROS_DISCOVERY_SERVER` env var.
+
+### Scenario A — env var set, but DS not running
+
+```bash
+export ROS_DISCOVERY_SERVER=127.0.0.1:11811
+ros2 run generated_pkg talker    # switches to SERVER mode, tries to reach DS
+ros2 run generated_pkg listener  # same
+```
+
+Fast-DDS switches from multicast to SERVER discovery mode and keeps retrying to reach the DS. Since the DS is not running, nodes never find each other → **no communication.**
+
+### Scenario B — env var not set at all
+
+```bash
+# no export
+ros2 run generated_pkg talker
+ros2 run generated_pkg listener
+```
+
+Fast-DDS falls back to **SIMPLE discovery** (UDP multicast on port 7400). Inside the same Docker container, multicast on loopback works fine on Linux → **they will discover each other and communicate.** No discovery server needed.
+
+### How the two discovery modes compare
+
+```
+Normal DDS (SIMPLE):
+  talker   ──multicast "I exist"──>  (broadcast on LAN)
+  listener <──multicast "I exist"──  (broadcast on LAN)
+  Both hear each other → connect directly for data
+
+Discovery Server (SERVER / SUPER_CLIENT):
+  talker   ──register──>  DS  (unicast, known address)
+  listener ──register──>  DS  (unicast, known address)
+  DS tells talker about listener, tells listener about talker
+  Both connect directly for data
+```
+
+Data transfer is the **same direct unicast** in both cases — the DS only changes how nodes *find* each other, not how they exchange messages.
+
+### When to use DS over normal multicast
+
+| Situation | SIMPLE (multicast) | Discovery Server |
+|---|---|---|
+| Same machine / container | Works | Works |
+| Docker across different hosts | Fails (multicast blocked) | Works |
+| Cloud VMs | Fails (no multicast routing) | Works |
+| Large network (100+ nodes) | Floods network with multicast | Scales fine |
+| Cross-subnet | Fails (multicast doesn't cross routers) | Works (plain unicast) |
+
+In this project everything runs inside one Docker container, so multicast would actually work — the DS is used to **test and demonstrate** the server-based discovery mechanism itself, not because multicast is unavailable.
+
+---
+
 ## Troubleshooting
 
 | Problem | Cause | Fix |

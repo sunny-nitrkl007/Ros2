@@ -115,6 +115,61 @@ ros2 run generated_pkg listener
 
 ---
 
+## SUPER_CLIENT with Multiple Servers
+
+Every node in this project is a **SUPER_CLIENT** — the same role used in all other projects. What is unique here is that the SUPER_CLIENT is pointed at **two servers at once** via the semicolon-separated env var:
+
+```bash
+export ROS_DISCOVERY_SERVER="127.0.0.1:11811;127.0.0.1:11812"
+#                                   ↑ primary          ↑ backup
+```
+
+Fast-DDS registers with **both servers simultaneously** at startup and gets the full participant registry from each. The two registries are merged — the node sees one unified network picture.
+
+```
+SUPER_CLIENT (talker / listener)
+    ├── registers with Primary (11811) → gets full registry from server 0
+    └── registers with Backup  (11812) → gets full registry from server 1
+                    ↓
+         merged view: all participants known
+```
+
+When the primary dies:
+- The SUPER_CLIENT detects the loss (heartbeat timeout, ~1–3 s)
+- It continues using the backup's registry for any new participant discovery
+- The existing direct peer-to-peer connection to the other node is unaffected
+
+> In all other projects a single `127.0.0.1:11811` is used and there is no fallback — this project is the only one where the SUPER_CLIENT role is exercised with redundant servers. See [discovery_server_single_pub_sub/README.md](../discovery_server_single_pub_sub/README.md) for the base explanation of SUPER_CLIENT vs plain CLIENT.
+
+### How SUPER_CLIENT gets configured — automatically
+
+You never write SUPER_CLIENT configuration explicitly. The env var is the entire configuration:
+
+```bash
+# Method 1 — automatic (what you always use in this project)
+export ROS_DISCOVERY_SERVER="127.0.0.1:11811;127.0.0.1:11812"
+
+# Method 2 — manual XML (alternative, same result)
+export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/fastdds/dual_server_client.xml
+```
+
+When ROS2 sees `ROS_DISCOVERY_SERVER`, its middleware layer (rmw_fastrtps) automatically generates a FastDDS participant config in memory for each server in the list. Your node starts already registered with both servers — no XML file involved.
+
+```
+You set:    ROS_DISCOVERY_SERVER="127.0.0.1:11811;127.0.0.1:11812"
+                    ↓
+ROS2 rmw layer detects the env var, parses both addresses
+                    ↓
+Automatically configures Fast-DDS participant as SUPER_CLIENT
+pointing to both 11811 (primary) and 11812 (backup)
+                    ↓
+Your node starts — registered with both servers, no XML needed
+```
+
+`fastdds/dual_server_client.xml` exists in this project as **documentation/reference** — to show what ROS2 is doing under the hood for the dual-server case, and as a fallback for non-ROS2 Fast-DDS applications. It is provided as an alternative in the test steps but the env var method achieves the same result.
+
+---
+
 ## Discovery Server Lifecycle
 
 The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once `talker` and `listener` have found each other through either server (primary or backup), Fast-DDS establishes a **direct peer-to-peer DDS connection** between them.

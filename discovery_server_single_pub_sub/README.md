@@ -124,6 +124,60 @@ ros2 topic echo /chatter
 
 ---
 
+## SUPER_CLIENT vs CLIENT — Why It Matters
+
+When `ROS_DISCOVERY_SERVER` is set, Fast-DDS gives every ROS2 node one of two roles:
+
+| Role | What it sees |
+|---|---|
+| `CLIENT` | Only discovers participants that match its own topics — a talker only finds listeners on the same topic, nothing else |
+| `SUPER_CLIENT` | Gets the **full registry** from the server — every participant, every topic, every endpoint on the network |
+
+Every node in this project is configured as a **SUPER_CLIENT** (set in `tool/client.xml` and activated automatically when `ROS_DISCOVERY_SERVER` is exported).
+
+This is why Test 2 above works:
+
+```bash
+# Without env var — node is invisible (not registered with DS)
+ros2 node list      # (empty)
+
+# With env var — SUPER_CLIENT gets the full picture from DS
+export ROS_DISCOVERY_SERVER=127.0.0.1:11811
+ros2 node list      # /talker  /listener
+ros2 topic list     # /chatter
+```
+
+`ros2 node list`, `ros2 topic list`, and `ros2 topic echo` are themselves ROS2 nodes. As SUPER_CLIENTs they get the complete view of the network from the DS — which is why they show all nodes and topics correctly. A plain CLIENT would only see participants it has a topic match with, giving incomplete or empty results for these commands.
+
+### How SUPER_CLIENT gets configured — automatically
+
+You never write any SUPER_CLIENT configuration explicitly. Setting the env var is the entire configuration:
+
+```bash
+# Method 1 — automatic (what you always use in this project)
+export ROS_DISCOVERY_SERVER=127.0.0.1:11811
+
+# Method 2 — manual XML (alternative, same result, not used in test steps)
+export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/tool/client.xml
+```
+
+When ROS2 sees `ROS_DISCOVERY_SERVER`, its middleware layer (rmw_fastrtps) automatically generates a FastDDS participant config in memory — equivalent to writing `<discoveryProtocol>SUPER_CLIENT</discoveryProtocol>` in an XML profile. Your node starts already configured as a SUPER_CLIENT with no XML file involved.
+
+```
+You set:    ROS_DISCOVERY_SERVER=127.0.0.1:11811
+                    ↓
+ROS2 rmw layer detects the env var
+                    ↓
+Automatically configures Fast-DDS participant as SUPER_CLIENT
+pointing to 127.0.0.1:11811
+                    ↓
+Your node starts — already a SUPER_CLIENT, no XML needed
+```
+
+`tool/client.xml` exists in this project as **documentation/reference** — to show what ROS2 is doing under the hood, and as a fallback for non-ROS2 Fast-DDS applications that can't use `ROS_DISCOVERY_SERVER`. It is never actually loaded in any of the test steps.
+
+---
+
 ## Discovery Server Lifecycle
 
 The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once `talker` and `listener` have found each other through the DS, Fast-DDS establishes a **direct peer-to-peer DDS connection** between them.
