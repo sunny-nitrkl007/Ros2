@@ -1,4 +1,4 @@
-# Project: ds_failover
+# Project: discovery_server_failover
 
 ## Goal
 
@@ -43,7 +43,7 @@ discovery:
 ## Step 1 — Generate
 
 ```bash
-python tool/generator.py --project ds_failover
+python tool/generator.py --project discovery_server_failover
 ```
 
 ---
@@ -51,7 +51,7 @@ python tool/generator.py --project ds_failover
 ## Step 2 — Build
 
 ```bash
-docker build --no-cache --build-arg PROJECT=ds_failover -f tool/Dockerfile -t ros2_ds_failover .
+docker build --no-cache --build-arg PROJECT=discovery_server_failover -f tool/Dockerfile -t ros2_discovery_server_failover .
 ```
 
 ---
@@ -61,7 +61,7 @@ docker build --no-cache --build-arg PROJECT=ds_failover -f tool/Dockerfile -t ro
 ### Terminal 1 — Container + Primary Discovery Server (ID 0, port 11811)
 
 ```bash
-docker run -it --name failover_test ros2_ds_failover bash
+docker run -it --name failover_test ros2_discovery_server_failover bash
 fastdds discovery -i 0 -p 11811
 ```
 
@@ -115,12 +115,33 @@ ros2 run generated_pkg listener
 
 ---
 
+## Discovery Server Lifecycle
+
+The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once `talker` and `listener` have found each other through either server (primary or backup), Fast-DDS establishes a **direct peer-to-peer DDS connection** between them.
+
+```
+Discovery phase (DS required):   talker  <──primary/backup──>  listener
+                                      ↓ once discovered ↓
+Data phase (DS not involved):    talker  <─────────────────>  listener
+                                              (direct DDS unicast)
+```
+
+Key implications:
+- The DS is **out of the communication path** entirely after discovery completes
+- Killing **both** servers does **not** break an already-established talker ↔ listener connection
+- New nodes trying to join **after** all servers are killed cannot discover anyone
+- The failover mechanism (primary → backup) is about maintaining the ability to discover **new** participants — not about keeping existing data channels alive
+
+> **Distinction from failover:** The brief pause (1–3 s) observed when the primary is killed is Fast-DDS detecting the loss and re-registering with the backup for future discovery — the existing direct connection between talker and listener is unaffected once re-registration completes.
+
+---
+
 ## Alternative: FastDDS XML Profile (instead of env var)
 
 Copy `fastdds/dual_server_client.xml` into the container and use it:
 
 ```bash
-docker cp ds_failover/fastdds/dual_server_client.xml failover_test:/dual_server.xml
+docker cp discovery_server_failover/fastdds/dual_server_client.xml failover_test:/dual_server.xml
 docker exec -it failover_test bash
 export FASTRTPS_DEFAULT_PROFILES_FILE=/dual_server.xml
 ros2 run generated_pkg talker

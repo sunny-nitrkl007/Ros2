@@ -1,4 +1,4 @@
-# Project: ds_fan_in
+# Project: discovery_server_multi_pub_single_sub
 
 ## Goal
 
@@ -30,7 +30,7 @@ Each publisher runs at a different rate (2 Hz, 1 Hz, 0.5 Hz) to make interleavin
 ## Step 1 — Generate
 
 ```bash
-python tool/generator.py --project ds_fan_in
+python tool/generator.py --project discovery_server_multi_pub_single_sub
 ```
 
 ---
@@ -38,7 +38,7 @@ python tool/generator.py --project ds_fan_in
 ## Step 2 — Build
 
 ```bash
-docker build --no-cache --build-arg PROJECT=ds_fan_in -f tool/Dockerfile -t ros2_ds_fan_in .
+docker build --no-cache --build-arg PROJECT=discovery_server_multi_pub_single_sub -f tool/Dockerfile -t ros2_discovery_server_multi_pub_single_sub .
 ```
 
 ---
@@ -48,14 +48,14 @@ docker build --no-cache --build-arg PROJECT=ds_fan_in -f tool/Dockerfile -t ros2
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name fan_in_test ros2_ds_fan_in bash
+docker run -it --name multi_pub_single_sub_test ros2_discovery_server_multi_pub_single_sub bash
 fastdds discovery -i 0 -p 11811
 ```
 
 ### Terminals 2, 3, 4 — Three Publishers
 
 ```bash
-docker exec -it fan_in_test bash
+docker exec -it multi_pub_single_sub_test bash
 export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg talker_1   # runs at 2 Hz
 ```
@@ -65,7 +65,7 @@ Repeat for `talker_2` (1 Hz) and `talker_3` (0.5 Hz) in separate terminals.
 ### Terminal 5 — Listener
 
 ```bash
-docker exec -it fan_in_test bash
+docker exec -it multi_pub_single_sub_test bash
 export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg listener
 ```
@@ -86,8 +86,27 @@ ros2 run generated_pkg listener
 
 ---
 
+## Discovery Server Lifecycle
+
+The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once all three publishers and the listener have found each other through the DS, Fast-DDS establishes **direct peer-to-peer DDS connections** between them.
+
+```
+Discovery phase (DS required):   talker_1/2/3  <──DS──>  listener
+                                        ↓ once discovered ↓
+Data phase (DS not involved):    talker_1/2/3  ──────────>  listener
+                                               (direct DDS unicast per publisher)
+```
+
+Key implications:
+- The DS is **out of the communication path** entirely after discovery completes
+- Killing the DS does **not** break already-established connections between nodes
+- New nodes trying to join **after** the DS is killed cannot discover anyone
+- Only the initial handshake requires the DS to be reachable
+
+---
+
 ## Cleanup
 
 ```bash
-docker rm -f fan_in_test
+docker rm -f multi_pub_single_sub_test
 ```

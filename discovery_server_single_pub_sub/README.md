@@ -124,6 +124,27 @@ ros2 topic echo /chatter
 
 ---
 
+## Discovery Server Lifecycle
+
+The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once `talker` and `listener` have found each other through the DS, Fast-DDS establishes a **direct peer-to-peer DDS connection** between them.
+
+```
+Discovery phase (DS required):   talker  <──DS──>  listener
+                                      ↓ once discovered ↓
+Data phase (DS not involved):    talker  ──────────>  listener
+                                         (direct DDS unicast)
+```
+
+Key implications:
+- The DS is **out of the communication path** entirely after discovery completes
+- Killing the DS does **not** break an already-established talker ↔ listener connection
+- New nodes trying to join **after** the DS is killed cannot discover anyone
+- Only the initial handshake requires the DS to be reachable
+
+> **Note:** The "Kill the server, communication stops" test above demonstrates what happens when the DS is stopped *before* or *during* initial discovery. If killed *after* both nodes have fully discovered each other, the existing message stream continues uninterrupted.
+
+---
+
 ## Cleanup
 
 ```bash

@@ -23,11 +23,11 @@ Each project folder below tests a specific capability or topology through the di
 | Folder | Topology | What It Tests |
 |---|---|---|
 | [discovery_server_single_pub_sub](discovery_server_single_pub_sub/README.md) | 1 pub → 1 sub | Baseline: basic pub/sub through discovery server |
-| [ds_fan_out](ds_fan_out/README.md) | 1 pub → 3 subs | Fan-out: one publisher, many subscribers on same topic |
-| [ds_fan_in](ds_fan_in/README.md) | 3 pubs → 1 sub | Fan-in: many publishers at different rates, one subscriber |
-| [ds_services](ds_services/README.md) | server ↔ client | ROS2 services (request/response) through discovery server |
-| [ds_multi_robot](ds_multi_robot/README.md) | /robot1 + /robot2 | Namespace isolation — two robots, same server, separate topics |
-| [ds_failover](ds_failover/README.md) | primary + backup | Server redundancy — nodes survive primary server failure |
+| [discovery_server_single_pub_multi_sub](discovery_server_single_pub_multi_sub/README.md) | 1 pub → 3 subs | One publisher broadcasting to multiple subscribers (fan-out) |
+| [discovery_server_multi_pub_single_sub](discovery_server_multi_pub_single_sub/README.md) | 3 pubs → 1 sub | Multiple publishers at different rates into one subscriber (fan-in) |
+| [discovery_server_services](discovery_server_services/README.md) | server ↔ client | ROS2 services (request/response) through discovery server |
+| [discovery_server_multi_robot](discovery_server_multi_robot/README.md) | /robot1 + /robot2 | Namespace isolation — two robots, same server, separate topics |
+| [discovery_server_failover](discovery_server_failover/README.md) | primary + backup | Server redundancy — nodes survive primary server failure |
 
 ---
 
@@ -51,11 +51,11 @@ discoveryTesting/
 │       └── package.xml.jinja
 │
 ├── discovery_server_single_pub_sub/         # Project 1 — baseline pub/sub
-├── ds_fan_out/                              # Project 2 — fan-out topology
-├── ds_fan_in/                               # Project 3 — fan-in topology
-├── ds_services/                             # Project 4 — ROS2 services
-├── ds_multi_robot/                          # Project 5 — namespaced robots
-└── ds_failover/                             # Project 6 — server failover
+├── discovery_server_single_pub_multi_sub/           # Project 2 — one publisher, many subscribers
+├── discovery_server_multi_pub_single_sub/           # Project 3 — many publishers, one subscriber
+├── discovery_server_services/               # Project 4 — ROS2 services
+├── discovery_server_multi_robot/            # Project 5 — namespaced robots
+└── discovery_server_failover/               # Project 6 — server failover
 ```
 
 Each project folder has the same internal structure:
@@ -92,11 +92,11 @@ From the `discoveryTesting/` root:
 
 ```bash
 python tool/generator.py --project discovery_server_single_pub_sub
-python tool/generator.py --project ds_fan_out
-python tool/generator.py --project ds_fan_in
-python tool/generator.py --project ds_services
-python tool/generator.py --project ds_multi_robot
-python tool/generator.py --project ds_failover
+python tool/generator.py --project discovery_server_single_pub_multi_sub
+python tool/generator.py --project discovery_server_multi_pub_single_sub
+python tool/generator.py --project discovery_server_services
+python tool/generator.py --project discovery_server_multi_robot
+python tool/generator.py --project discovery_server_failover
 ```
 
 ---
@@ -114,11 +114,11 @@ Always run from `discoveryTesting/` (not from inside `tool/`):
 docker build --no-cache -f tool/Dockerfile -t ros2_ds_single .
 
 # Build a specific project
-docker build --no-cache --build-arg PROJECT=ds_fan_out   -f tool/Dockerfile -t ros2_ds_fan_out   .
-docker build --no-cache --build-arg PROJECT=ds_fan_in    -f tool/Dockerfile -t ros2_ds_fan_in    .
-docker build --no-cache --build-arg PROJECT=ds_services  -f tool/Dockerfile -t ros2_ds_services  .
-docker build --no-cache --build-arg PROJECT=ds_multi_robot -f tool/Dockerfile -t ros2_ds_multi_robot .
-docker build --no-cache --build-arg PROJECT=ds_failover  -f tool/Dockerfile -t ros2_ds_failover  .
+docker build --no-cache --build-arg PROJECT=discovery_server_single_pub_multi_sub      -f tool/Dockerfile -t ros2_discovery_server_single_pub_multi_sub      .
+docker build --no-cache --build-arg PROJECT=discovery_server_multi_pub_single_sub       -f tool/Dockerfile -t ros2_discovery_server_multi_pub_single_sub       .
+docker build --no-cache --build-arg PROJECT=discovery_server_services     -f tool/Dockerfile -t ros2_discovery_server_services     .
+docker build --no-cache --build-arg PROJECT=discovery_server_multi_robot  -f tool/Dockerfile -t ros2_discovery_server_multi_robot  .
+docker build --no-cache --build-arg PROJECT=discovery_server_failover     -f tool/Dockerfile -t ros2_discovery_server_failover     .
 ```
 
 ### Run

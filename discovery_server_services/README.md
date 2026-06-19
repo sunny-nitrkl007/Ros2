@@ -1,4 +1,4 @@
-# Project: ds_services
+# Project: discovery_server_services
 
 ## Goal
 
@@ -40,7 +40,7 @@ node:
 ## Step 1 — Generate
 
 ```bash
-python tool/generator.py --project ds_services
+python tool/generator.py --project discovery_server_services
 ```
 
 The generator auto-detects `std_srvs` as a dependency and writes it into `CMakeLists.txt` and `package.xml`.
@@ -50,7 +50,7 @@ The generator auto-detects `std_srvs` as a dependency and writes it into `CMakeL
 ## Step 2 — Build
 
 ```bash
-docker build --no-cache --build-arg PROJECT=ds_services -f tool/Dockerfile -t ros2_ds_services .
+docker build --no-cache --build-arg PROJECT=discovery_server_services -f tool/Dockerfile -t ros2_discovery_server_services .
 ```
 
 ---
@@ -60,7 +60,7 @@ docker build --no-cache --build-arg PROJECT=ds_services -f tool/Dockerfile -t ro
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name services_test ros2_ds_services bash
+docker run -it --name services_test ros2_discovery_server_services bash
 fastdds discovery -i 0 -p 11811
 ```
 
@@ -102,6 +102,28 @@ Expected:
 - If the server is not running, the client logs `Service not available, waiting...` — it keeps retrying
 - Start the server after the client — the client discovers it through the discovery server and calls it automatically
 - Kill the discovery server — client can no longer find the service (`wait_for_service` keeps timing out)
+
+---
+
+## Discovery Server Lifecycle
+
+The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once `reset_server` and `reset_client` have found each other through the DS, Fast-DDS establishes a **direct peer-to-peer DDS connection** between them.
+
+```
+Discovery phase (DS required):   reset_server  <──DS──>  reset_client
+                                       ↓ once discovered ↓
+Data phase (DS not involved):    reset_server  <─────────>  reset_client
+                                              (direct DDS unicast)
+```
+
+Key implications:
+- The DS is **out of the communication path** entirely after discovery completes
+- Killing the DS does **not** break already-established connections between nodes
+- New nodes trying to join **after** the DS is killed cannot discover anyone
+- Only the initial handshake requires the DS to be reachable
+- `reset_client` keeps calling the service every 2 seconds over the direct peer link — stopping the DS after both nodes have discovered each other does not interrupt this
+
+> **Note:** The "Kill the discovery server" observation in the section above applies when the DS is stopped *before* or *during* the initial discovery handshake. If killed *after* discovery is complete, existing connections persist.
 
 ---
 

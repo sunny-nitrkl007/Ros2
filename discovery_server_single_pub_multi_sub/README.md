@@ -1,4 +1,4 @@
-# Project: ds_fan_out
+# Project: discovery_server_single_pub_multi_sub
 
 ## Goal
 
@@ -28,7 +28,7 @@ This verifies that the discovery server correctly propagates a single publisher'
 ## Step 1 — Generate
 
 ```bash
-python tool/generator.py --project ds_fan_out
+python tool/generator.py --project discovery_server_single_pub_multi_sub
 ```
 
 ---
@@ -36,7 +36,7 @@ python tool/generator.py --project ds_fan_out
 ## Step 2 — Build
 
 ```bash
-docker build --no-cache --build-arg PROJECT=ds_fan_out -f tool/Dockerfile -t ros2_ds_fan_out .
+docker build --no-cache --build-arg PROJECT=discovery_server_single_pub_multi_sub -f tool/Dockerfile -t ros2_discovery_server_single_pub_multi_sub .
 ```
 
 ---
@@ -46,14 +46,14 @@ docker build --no-cache --build-arg PROJECT=ds_fan_out -f tool/Dockerfile -t ros
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name fan_out_test ros2_ds_fan_out bash
+docker run -it --name single_pub_multi_sub_test ros2_discovery_server_single_pub_multi_sub bash
 fastdds discovery -i 0 -p 11811
 ```
 
 ### Terminal 2 — Talker
 
 ```bash
-docker exec -it fan_out_test bash
+docker exec -it single_pub_multi_sub_test bash
 export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg talker
 ```
@@ -62,7 +62,7 @@ ros2 run generated_pkg talker
 
 Repeat for each, changing the node name:
 ```bash
-docker exec -it fan_out_test bash
+docker exec -it single_pub_multi_sub_test bash
 export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg listener_1   # or listener_2 / listener_3
 ```
@@ -83,8 +83,29 @@ ros2 run generated_pkg listener_1   # or listener_2 / listener_3
 
 ---
 
+## Discovery Server Lifecycle
+
+The Discovery Server (DS) is only required during the **handshake/discovery phase** — it brokers the initial exchange of endpoints and addresses between nodes. Once the talker and all listeners have found each other through the DS, Fast-DDS establishes **direct peer-to-peer DDS connections** between them.
+
+```
+Discovery phase (DS required):   talker  <──DS──>  listener_1 / listener_2 / listener_3
+                                      ↓ once discovered ↓
+Data phase (DS not involved):    talker  ──────────>  listener_1 / listener_2 / listener_3
+                                              (direct DDS unicast per subscriber)
+```
+
+Key implications:
+- The DS is **out of the communication path** entirely after discovery completes
+- Killing the DS does **not** break already-established connections between nodes
+- New nodes trying to join **after** the DS is killed cannot discover anyone
+- Only the initial handshake requires the DS to be reachable
+
+> **Note:** The "Kill the discovery server — all three stop receiving" observation above applies when the DS is stopped *before* or *during* the initial discovery handshake. If killed *after* discovery is complete, existing connections persist.
+
+---
+
 ## Cleanup
 
 ```bash
-docker rm -f fan_out_test
+docker rm -f single_pub_multi_sub_test
 ```
