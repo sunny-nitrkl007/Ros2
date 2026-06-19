@@ -14,6 +14,9 @@ using namespace std::chrono_literals;
     : Node("{{ node.name }}")
 {% endif %}
 {
+    this->declare_parameter<int>("step_delay_ms", {{ node.parameters.step_delay_ms | default(500) }});
+    step_delay_ms_ = this->get_parameter("step_delay_ms").as_int();
+
     action_server_ = rclcpp_action::create_server<{{ action_type }}>(
         this,
         "{{ node.action }}",
@@ -24,7 +27,9 @@ using namespace std::chrono_literals;
         std::bind(&{{ node.name | capitalize }}::handle_accepted, this,
             std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(), "Action server '%s' ready.", "{{ node.action }}");
+    RCLCPP_INFO(this->get_logger(),
+        "Action server '%s' ready. step_delay_ms=%d",
+        "{{ node.action }}", step_delay_ms_);
 }
 
 rclcpp_action::GoalResponse {{ node.name | capitalize }}::handle_goal(
@@ -45,7 +50,6 @@ rclcpp_action::CancelResponse {{ node.name | capitalize }}::handle_cancel(
 void {{ node.name | capitalize }}::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle)
 {
-    // Execute in a detached thread so the server stays responsive
     std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
 }
 
@@ -53,7 +57,8 @@ void {{ node.name | capitalize }}::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle)
 {
     const int order = goal_handle->get_goal()->order;
-    RCLCPP_INFO(this->get_logger(), "Executing: computing Fibonacci(%d)...", order);
+    RCLCPP_INFO(this->get_logger(),
+        "Executing: Fibonacci(%d) with %d ms between steps.", order, step_delay_ms_);
 
     auto feedback = std::make_shared<{{ action_type }}::Feedback>();
     auto & seq    = feedback->partial_sequence;
@@ -62,7 +67,7 @@ void {{ node.name | capitalize }}::execute(
 
     for (int i = 2; i < order && rclcpp::ok(); ++i) {
         if (goal_handle->is_canceling()) {
-            auto result    = std::make_shared<{{ action_type }}::Result>();
+            auto result      = std::make_shared<{{ action_type }}::Result>();
             result->sequence = seq;
             goal_handle->canceled(result);
             RCLCPP_INFO(this->get_logger(), "Goal cancelled at step %d.", i);
@@ -72,7 +77,7 @@ void {{ node.name | capitalize }}::execute(
         goal_handle->publish_feedback(feedback);
         RCLCPP_INFO(this->get_logger(),
             "Feedback [%d/%d]: F(%d)=%d", i, order - 1, i, seq.back());
-        std::this_thread::sleep_for(500ms);
+        std::this_thread::sleep_for(std::chrono::milliseconds(step_delay_ms_));
     }
 
     auto result      = std::make_shared<{{ action_type }}::Result>();

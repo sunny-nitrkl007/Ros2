@@ -19,6 +19,8 @@ private:
 
     rclcpp_action::Client<example_interfaces::action::Fibonacci>::SharedPtr action_client_;
     rclcpp::TimerBase::SharedPtr timer_;
+    int    default_order_;
+    double goal_interval_s_;
 
 
 };

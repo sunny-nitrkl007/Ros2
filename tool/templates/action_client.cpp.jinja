@@ -3,8 +3,6 @@
 #include "{{ action_include }}"
 #include "{{ node.name }}.hpp"
 
-using namespace std::chrono_literals;
-
 {{ node.name | capitalize }}::{{ node.name | capitalize }}()
 {% if node.namespace %}
     : Node("{{ node.name }}", "{{ node.namespace }}")
@@ -12,25 +10,32 @@ using namespace std::chrono_literals;
     : Node("{{ node.name }}")
 {% endif %}
 {
+    this->declare_parameter<int>("default_order",    {{ node.parameters.default_order | default(10) }});
+    this->declare_parameter<double>("goal_interval_s", {{ node.parameters.goal_interval_s | default(5.0) }});
+
+    default_order_   = this->get_parameter("default_order").as_int();
+    goal_interval_s_ = this->get_parameter("goal_interval_s").as_double();
+
     action_client_ = rclcpp_action::create_client<{{ action_type }}>(this, "{{ node.action }}");
 
-    // Send a new goal every 5 seconds so you can observe the full goal/feedback/result cycle
     timer_ = this->create_wall_timer(
-        5000ms, std::bind(&{{ node.name | capitalize }}::send_goal, this));
+        std::chrono::milliseconds(static_cast<int>(goal_interval_s_ * 1000.0)),
+        std::bind(&{{ node.name | capitalize }}::send_goal, this));
 
     RCLCPP_INFO(this->get_logger(),
-        "Action client ready. Sending goals to '%s' every 5 s.", "{{ node.action }}");
+        "Action client ready. Sending goals to '%s': order=%d every %.1f s.",
+        "{{ node.action }}", default_order_, goal_interval_s_);
 }
 
 void {{ node.name | capitalize }}::send_goal()
 {
-    if (!action_client_->wait_for_action_server(1s)) {
+    if (!action_client_->wait_for_action_server(std::chrono::seconds(1))) {
         RCLCPP_WARN(this->get_logger(), "Action server not available, waiting...");
         return;
     }
 
-    auto goal    = {{ action_type }}::Goal();
-    goal.order   = 10;
+    auto goal  = {{ action_type }}::Goal();
+    goal.order = default_order_;
     RCLCPP_INFO(this->get_logger(), "Sending goal: order=%d", goal.order);
 
     auto options = rclcpp_action::Client<{{ action_type }}>::SendGoalOptions();

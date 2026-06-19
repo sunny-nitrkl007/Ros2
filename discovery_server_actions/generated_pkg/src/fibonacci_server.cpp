@@ -12,6 +12,9 @@ Fibonacci_server::Fibonacci_server()
     : Node("fibonacci_server")
 
 {
+    this->declare_parameter<int>("step_delay_ms", 500);
+    step_delay_ms_ = this->get_parameter("step_delay_ms").as_int();
+
     action_server_ = rclcpp_action::create_server<example_interfaces::action::Fibonacci>(
         this,
         "/fibonacci",
@@ -22,7 +25,9 @@ Fibonacci_server::Fibonacci_server()
         std::bind(&Fibonacci_server::handle_accepted, this,
             std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(), "Action server '%s' ready.", "/fibonacci");
+    RCLCPP_INFO(this->get_logger(),
+        "Action server '%s' ready. step_delay_ms=%d",
+        "/fibonacci", step_delay_ms_);
 }
 
 rclcpp_action::GoalResponse Fibonacci_server::handle_goal(
@@ -43,7 +48,6 @@ rclcpp_action::CancelResponse Fibonacci_server::handle_cancel(
 void Fibonacci_server::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<example_interfaces::action::Fibonacci>> goal_handle)
 {
-    // Execute in a detached thread so the server stays responsive
     std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
 }
 
@@ -51,7 +55,8 @@ void Fibonacci_server::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<example_interfaces::action::Fibonacci>> goal_handle)
 {
     const int order = goal_handle->get_goal()->order;
-    RCLCPP_INFO(this->get_logger(), "Executing: computing Fibonacci(%d)...", order);
+    RCLCPP_INFO(this->get_logger(),
+        "Executing: Fibonacci(%d) with %d ms between steps.", order, step_delay_ms_);
 
     auto feedback = std::make_shared<example_interfaces::action::Fibonacci::Feedback>();
     auto & seq    = feedback->partial_sequence;
@@ -60,7 +65,7 @@ void Fibonacci_server::execute(
 
     for (int i = 2; i < order && rclcpp::ok(); ++i) {
         if (goal_handle->is_canceling()) {
-            auto result    = std::make_shared<example_interfaces::action::Fibonacci::Result>();
+            auto result      = std::make_shared<example_interfaces::action::Fibonacci::Result>();
             result->sequence = seq;
             goal_handle->canceled(result);
             RCLCPP_INFO(this->get_logger(), "Goal cancelled at step %d.", i);
@@ -70,7 +75,7 @@ void Fibonacci_server::execute(
         goal_handle->publish_feedback(feedback);
         RCLCPP_INFO(this->get_logger(),
             "Feedback [%d/%d]: F(%d)=%d", i, order - 1, i, seq.back());
-        std::this_thread::sleep_for(500ms);
+        std::this_thread::sleep_for(std::chrono::milliseconds(step_delay_ms_));
     }
 
     auto result      = std::make_shared<example_interfaces::action::Fibonacci::Result>();

@@ -1,1 +1,6 @@
-parameters: {}
+parameters:
+  fibonacci_server:
+    step_delay_ms: 500      # milliseconds between each feedback step
+  fibonacci_client:
+    default_order: 10       # how many Fibonacci numbers to compute per goal
+    goal_interval_s: 5.0    # seconds between sending new goals

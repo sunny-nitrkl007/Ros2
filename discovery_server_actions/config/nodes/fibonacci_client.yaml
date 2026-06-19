@@ -3,3 +3,4 @@ node:
   type: action_client
   action: /fibonacci
   action_type: example_interfaces/action/Fibonacci
+  parameters: fibonacci_client

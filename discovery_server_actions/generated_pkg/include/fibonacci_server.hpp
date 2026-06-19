@@ -29,6 +29,7 @@ private:
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<example_interfaces::action::Fibonacci>> goal_handle);
 
     rclcpp_action::Server<example_interfaces::action::Fibonacci>::SharedPtr action_server_;
+    int step_delay_ms_;
 
 
 };

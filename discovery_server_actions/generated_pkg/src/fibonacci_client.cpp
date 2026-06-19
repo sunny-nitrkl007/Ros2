@@ -3,32 +3,37 @@
 #include "example_interfaces/action/fibonacci.hpp"
 #include "fibonacci_client.hpp"
 
-using namespace std::chrono_literals;
-
 Fibonacci_client::Fibonacci_client()
 
     : Node("fibonacci_client")
 
 {
+    this->declare_parameter<int>("default_order",    10);
+    this->declare_parameter<double>("goal_interval_s", 5.0);
+
+    default_order_   = this->get_parameter("default_order").as_int();
+    goal_interval_s_ = this->get_parameter("goal_interval_s").as_double();
+
     action_client_ = rclcpp_action::create_client<example_interfaces::action::Fibonacci>(this, "/fibonacci");
 
-    // Send a new goal every 5 seconds so you can observe the full goal/feedback/result cycle
     timer_ = this->create_wall_timer(
-        5000ms, std::bind(&Fibonacci_client::send_goal, this));
+        std::chrono::milliseconds(static_cast<int>(goal_interval_s_ * 1000.0)),
+        std::bind(&Fibonacci_client::send_goal, this));
 
     RCLCPP_INFO(this->get_logger(),
-        "Action client ready. Sending goals to '%s' every 5 s.", "/fibonacci");
+        "Action client ready. Sending goals to '%s': order=%d every %.1f s.",
+        "/fibonacci", default_order_, goal_interval_s_);
 }
 
 void Fibonacci_client::send_goal()
 {
-    if (!action_client_->wait_for_action_server(1s)) {
+    if (!action_client_->wait_for_action_server(std::chrono::seconds(1))) {
         RCLCPP_WARN(this->get_logger(), "Action server not available, waiting...");
         return;
     }
 
-    auto goal    = example_interfaces::action::Fibonacci::Goal();
-    goal.order   = 10;
+    auto goal  = example_interfaces::action::Fibonacci::Goal();
+    goal.order = default_order_;
     RCLCPP_INFO(this->get_logger(), "Sending goal: order=%d", goal.order);
 
     auto options = rclcpp_action::Client<example_interfaces::action::Fibonacci>::SendGoalOptions();
