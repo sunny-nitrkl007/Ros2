@@ -1,0 +1,5 @@
+node:
+  name: fibonacci_server
+  type: action_server
+  action: /fibonacci
+  action_type: example_interfaces/action/Fibonacci

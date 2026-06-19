@@ -1,0 +1,6 @@
+node:
+  name: lifecycle_listener
+  type: lifecycle_subscriber
+  topic: chatter
+  qos: best_effort_qos
+  parameters: lifecycle_listener

@@ -1,0 +1,6 @@
+application:
+  name: lifecycle_system
+  domain_id: 10
+  nodes:
+    - lifecycle_talker
+    - lifecycle_listener

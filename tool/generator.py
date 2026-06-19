@@ -59,35 +59,60 @@ print(f"Parameter groups  : {list(parameters.keys())}")
 print("================================\n")
 
 
+# ---------- type conversion helpers ----------
+
 def msg_to_cpp(msg):
     return msg.replace("/", "::")
-
 
 def msg_to_include(msg):
     parts = msg.split("/")
     parts[-1] = parts[-1].lower()
     return "/".join(parts) + ".hpp"
 
-
 def srv_to_cpp(srv):
     return srv.replace("/", "::")
-
 
 def srv_to_include(srv):
     parts = srv.split("/")
     parts[-1] = parts[-1].lower()
     return "/".join(parts) + ".hpp"
 
+def action_to_cpp(action):
+    return action.replace("/", "::")
+
+def action_to_include(action):
+    parts = action.split("/")
+    parts[-1] = parts[-1].lower()
+    return "/".join(parts) + ".hpp"
+
+
+# ---------- dependency collection ----------
+
+_TOPIC_TYPES  = ("publisher", "subscriber", "lifecycle_publisher", "lifecycle_subscriber")
+_SRV_TYPES    = ("service_server", "service_client")
+_ACTION_TYPES = ("action_server", "action_client")
+_LC_TYPES     = ("lifecycle_publisher", "lifecycle_subscriber")
+
 
 def collect_deps(nodes):
     deps = {"rclcpp"}
     for node in nodes:
+        ntype = node["type"]
         if node.get("message_type"):
             deps.add(node["message_type"].split("/")[0])
         if node.get("srv_type_raw"):
             deps.add(node["srv_type_raw"].split("/")[0])
+        if node.get("action_type_raw"):
+            deps.add(node["action_type_raw"].split("/")[0])
+        if ntype in _ACTION_TYPES:
+            deps.add("rclcpp_action")
+        if ntype in _LC_TYPES:
+            deps.add("rclcpp_lifecycle")
+            deps.add("lifecycle_msgs")
     return sorted(deps)
 
+
+# ---------- node resolution ----------
 
 def resolve_node(node_name):
     node_yaml = load_yaml(f"config/nodes/{node_name}.yaml")["node"]
@@ -101,7 +126,7 @@ def resolve_node(node_name):
         "parameters":  parameters.get(node_yaml.get("parameters", ""), {}),
     }
 
-    if node_type in ("publisher", "subscriber"):
+    if node_type in _TOPIC_TYPES:
         topic_name = node_yaml["topic"]
         topic_info = topics[topic_name]
         result.update({
@@ -110,41 +135,55 @@ def resolve_node(node_name):
             "qos":          qos_profiles.get(node_yaml.get("qos", ""), {}),
             "qos_name":     node_yaml.get("qos", ""),
         })
-    elif node_type in ("service_server", "service_client"):
+    elif node_type in _SRV_TYPES:
         result.update({
             "service":      node_yaml["service"],
             "srv_type_raw": node_yaml["srv_type"],
+        })
+    elif node_type in _ACTION_TYPES:
+        result.update({
+            "action":          node_yaml["action"],
+            "action_type_raw": node_yaml["action_type"],
         })
 
     return result
 
 
-def generate_node(node):
-    node_type   = node["type"]
-    msg_type    = msg_include = srv_type = srv_include = ""
+# ---------- code generation ----------
 
-    if node_type in ("publisher", "subscriber"):
+def generate_node(node):
+    node_type      = node["type"]
+    msg_type       = msg_include    = ""
+    srv_type       = srv_include    = ""
+    action_type    = action_include = ""
+
+    if node_type in _TOPIC_TYPES:
         msg_type    = msg_to_cpp(node["message_type"])
         msg_include = msg_to_include(node["message_type"])
         print(f"\n>> Node: {node['name']}  type={node_type}  topic={node.get('topic', '')}  ns='{node.get('namespace', '')}'")
-    elif node_type in ("service_server", "service_client"):
+    elif node_type in _SRV_TYPES:
         srv_type    = srv_to_cpp(node["srv_type_raw"])
         srv_include = srv_to_include(node["srv_type_raw"])
         print(f"\n>> Node: {node['name']}  type={node_type}  service={node.get('service', '')}  ns='{node.get('namespace', '')}'")
+    elif node_type in _ACTION_TYPES:
+        action_type    = action_to_cpp(node["action_type_raw"])
+        action_include = action_to_include(node["action_type_raw"])
+        print(f"\n>> Node: {node['name']}  type={node_type}  action={node.get('action', '')}  ns='{node.get('namespace', '')}'")
 
-    rendered_cpp = env.get_template(f"{node_type}.cpp.jinja").render(
-        node=node, msg_type=msg_type, msg_include=msg_include,
-        srv_type=srv_type, srv_include=srv_include,
+    ctx = dict(
+        node=node,
+        msg_type=msg_type,       msg_include=msg_include,
+        srv_type=srv_type,       srv_include=srv_include,
+        action_type=action_type, action_include=action_include,
     )
+
+    rendered_cpp = env.get_template(f"{node_type}.cpp.jinja").render(**ctx)
     cpp_path = out(f"generated_pkg/src/{node['name']}.cpp")
     with open(cpp_path, "w", encoding="utf-8") as f:
         f.write(rendered_cpp)
     print(f"   -> {cpp_path}")
 
-    rendered_hpp = env.get_template("node.hpp.jinja").render(
-        node=node, msg_type=msg_type, msg_include=msg_include,
-        srv_type=srv_type, srv_include=srv_include,
-    )
+    rendered_hpp = env.get_template("node.hpp.jinja").render(**ctx)
     hpp_path = out(f"generated_pkg/include/{node['name']}.hpp")
     with open(hpp_path, "w", encoding="utf-8") as f:
         f.write(rendered_hpp)

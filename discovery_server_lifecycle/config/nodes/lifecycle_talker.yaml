@@ -1,0 +1,6 @@
+node:
+  name: lifecycle_talker
+  type: lifecycle_publisher
+  topic: chatter
+  qos: default_qos
+  parameters: lifecycle_talker

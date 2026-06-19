@@ -1,0 +1,5 @@
+node:
+  name: fibonacci_client
+  type: action_client
+  action: /fibonacci
+  action_type: example_interfaces/action/Fibonacci

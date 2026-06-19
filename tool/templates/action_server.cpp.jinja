@@ -1,0 +1,92 @@
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "{{ action_include }}"
+#include "{{ node.name }}.hpp"
+
+#include <thread>
+
+using namespace std::chrono_literals;
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    action_server_ = rclcpp_action::create_server<{{ action_type }}>(
+        this,
+        "{{ node.action }}",
+        std::bind(&{{ node.name | capitalize }}::handle_goal,     this,
+            std::placeholders::_1, std::placeholders::_2),
+        std::bind(&{{ node.name | capitalize }}::handle_cancel,   this,
+            std::placeholders::_1),
+        std::bind(&{{ node.name | capitalize }}::handle_accepted, this,
+            std::placeholders::_1));
+
+    RCLCPP_INFO(this->get_logger(), "Action server '%s' ready.", "{{ node.action }}");
+}
+
+rclcpp_action::GoalResponse {{ node.name | capitalize }}::handle_goal(
+    const rclcpp_action::GoalUUID & /*uuid*/,
+    std::shared_ptr<const {{ action_type }}::Goal> goal)
+{
+    RCLCPP_INFO(this->get_logger(), "Received goal request: order=%d", goal->order);
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+rclcpp_action::CancelResponse {{ node.name | capitalize }}::handle_cancel(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> /*goal_handle*/)
+{
+    RCLCPP_INFO(this->get_logger(), "Cancel request received.");
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void {{ node.name | capitalize }}::handle_accepted(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle)
+{
+    // Execute in a detached thread so the server stays responsive
+    std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
+}
+
+void {{ node.name | capitalize }}::execute(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle)
+{
+    const int order = goal_handle->get_goal()->order;
+    RCLCPP_INFO(this->get_logger(), "Executing: computing Fibonacci(%d)...", order);
+
+    auto feedback = std::make_shared<{{ action_type }}::Feedback>();
+    auto & seq    = feedback->partial_sequence;
+    seq.push_back(0);
+    seq.push_back(1);
+
+    for (int i = 2; i < order && rclcpp::ok(); ++i) {
+        if (goal_handle->is_canceling()) {
+            auto result    = std::make_shared<{{ action_type }}::Result>();
+            result->sequence = seq;
+            goal_handle->canceled(result);
+            RCLCPP_INFO(this->get_logger(), "Goal cancelled at step %d.", i);
+            return;
+        }
+        seq.push_back(seq[i - 1] + seq[i - 2]);
+        goal_handle->publish_feedback(feedback);
+        RCLCPP_INFO(this->get_logger(),
+            "Feedback [%d/%d]: F(%d)=%d", i, order - 1, i, seq.back());
+        std::this_thread::sleep_for(500ms);
+    }
+
+    auto result      = std::make_shared<{{ action_type }}::Result>();
+    result->sequence = seq;
+    goal_handle->succeed(result);
+    RCLCPP_INFO(this->get_logger(),
+        "Goal succeeded. Sequence length=%zu, last value=%d",
+        seq.size(), seq.back());
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<{{ node.name | capitalize }}>());
+    rclcpp::shutdown();
+    return 0;
+}

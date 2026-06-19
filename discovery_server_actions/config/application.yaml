@@ -1,0 +1,6 @@
+application:
+  name: actions_system
+  domain_id: 10
+  nodes:
+    - fibonacci_server
+    - fibonacci_client

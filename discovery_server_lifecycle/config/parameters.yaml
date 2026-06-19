@@ -1,0 +1,5 @@
+parameters:
+  lifecycle_talker:
+    publish_rate: 1.0
+  lifecycle_listener:
+    log_prefix: "[lifecycle] Received:"
