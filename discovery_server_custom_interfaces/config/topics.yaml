@@ -1,0 +1,3 @@
+topics:
+  sensor_data:
+    type: custom_interfaces_pkg/msg/Sensor

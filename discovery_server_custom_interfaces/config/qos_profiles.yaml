@@ -1,0 +1,4 @@
+qos_profiles:
+  sensor_qos:
+    reliability: reliable
+    depth: 10

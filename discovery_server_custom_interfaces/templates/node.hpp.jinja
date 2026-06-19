@@ -1,0 +1,120 @@
+#pragma once
+
+{% if node.type in ["lifecycle_publisher", "lifecycle_subscriber"] %}
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "{{ msg_include }}"
+
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+class {{ node.name | capitalize }} : public rclcpp_lifecycle::LifecycleNode
+{
+public:
+    {{ node.name | capitalize }}();
+
+    CallbackReturn on_configure(const rclcpp_lifecycle::State & state) override;
+    CallbackReturn on_activate(const rclcpp_lifecycle::State & state) override;
+    CallbackReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
+    CallbackReturn on_cleanup(const rclcpp_lifecycle::State & state) override;
+    CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;
+
+{% if node.type == "lifecycle_publisher" %}
+private:
+    void publish_message();
+
+    rclcpp_lifecycle::LifecyclePublisher<{{ msg_type }}>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    double publish_rate_;
+    size_t count_ = 0;
+
+{% else %}
+private:
+    void callback(const {{ msg_type }}::SharedPtr msg);
+
+    rclcpp::Subscription<{{ msg_type }}>::SharedPtr subscription_;
+    std::string log_prefix_;
+    bool active_ = false;
+
+{% endif %}
+};
+
+{% else %}
+#include "rclcpp/rclcpp.hpp"
+{% if node.type in ["publisher", "subscriber"] %}
+#include "{{ msg_include }}"
+{% elif node.type in ["service_server", "service_client"] %}
+#include "{{ srv_include }}"
+{% elif node.type in ["action_server", "action_client"] %}
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "{{ action_include }}"
+#include <thread>
+{% endif %}
+
+class {{ node.name | capitalize }} : public rclcpp::Node
+{
+public:
+    {{ node.name | capitalize }}();
+
+{% if node.type == "publisher" %}
+private:
+    void publish_message();
+
+    rclcpp::Publisher<{{ msg_type }}>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    std::string sensor_id_;
+    double publish_rate_;
+    size_t count_ = 0;
+
+{% elif node.type == "subscriber" %}
+private:
+    void callback(const {{ msg_type }}::SharedPtr msg);
+
+    rclcpp::Subscription<{{ msg_type }}>::SharedPtr subscription_;
+    std::string log_prefix_;
+
+{% elif node.type == "service_server" %}
+private:
+    void handle_request(
+        const {{ srv_type }}::Request::SharedPtr request,
+        {{ srv_type }}::Response::SharedPtr response);
+
+    rclcpp::Service<{{ srv_type }}>::SharedPtr service_;
+
+{% elif node.type == "service_client" %}
+private:
+    void send_request();
+
+    rclcpp::Client<{{ srv_type }}>::SharedPtr client_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    std::string target_sensor_id_;
+    double query_interval_s_;
+
+{% elif node.type == "action_server" %}
+private:
+    rclcpp_action::GoalResponse handle_goal(
+        const rclcpp_action::GoalUUID & uuid,
+        std::shared_ptr<const {{ action_type }}::Goal> goal);
+
+    rclcpp_action::CancelResponse handle_cancel(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle);
+
+    void handle_accepted(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle);
+
+    void execute(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle);
+
+    rclcpp_action::Server<{{ action_type }}>::SharedPtr action_server_;
+    int step_delay_ms_;
+
+{% elif node.type == "action_client" %}
+private:
+    void send_goal();
+
+    rclcpp_action::Client<{{ action_type }}>::SharedPtr action_client_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    int    default_order_;
+    double goal_interval_s_;
+
+{% endif %}
+};
+{% endif %}

@@ -1,0 +1,6 @@
+string sensor_id
+---
+float64 temperature
+float64 humidity
+bool sensor_found
+string message

@@ -1,0 +1,61 @@
+#include "rclcpp/rclcpp.hpp"
+#include "{{ msg_include }}"
+#include "{{ node.name }}.hpp"
+#include <cmath>
+
+using namespace std::chrono_literals;
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    this->declare_parameter<double>("publish_rate", {{ node.parameters.publish_rate | default(1.0) }});
+    this->declare_parameter<std::string>("sensor_id", "{{ node.parameters.sensor_id | default('sensor_01') }}");
+
+    publish_rate_ = this->get_parameter("publish_rate").as_double();
+    sensor_id_    = this->get_parameter("sensor_id").as_string();
+
+    rclcpp::QoS qos(rclcpp::KeepLast({{ node.qos.depth | default(10) }}));
+
+    {% if node.qos.reliability == "reliable" %}
+    qos.reliable();
+    {% else %}
+    qos.best_effort();
+    {% endif %}
+
+    publisher_ = this->create_publisher<{{ msg_type }}>("{{ node.topic }}", qos);
+
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(static_cast<int>(1000.0 / publish_rate_)),
+        std::bind(&{{ node.name | capitalize }}::publish_message, this));
+
+    RCLCPP_INFO(this->get_logger(),
+        "Sensor publisher ready: id='%s'  rate=%.1f Hz  topic='{{ node.topic }}'",
+        sensor_id_.c_str(), publish_rate_);
+}
+
+void {{ node.name | capitalize }}::publish_message()
+{
+    auto msg = {{ msg_type }}();
+    msg.sensor_id       = sensor_id_;
+    msg.temperature     = 22.0 + std::sin(static_cast<double>(count_) * 0.2) * 5.0;
+    msg.humidity        = 55.0 + std::cos(static_cast<double>(count_) * 0.15) * 10.0;
+    msg.sequence_number = static_cast<int32_t>(count_++);
+
+    RCLCPP_INFO(this->get_logger(),
+        "[%s] seq=%d  temp=%.2f C  hum=%.1f %%",
+        msg.sensor_id.c_str(), msg.sequence_number,
+        msg.temperature, msg.humidity);
+    publisher_->publish(msg);
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<{{ node.name | capitalize }}>());
+    rclcpp::shutdown();
+    return 0;
+}

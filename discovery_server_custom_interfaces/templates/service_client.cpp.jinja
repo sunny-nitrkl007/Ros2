@@ -1,0 +1,66 @@
+#include "rclcpp/rclcpp.hpp"
+#include "{{ srv_include }}"
+#include "{{ node.name }}.hpp"
+
+using namespace std::chrono_literals;
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    this->declare_parameter<std::string>("target_sensor_id",
+        "{{ node.parameters.target_sensor_id | default('sensor_01') }}");
+    this->declare_parameter<double>("query_interval_s",
+        {{ node.parameters.query_interval_s | default(3.0) }});
+
+    target_sensor_id_ = this->get_parameter("target_sensor_id").as_string();
+    query_interval_s_ = this->get_parameter("query_interval_s").as_double();
+
+    client_ = this->create_client<{{ srv_type }}>("{{ node.service }}");
+
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(static_cast<int>(query_interval_s_ * 1000.0)),
+        std::bind(&{{ node.name | capitalize }}::send_request, this));
+
+    RCLCPP_INFO(this->get_logger(),
+        "Sensor query client ready: querying '%s' every %.1f s on '{{ node.service }}'.",
+        target_sensor_id_.c_str(), query_interval_s_);
+}
+
+void {{ node.name | capitalize }}::send_request()
+{
+    if (!client_->wait_for_service(1s)) {
+        RCLCPP_WARN(this->get_logger(), "Service not available, waiting...");
+        return;
+    }
+
+    auto request = std::make_shared<{{ srv_type }}::Request>();
+    request->sensor_id = target_sensor_id_;
+
+    client_->async_send_request(
+        request,
+        [this](rclcpp::Client<{{ srv_type }}>::SharedFuture f) {
+            auto resp = f.get();
+            if (resp->sensor_found) {
+                RCLCPP_INFO(this->get_logger(),
+                    "Query [%s]: temp=%.2f C  hum=%.1f %%",
+                    target_sensor_id_.c_str(),
+                    resp->temperature, resp->humidity);
+            } else {
+                RCLCPP_WARN(this->get_logger(),
+                    "Query [%s]: not found — %s",
+                    target_sensor_id_.c_str(), resp->message.c_str());
+            }
+        });
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<{{ node.name | capitalize }}>());
+    rclcpp::shutdown();
+    return 0;
+}

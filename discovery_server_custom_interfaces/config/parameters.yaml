@@ -1,0 +1,7 @@
+parameters:
+  sensor_publisher:
+    publish_rate: 1.0
+    sensor_id: temp_sensor_01
+  sensor_query_client:
+    target_sensor_id: temp_sensor_01
+    query_interval_s: 3.0

@@ -28,6 +28,9 @@ Each project folder below tests a specific capability or topology through the di
 | [discovery_server_services](discovery_server_services/README.md) | server ↔ client | ROS2 services (request/response) through discovery server |
 | [discovery_server_multi_robot](discovery_server_multi_robot/README.md) | /robot1 + /robot2 | Namespace isolation — two robots, same server, separate topics |
 | [discovery_server_failover](discovery_server_failover/README.md) | primary + backup | Server redundancy — nodes survive primary server failure |
+| [discovery_server_actions](discovery_server_actions/README.md) | server ↔ client | ROS2 actions (goal/feedback/result) through discovery server |
+| [discovery_server_lifecycle](discovery_server_lifecycle/README.md) | pub + sub | Lifecycle node state machine (configure/activate/deactivate) |
+| [discovery_server_custom_interfaces](discovery_server_custom_interfaces/README.md) | pub + sub + svc | User-defined `.msg` and `.srv` types via a local interfaces package |
 
 ---
 
@@ -37,7 +40,7 @@ Each project folder below tests a specific capability or topology through the di
 discoveryTesting/
 ├── tool/                                    # Reusable infrastructure — shared across all projects
 │   ├── generator.py                         # YAML + Jinja → C++ code generator
-│   ├── Dockerfile                           # Builds any project (uses ARG PROJECT)
+│   ├── Dockerfile                           # Builds any single-package project (uses ARG PROJECT)
 │   ├── entrypoint.sh                        # Container entrypoint
 │   ├── client.xml                           # Fast-DDS SUPER_CLIENT profile (single server)
 │   ├── server.xml                           # Fast-DDS SERVER profile (optional)
@@ -46,16 +49,23 @@ discoveryTesting/
 │       ├── subscriber.cpp.jinja
 │       ├── service_server.cpp.jinja
 │       ├── service_client.cpp.jinja
+│       ├── action_server.cpp.jinja
+│       ├── action_client.cpp.jinja
+│       ├── lifecycle_publisher.cpp.jinja
+│       ├── lifecycle_subscriber.cpp.jinja
 │       ├── node.hpp.jinja
 │       ├── CMakeLists.txt.jinja
 │       └── package.xml.jinja
 │
 ├── discovery_server_single_pub_sub/         # Project 1 — baseline pub/sub
-├── discovery_server_single_pub_multi_sub/           # Project 2 — one publisher, many subscribers
-├── discovery_server_multi_pub_single_sub/           # Project 3 — many publishers, one subscriber
+├── discovery_server_single_pub_multi_sub/   # Project 2 — fan-out
+├── discovery_server_multi_pub_single_sub/   # Project 3 — fan-in
 ├── discovery_server_services/               # Project 4 — ROS2 services
 ├── discovery_server_multi_robot/            # Project 5 — namespaced robots
-└── discovery_server_failover/               # Project 6 — server failover
+├── discovery_server_failover/               # Project 6 — server failover
+├── discovery_server_actions/                # Project 7 — ROS2 actions
+├── discovery_server_lifecycle/              # Project 8 — lifecycle nodes
+└── discovery_server_custom_interfaces/      # Project 9 — user-defined .msg / .srv types
 ```
 
 Each project folder has the same internal structure:
@@ -70,6 +80,14 @@ Each project folder has the same internal structure:
 │   └── discovery.yaml       # Discovery server address reference
 ├── generated_pkg/           # Output of the generator (do not edit by hand)
 └── README.md                # Project-specific test guide
+```
+
+Projects that need custom behaviour can add:
+```
+<project>/
+├── templates/               # Optional: overrides for any shared template
+│   └── publisher.cpp.jinja  # Project-specific version wins over tool/templates/
+└── custom_interfaces_pkg/   # Optional: defines .msg / .srv / .action types
 ```
 
 ---
@@ -97,28 +115,34 @@ python tool/generator.py --project discovery_server_multi_pub_single_sub
 python tool/generator.py --project discovery_server_services
 python tool/generator.py --project discovery_server_multi_robot
 python tool/generator.py --project discovery_server_failover
+python tool/generator.py --project discovery_server_actions
+python tool/generator.py --project discovery_server_lifecycle
+python tool/generator.py --project discovery_server_custom_interfaces
 ```
 
 ---
 
 ## Docker — Build and Run
 
-The single Dockerfile in `tool/` accepts a `PROJECT` build argument so one Dockerfile serves all projects.
+The shared Dockerfile in `tool/` accepts a `PROJECT` build argument and serves all single-package projects. Projects that need additional packages (like custom interfaces) ship their own Dockerfile.
 
 ### Build
 
 Always run from `discoveryTesting/` (not from inside `tool/`):
 
 ```bash
-# Default — builds discovery_server_single_pub_sub
+# Single-package projects — use shared tool/Dockerfile with ARG PROJECT
 docker build --no-cache -f tool/Dockerfile -t ros2_ds_single .
+docker build --no-cache --build-arg PROJECT=discovery_server_single_pub_multi_sub -f tool/Dockerfile -t ros2_ds_fan_out .
+docker build --no-cache --build-arg PROJECT=discovery_server_multi_pub_single_sub -f tool/Dockerfile -t ros2_ds_fan_in  .
+docker build --no-cache --build-arg PROJECT=discovery_server_services             -f tool/Dockerfile -t ros2_ds_services .
+docker build --no-cache --build-arg PROJECT=discovery_server_multi_robot          -f tool/Dockerfile -t ros2_ds_multi_robot .
+docker build --no-cache --build-arg PROJECT=discovery_server_failover             -f tool/Dockerfile -t ros2_ds_failover .
+docker build --no-cache --build-arg PROJECT=discovery_server_actions              -f tool/Dockerfile -t ros2_ds_actions .
+docker build --no-cache --build-arg PROJECT=discovery_server_lifecycle            -f tool/Dockerfile -t ros2_ds_lifecycle .
 
-# Build a specific project
-docker build --no-cache --build-arg PROJECT=discovery_server_single_pub_multi_sub      -f tool/Dockerfile -t ros2_discovery_server_single_pub_multi_sub      .
-docker build --no-cache --build-arg PROJECT=discovery_server_multi_pub_single_sub       -f tool/Dockerfile -t ros2_discovery_server_multi_pub_single_sub       .
-docker build --no-cache --build-arg PROJECT=discovery_server_services     -f tool/Dockerfile -t ros2_discovery_server_services     .
-docker build --no-cache --build-arg PROJECT=discovery_server_multi_robot  -f tool/Dockerfile -t ros2_discovery_server_multi_robot  .
-docker build --no-cache --build-arg PROJECT=discovery_server_failover     -f tool/Dockerfile -t ros2_discovery_server_failover     .
+# Custom interfaces — uses its own Dockerfile (builds custom_interfaces_pkg first)
+docker build --no-cache -f discovery_server_custom_interfaces/Dockerfile -t ros2_ds_custom_interfaces .
 ```
 
 ### Run
@@ -153,16 +177,23 @@ pip install pyyaml jinja2
 
 | YAML `type` | Template Used | What It Generates |
 |---|---|---|
-| `publisher` | `publisher.cpp.jinja` | Timer-driven publisher, configurable rate |
+| `publisher` | `publisher.cpp.jinja` | Timer-driven publisher, configurable rate and message type |
 | `subscriber` | `subscriber.cpp.jinja` | Subscription with configurable log prefix |
-| `service_server` | `service_server.cpp.jinja` | Service that responds to Trigger requests |
-| `service_client` | `service_client.cpp.jinja` | Periodic service caller (every 2 s) |
+| `service_server` | `service_server.cpp.jinja` | Service server, responds to any `srv_type` |
+| `service_client` | `service_client.cpp.jinja` | Periodic service caller, configurable interval |
+| `action_server` | `action_server.cpp.jinja` | Action server with goal/feedback/result and step delay |
+| `action_client` | `action_client.cpp.jinja` | Periodic action goal sender with feedback logging |
+| `lifecycle_publisher` | `lifecycle_publisher.cpp.jinja` | Publisher with 5-state lifecycle state machine |
+| `lifecycle_subscriber` | `lifecycle_subscriber.cpp.jinja` | Subscriber with lifecycle-gated message processing |
+
+The generator auto-detects dependencies (`rclcpp_action`, `rclcpp_lifecycle`, `custom_interfaces_pkg`, etc.) from the node types and interface types listed in YAML — no manual dependency management needed.
 
 ### Optional YAML fields
 
 | Field | Applies To | Effect |
 |---|---|---|
 | `namespace` | any node | Prefixes node and topics: `Node("name", "/robot1")` |
+| `parameters` | any node | Binds a parameter group from `parameters.yaml` |
 
 ---
 
@@ -174,7 +205,11 @@ pip install pyyaml jinja2
 4. Build: `docker build --build-arg PROJECT=my_project -f tool/Dockerfile -t my_image .`
 5. Add a `my_project/README.md` with test steps
 
-No changes to `tool/` are needed for pub/sub or service projects.
+No changes to `tool/` are needed for standard node types.
+
+**To override a template for one project:** place a file with the same name inside `my_project/templates/`. The generator checks the project templates folder first and falls back to `tool/templates/`.
+
+**To add custom `.msg` / `.srv` / `.action` types:** create `my_project/custom_interfaces_pkg/` with its own `CMakeLists.txt` and `package.xml`, then reference the type as `custom_interfaces_pkg/msg/MyType` in YAML. The generator will auto-add it as a dependency. Use a project-specific Dockerfile that copies both packages.
 
 ---
 
@@ -230,6 +265,65 @@ Data transfer is the **same direct unicast** in both cases — the DS only chang
 | Cross-subnet | Fails (multicast doesn't cross routers) | Works (plain unicast) |
 
 In this project everything runs inside one Docker container, so multicast would actually work — the DS is used to **test and demonstrate** the server-based discovery mechanism itself, not because multicast is unavailable.
+
+---
+
+## Real-World Context — Automotive / ECU Networks
+
+### Why ECUs can't use normal DDS (multicast)
+
+```
+Normal DDS (SIMPLE):   broadcast "I exist" on multicast group
+ECU network reality:   CAN bus, automotive Ethernet — multicast BLOCKED
+Result:                nodes never find each other
+```
+
+This is the core reason the Discovery Server was built — automotive and embedded networks don't support UDP multicast. Every ECU needs to reach a known unicast address. That's exactly what the DS provides.
+
+### How ECUs map to this project's concepts
+
+| This project | ECU world equivalent |
+|---|---|
+| Docker container | One ECU (one compute domain) |
+| talker node | ECU publishing sensor data (e.g. radar, lidar) |
+| listener node | ECU consuming that data (e.g. fusion ECU) |
+| Discovery Server | Central Domain Controller (the powerful compute unit) |
+| `ROS_DISCOVERY_SERVER` env var | ECU bootloader config pointing to DS IP |
+| Namespace (`/robot1`) | Vehicle zone (`/front_axle`, `/powertrain`) |
+| Failover project | Redundant Domain Controllers (safety-critical systems) |
+| plain CLIENT role | Resource-constrained ECU (only sees its own topics) |
+| SUPER_CLIENT role | Domain Controller itself (needs full network view) |
+
+### Where micro-ROS comes in
+
+For truly tiny ECUs (microcontrollers — STM32, ESP32, no Linux):
+
+```
+MCU (micro-ROS) ──XRCE-DDS──> micro-ROS Agent (Linux host) ──FastDDS──> Discovery Server
+                  (lightweight                (full DDS
+                   serial/UDP)                translator)
+```
+
+- micro-ROS runs on the MCU with no OS
+- The agent runs on a Linux companion computer and acts as a DDS bridge
+- The agent registers with the DS on behalf of the MCU
+- From the DS's perspective, the agent is just another node — the MCU is invisible
+
+### Future scope — ECU simulation in this project
+
+```
+V3.0 (Docker Compose):
+  container_ds           → Discovery Server (central domain controller)
+  container_sensor_ecu   → radar/lidar publisher (plain CLIENT, resource-limited)
+  container_fusion_ecu   → data aggregator (SUPER_CLIENT, needs full view)
+  container_actuator_ecu → brake/motor controller (subscriber + service client)
+
+V4.0 (Real hardware):
+  Raspberry Pi / Jetson  → runs DS + fusion ECU
+  STM32 (micro-ROS)      → sensor ECU, connects via micro-ROS agent
+  ESP32 (micro-ROS)      → actuator ECU
+  All communicate via Discovery Server over Ethernet
+```
 
 ---
 

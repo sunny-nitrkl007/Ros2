@@ -1,0 +1,6 @@
+node:
+  name: sensor_publisher
+  type: publisher
+  topic: sensor_data
+  qos: sensor_qos
+  parameters: sensor_publisher

@@ -1,0 +1,8 @@
+application:
+  name: custom_interfaces_system
+  domain_id: 10
+  nodes:
+    - sensor_publisher
+    - sensor_subscriber
+    - sensor_query_server
+    - sensor_query_client

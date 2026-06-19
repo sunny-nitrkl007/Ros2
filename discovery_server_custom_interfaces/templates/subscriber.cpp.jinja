@@ -1,0 +1,41 @@
+#include "rclcpp/rclcpp.hpp"
+#include "{{ msg_include }}"
+#include "{{ node.name }}.hpp"
+
+{{ node.name | capitalize }}::{{ node.name | capitalize }}()
+{% if node.namespace %}
+    : Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+    : Node("{{ node.name }}")
+{% endif %}
+{
+    rclcpp::QoS qos(rclcpp::KeepLast({{ node.qos.depth | default(10) }}));
+
+    {% if node.qos.reliability == "reliable" %}
+    qos.reliable();
+    {% else %}
+    qos.best_effort();
+    {% endif %}
+
+    subscription_ = this->create_subscription<{{ msg_type }}>(
+        "{{ node.topic }}", qos,
+        std::bind(&{{ node.name | capitalize }}::callback, this, std::placeholders::_1));
+
+    RCLCPP_INFO(this->get_logger(), "Sensor subscriber ready on '{{ node.topic }}'.");
+}
+
+void {{ node.name | capitalize }}::callback(const {{ msg_type }}::SharedPtr msg)
+{
+    RCLCPP_INFO(this->get_logger(),
+        "[%s] seq=%d  temp=%.2f C  hum=%.1f %%",
+        msg->sensor_id.c_str(), msg->sequence_number,
+        msg->temperature, msg->humidity);
+}
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<{{ node.name | capitalize }}>());
+    rclcpp::shutdown();
+    return 0;
+}

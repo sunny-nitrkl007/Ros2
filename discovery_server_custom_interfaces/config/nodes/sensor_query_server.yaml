@@ -1,0 +1,5 @@
+node:
+  name: sensor_query_server
+  type: service_server
+  service: /sensor_query
+  srv_type: custom_interfaces_pkg/srv/SensorQuery

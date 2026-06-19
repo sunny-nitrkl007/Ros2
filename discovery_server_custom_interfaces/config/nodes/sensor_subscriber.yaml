@@ -1,0 +1,5 @@
+node:
+  name: sensor_subscriber
+  type: subscriber
+  topic: sensor_data
+  qos: sensor_qos
