@@ -1,5 +1,0 @@
-services:
-  - name: set_sending
-    service_name: /demo_robot/set_sending
-    service_type: rsg_v1_service_controlled_sender/srv/SetSending
-    description: Controls whether sender publishes heartbeat.

@@ -1,4 +1,0 @@
-topics:
-  - name: machine_status
-    topic_name: /machine_status
-    message_type: rsg_v1_n_1_msg/msg/MachineStatus

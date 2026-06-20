@@ -1,3 +1,0 @@
-logging:
-  enabled: false
-  default_level: info
