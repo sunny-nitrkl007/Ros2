@@ -44,6 +44,7 @@ def out(rel_path):
 
 
 application  = load_yaml("config/application.yaml")["application"]
+discovery    = load_yaml("config/discovery.yaml").get("discovery") or {}
 topics       = load_yaml("config/topics.yaml").get("topics") or {}
 qos_profiles = load_yaml("config/qos_profiles.yaml").get("qos_profiles") or {}
 parameters   = load_yaml("config/parameters.yaml").get("parameters") or {}
@@ -190,6 +191,24 @@ def generate_node(node):
     print(f"   -> {hpp_path}")
 
 
+def generate_env():
+    domain_id = application.get("domain_id", 0)
+    lines = [f"export ROS_DOMAIN_ID={domain_id}"]
+
+    if discovery.get("mode") == "server":
+        ip   = discovery.get("server_ip",   "127.0.0.1")
+        port = discovery.get("server_port",  11811)
+        lines.append(f"export ROS_DISCOVERY_SERVER={ip}:{port}")
+
+    content = "\n".join(lines) + "\n"
+    # written to project root so Dockerfile can COPY it independently of generated_pkg
+    env_path = os.path.join(PROJECT_PATH, "env.sh")
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"   -> env.sh  (domain_id={domain_id}"
+          + (f", discovery={ip}:{port}" if discovery.get('mode') == 'server' else "") + ")")
+
+
 def generate_package(nodes):
     print("\n>> Package files")
     deps = collect_deps(nodes)
@@ -219,6 +238,7 @@ def main():
         generate_node(node)
 
     generate_package(resolved_nodes)
+    generate_env()
 
     print("\n===== GENERATION COMPLETE =====")
     print(f"Nodes  : {application['nodes']}")
