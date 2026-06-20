@@ -18,11 +18,7 @@ RUN /bin/bash -c "\
     source /opt/ros/jazzy/setup.bash && \
     colcon build --packages-select generated_pkg"
 
-# Set AMENT_PREFIX_PATH as a Docker ENV so it is present in every session
-ENV AMENT_PREFIX_PATH=/ros2_ws/install/generated_pkg:/opt/ros/jazzy
-ENV PATH=/ros2_ws/install/generated_pkg/lib/generated_pkg:/opt/ros/jazzy/bin:$PATH
-
-# Source ROS base and the YAML-driven env (domain_id + discovery server) in every bash session
+# Source ROS base and env.sh (domain_id, discovery server, ament paths) in every bash session
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
     echo "source /env.sh" >> /etc/bash.bashrc
 
