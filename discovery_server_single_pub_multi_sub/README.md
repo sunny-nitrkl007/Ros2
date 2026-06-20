@@ -54,7 +54,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it single_pub_multi_sub_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg talker
 ```
 
@@ -63,7 +62,6 @@ ros2 run generated_pkg talker
 Repeat for each, changing the node name:
 ```bash
 docker exec -it single_pub_multi_sub_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg listener_1   # or listener_2 / listener_3
 ```
 

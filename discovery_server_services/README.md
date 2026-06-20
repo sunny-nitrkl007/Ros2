@@ -68,7 +68,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it services_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg reset_server
 ```
 
@@ -83,7 +82,6 @@ Expected:
 
 ```bash
 docker exec -it services_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg reset_client
 ```
 

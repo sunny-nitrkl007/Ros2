@@ -73,7 +73,6 @@ Expected:
 
 ```bash
 docker exec -it ros2_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg talker
 ```
 
@@ -87,7 +86,6 @@ Expected:
 
 ```bash
 docker exec -it ros2_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg listener
 ```
 
@@ -115,7 +113,6 @@ ros2 node list
 # (empty)
 
 # With env var — nodes appear
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 node list
 # /talker  /listener
 
@@ -142,7 +139,6 @@ This is why Test 2 above works:
 ros2 node list      # (empty)
 
 # With env var — SUPER_CLIENT gets the full picture from DS
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 node list      # /talker  /listener
 ros2 topic list     # /chatter
 ```
@@ -155,7 +151,6 @@ You never write any SUPER_CLIENT configuration explicitly. Setting the env var i
 
 ```bash
 # Method 1 — automatic (what you always use in this project)
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 
 # Method 2 — manual XML (alternative, same result, not used in test steps)
 export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/tool/client.xml

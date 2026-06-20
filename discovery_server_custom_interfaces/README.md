@@ -137,7 +137,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it ds_custom bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg sensor_publisher
 ```
 
@@ -152,7 +151,6 @@ Expected output every second:
 
 ```bash
 docker exec -it ds_custom bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg sensor_subscriber
 ```
 
@@ -165,7 +163,6 @@ Expected — mirrors the publisher output:
 
 ```bash
 docker exec -it ds_custom bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg sensor_query_server
 ```
 
@@ -178,7 +175,6 @@ Sensor query service '/sensor_query' ready.
 
 ```bash
 docker exec -it ds_custom bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg sensor_query_client
 ```
 

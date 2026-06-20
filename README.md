@@ -220,7 +220,6 @@ The generated `talker.cpp` and `listener.cpp` are plain ROS2 nodes — no mentio
 ### Scenario A — env var set, but DS not running
 
 ```bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg talker    # switches to SERVER mode, tries to reach DS
 ros2 run generated_pkg listener  # same
 ```

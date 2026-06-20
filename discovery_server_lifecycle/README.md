@@ -95,7 +95,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it lifecycle_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg lifecycle_talker
 ```
 
@@ -110,7 +109,6 @@ It is now registered with the DS but publishes nothing.
 
 ```bash
 docker exec -it lifecycle_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg lifecycle_listener
 ```
 
@@ -120,7 +118,6 @@ Same — registered with DS, no subscriptions yet.
 
 ```bash
 docker exec -it lifecycle_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ```
 
 ---

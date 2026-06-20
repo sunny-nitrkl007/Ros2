@@ -73,7 +73,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it multi_robot_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg robot1_talker
 ```
 
@@ -81,7 +80,6 @@ ros2 run generated_pkg robot1_talker
 
 ```bash
 docker exec -it multi_robot_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg robot1_listener
 ```
 
@@ -89,7 +87,6 @@ ros2 run generated_pkg robot1_listener
 
 ```bash
 docker exec -it multi_robot_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg robot2_talker
 ```
 
@@ -97,7 +94,6 @@ ros2 run generated_pkg robot2_talker
 
 ```bash
 docker exec -it multi_robot_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg robot2_listener
 ```
 
@@ -112,7 +108,6 @@ ros2 run generated_pkg robot2_listener
 Verify the isolated namespaced topics exist:
 ```bash
 docker exec -it multi_robot_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 topic list
 # /robot1/chatter
 # /robot2/chatter

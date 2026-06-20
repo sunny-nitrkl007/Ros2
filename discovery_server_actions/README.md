@@ -101,7 +101,6 @@ fastdds discovery -i 0 -p 11811
 
 ```bash
 docker exec -it actions_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg fibonacci_server
 ```
 
@@ -125,7 +124,6 @@ Expected (one block per client goal):
 
 ```bash
 docker exec -it actions_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 run generated_pkg fibonacci_client
 ```
 
@@ -153,7 +151,6 @@ Expected:
 
 ```bash
 docker exec -it actions_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 topic list
 ros2 service list
 ```
@@ -174,7 +171,6 @@ All 5 exist before the first goal is even sent — the DS registered them during
 In a 4th terminal, get the goal handle and cancel it while it's running:
 ```bash
 docker exec -it actions_test bash
-export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 ros2 action send_goal /fibonacci example_interfaces/action/Fibonacci "{order: 20}" --feedback
 # Then Ctrl+C in the client terminal while feedback is still arriving
 ```
