@@ -165,49 +165,10 @@ docker build --no-cache -f tool/Dockerfile -t <image> .
                                └── camel_to_snake: SensorQuery → sensor_query
 
      │
-     │  collect_deps() scans all nodes for package names
      ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Auto-detected dependencies                                                     │
-│                                                                                 │
-│  rclcpp (always)                                                                │
-│  + rclcpp_action        (if any action_server / action_client)                  │
-│  + rclcpp_lifecycle     (if any lifecycle_publisher / lifecycle_subscriber)     │
-│  + lifecycle_msgs       (if any lifecycle node)                                 │
-│  + <msg package>        (from topics.yaml type field, e.g. std_msgs)           │
-│  + <srv package>        (from node yaml srv_type field)                         │
-│  + <action package>     (from node yaml action_type field)                      │
-│                                                                                 │
-│  ──► generated_pkg/CMakeLists.txt    (CMakeLists.txt.jinja)                    │
-│  ──► generated_pkg/package.xml       (package.xml.jinja)                       │
-└─────────────────────────────────────────────────────────────────────────────────┘
-     │
-     │  application.yaml: extra_packages + apt_packages
-     ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  tool/Dockerfile   (Dockerfile.jinja — written to tool/ on every generator run) │
-│                                                                                 │
-│  No extra_packages:                 With extra_packages:                        │
-│    COPY <project>/generated_pkg/      COPY <project>/custom_pkg/               │
-│    colcon build                       COPY <project>/generated_pkg/             │
-│      --packages-select generated_pkg  colcon build  (resolves order via deps)  │
-│                                                                                 │
-│  No apt_packages:                   With apt_packages:                          │
-│    (no install step)                  RUN apt-get install ros-jazzy-example-.. │
-│                                                                                 │
-│  ENV AMENT_PREFIX_PATH set dynamically from all installed package paths        │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Template override resolution
-
-```
-generator.py looks for templates in this order:
-  1. <project>/templates/<name>.jinja    ← project-specific override wins
-  2. tool/templates/<name>.jinja         ← shared fallback
-
-Used by discovery_server_custom_interfaces to supply custom field names
-(msg.sensor_id, msg.temperature) instead of the generic msg.data.
+  ──► generated_pkg/CMakeLists.txt    (CMakeLists.txt.jinja)
+  ──► generated_pkg/package.xml       (package.xml.jinja)
+  ──► tool/Dockerfile                 (Dockerfile.jinja)
 ```
 
 ---
@@ -296,20 +257,6 @@ pip install pyyaml jinja2
 | `action_client` | `action_client.cpp.jinja` | Periodic action goal sender with feedback logging |
 | `lifecycle_publisher` | `lifecycle_publisher.cpp.jinja` | Publisher with 5-state lifecycle state machine |
 | `lifecycle_subscriber` | `lifecycle_subscriber.cpp.jinja` | Subscriber with lifecycle-gated message processing |
-
-### application.yaml optional fields
-
-| Field | Effect |
-|---|---|
-| `extra_packages` | Additional packages to COPY and build (e.g. `custom_interfaces_pkg`). Generator adds COPY steps and drops `--packages-select`. |
-| `apt_packages` | System packages installed via `apt-get` before the build step (e.g. `ros-jazzy-example-interfaces`). |
-
-### Per-node optional YAML fields
-
-| Field | Applies To | Effect |
-|---|---|---|
-| `namespace` | any node | Prefixes node and topics: `Node("name", "/robot1")` |
-| `parameters` | any node | Binds a parameter group from `parameters.yaml` |
 
 ---
 
