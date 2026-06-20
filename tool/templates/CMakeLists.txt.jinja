@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.8)
+project(generated_pkg)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake REQUIRED)
+{% for dep in deps %}
+find_package({{ dep }} REQUIRED)
+{% endfor %}
+
+{% for node in nodes %}
+add_executable({{ node.name }} src/{{ node.name }}.cpp)
+target_include_directories({{ node.name }} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features({{ node.name }} PUBLIC cxx_std_17)
+ament_target_dependencies({{ node.name }}
+{% for dep in deps %}
+  {{ dep }}
+{% endfor %}
+)
+
+{% endfor %}
+install(TARGETS
+{% for node in nodes %}
+  {{ node.name }}
+{% endfor %}
+  DESTINATION lib/${PROJECT_NAME})
+
+ament_package()

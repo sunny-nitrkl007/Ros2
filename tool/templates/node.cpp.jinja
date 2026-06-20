@@ -1,0 +1,159 @@
+#include "{{ node.name }}.hpp"
+
+using namespace std::chrono_literals;
+
+{{ node.class_name }}::{{ node.class_name }}()
+{% if node.namespace %}
+: Node("{{ node.name }}", "{{ node.namespace }}")
+{% else %}
+: Node("{{ node.name }}")
+{% endif %}
+{
+{% if node.parameters %}
+    // ── Parameters ────────────────────────────────────────────────────────────
+{% for pname, param in node.parameters.items() %}
+    this->declare_parameter<{{ param.cpp_type }}>("{{ pname }}", {{ param.default_expr }});
+    {{ pname }}_ = this->get_parameter("{{ pname }}").{{ param.getter }};
+{% endfor %}
+    RCLCPP_INFO(this->get_logger(), "Parameters loaded.");
+
+{% endif %}
+{% if node.callback_groups %}
+    // ── Callback groups ───────────────────────────────────────────────────────
+{% for cg in node.callback_groups %}
+    {{ cg.name }}_ = this->create_callback_group({{ cg.cbg_type }});
+{% endfor %}
+
+{% endif %}
+{% if node.publishers %}
+    // ── Publishers ────────────────────────────────────────────────────────────
+{% for pub in node.publishers %}
+    {
+        rclcpp::QoS qos(rclcpp::KeepLast({{ pub.qos.depth | default(10) }}));
+        qos.{{ pub.qos.reliability | default("reliable") }}();
+{% if pub.qos.durability is defined and pub.qos.durability == "transient_local" %}
+        qos.transient_local();
+{% endif %}
+        {{ pub.member_name }} = this->create_publisher<{{ pub.cpp_type }}>("{{ pub.topic }}", qos);
+        RCLCPP_INFO(this->get_logger(), "Publisher ready: {{ pub.topic }}");
+    }
+{% endfor %}
+
+{% endif %}
+{% if node.subscribers %}
+    // ── Subscribers ───────────────────────────────────────────────────────────
+{% for sub in node.subscribers %}
+    {
+        rclcpp::QoS qos(rclcpp::KeepLast({{ sub.qos.depth | default(10) }}));
+        qos.{{ sub.qos.reliability | default("reliable") }}();
+{% if sub.callback_group %}
+        auto sub_opts = rclcpp::SubscriptionOptions();
+        sub_opts.callback_group = {{ sub.callback_group }}_;
+        {{ sub.member_name }} = this->create_subscription<{{ sub.cpp_type }}>(
+            "{{ sub.topic }}", qos,
+            std::bind(&{{ node.class_name }}::{{ sub.callback_name }}, this, std::placeholders::_1),
+            sub_opts);
+{% else %}
+        {{ sub.member_name }} = this->create_subscription<{{ sub.cpp_type }}>(
+            "{{ sub.topic }}", qos,
+            std::bind(&{{ node.class_name }}::{{ sub.callback_name }}, this, std::placeholders::_1));
+{% endif %}
+        RCLCPP_INFO(this->get_logger(), "Subscriber ready: {{ sub.topic }}");
+    }
+{% endfor %}
+
+{% endif %}
+{% if node.service_servers %}
+    // ── Service servers ───────────────────────────────────────────────────────
+{% for srv in node.service_servers %}
+{% if srv.callback_group %}
+    {{ srv.member_name }} = this->create_service<{{ srv.cpp_type }}>(
+        "{{ srv.service_name }}",
+        std::bind(&{{ node.class_name }}::{{ srv.callback_name }}, this,
+            std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_services_default,
+        {{ srv.callback_group }}_);
+{% else %}
+    {{ srv.member_name }} = this->create_service<{{ srv.cpp_type }}>(
+        "{{ srv.service_name }}",
+        std::bind(&{{ node.class_name }}::{{ srv.callback_name }}, this,
+            std::placeholders::_1, std::placeholders::_2));
+{% endif %}
+    RCLCPP_INFO(this->get_logger(), "Service ready: {{ srv.service_name }}");
+{% endfor %}
+
+{% endif %}
+{% if node.service_clients %}
+    // ── Service clients ───────────────────────────────────────────────────────
+{% for cli in node.service_clients %}
+    {{ cli.member_name }} = this->create_client<{{ cli.cpp_type }}>("{{ cli.service_name }}");
+    RCLCPP_INFO(this->get_logger(), "Client created: {{ cli.service_name }}");
+{% endfor %}
+
+{% endif %}
+{% if node.timers %}
+    // ── Timers ────────────────────────────────────────────────────────────────
+{% for timer in node.timers %}
+    {
+        auto period = std::chrono::milliseconds(static_cast<int>(1000.0 / {{ timer.rate_hz }}));
+{% if timer.callback_group %}
+        {{ timer.name }}_timer_ = this->create_wall_timer(
+            period,
+            std::bind(&{{ node.class_name }}::{{ timer.name }}, this),
+            {{ timer.callback_group }}_);
+{% else %}
+        {{ timer.name }}_timer_ = this->create_wall_timer(
+            period, std::bind(&{{ node.class_name }}::{{ timer.name }}, this));
+{% endif %}
+        RCLCPP_INFO(this->get_logger(), "Timer '{{ timer.name }}' started at {{ timer.rate_hz }} Hz");
+    }
+{% endfor %}
+{% endif %}
+}
+
+{% for sub in node.subscribers %}
+// ─────────────────────────────────────────────────────────────────────────────
+void {{ node.class_name }}::{{ sub.callback_name }}(const {{ sub.cpp_type }}::SharedPtr msg)
+{
+    (void)msg;
+    // TODO: handle incoming message on {{ sub.topic }}
+    RCLCPP_DEBUG(this->get_logger(), "{{ sub.callback_name }} called");
+}
+
+{% endfor %}
+{% for srv in node.service_servers %}
+// ─────────────────────────────────────────────────────────────────────────────
+void {{ node.class_name }}::{{ srv.callback_name }}(
+    const {{ srv.cpp_type }}::Request::SharedPtr request,
+    {{ srv.cpp_type }}::Response::SharedPtr response)
+{
+    (void)request;
+    (void)response;
+    // TODO: implement {{ srv.service_name }} logic
+    RCLCPP_INFO(this->get_logger(), "{{ srv.callback_name }} called");
+}
+
+{% endfor %}
+{% for timer in node.timers %}
+// ─────────────────────────────────────────────────────────────────────────────
+void {{ node.class_name }}::{{ timer.name }}()
+{
+    // TODO: implement — runs at {{ timer.rate_hz }} Hz
+}
+
+{% endfor %}
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+{% if node.executor.type == "multi_threaded" %}
+    rclcpp::executors::MultiThreadedExecutor executor(
+        rclcpp::ExecutorOptions(), {{ node.executor.threads | default(2) }});
+    auto node = std::make_shared<{{ node.class_name }}>();
+    executor.add_node(node);
+    executor.spin();
+{% else %}
+    rclcpp::spin(std::make_shared<{{ node.class_name }}>());
+{% endif %}
+    rclcpp::shutdown();
+    return 0;
+}

@@ -4,6 +4,10 @@ application:
   domain_id: 10
   namespace: /robot1
 
+  apt_packages:
+    - ros-jazzy-trajectory-msgs
+    - ros-jazzy-sensor-msgs
+
   nodes:
     - arm_controller
     - collision_detector

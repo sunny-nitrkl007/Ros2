@@ -1,0 +1,67 @@
+#pragma once
+
+#include "rclcpp/rclcpp.hpp"
+{% for inc in node.all_includes %}
+#include "{{ inc }}"
+{% endfor %}
+
+class {{ node.class_name }} : public rclcpp::Node
+{
+public:
+    {{ node.class_name }}();
+
+private:
+{% if node.callback_groups %}
+    // Callback groups
+{% for cg in node.callback_groups %}
+    rclcpp::CallbackGroup::SharedPtr {{ cg.name }}_;
+{% endfor %}
+
+{% endif %}
+{% if node.publishers %}
+    // Publishers
+{% for pub in node.publishers %}
+    rclcpp::Publisher<{{ pub.cpp_type }}>::SharedPtr {{ pub.member_name }};
+{% endfor %}
+
+{% endif %}
+{% if node.subscribers %}
+    // Subscribers
+{% for sub in node.subscribers %}
+    rclcpp::Subscription<{{ sub.cpp_type }}>::SharedPtr {{ sub.member_name }};
+    void {{ sub.callback_name }}(const {{ sub.cpp_type }}::SharedPtr msg);
+{% endfor %}
+
+{% endif %}
+{% if node.service_servers %}
+    // Service servers
+{% for srv in node.service_servers %}
+    rclcpp::Service<{{ srv.cpp_type }}>::SharedPtr {{ srv.member_name }};
+    void {{ srv.callback_name }}(
+        const {{ srv.cpp_type }}::Request::SharedPtr request,
+        {{ srv.cpp_type }}::Response::SharedPtr response);
+{% endfor %}
+
+{% endif %}
+{% if node.service_clients %}
+    // Service clients
+{% for cli in node.service_clients %}
+    rclcpp::Client<{{ cli.cpp_type }}>::SharedPtr {{ cli.member_name }};
+{% endfor %}
+
+{% endif %}
+{% if node.timers %}
+    // Timers
+{% for timer in node.timers %}
+    rclcpp::TimerBase::SharedPtr {{ timer.name }}_timer_;
+    void {{ timer.name }}();
+{% endfor %}
+
+{% endif %}
+{% if node.parameters %}
+    // Parameters
+{% for pname, param in node.parameters.items() %}
+    {{ param.cpp_type }} {{ pname }}_;
+{% endfor %}
+{% endif %}
+};
