@@ -8,9 +8,9 @@ ARG PROJECT=discovery_server_single_pub_sub
 # Create workspace
 RUN mkdir -p /ros2_ws/src
 
-# Copy the generated package and the project env file
+# Copy the generated package; env.sh is always in tool/ (generator writes it there)
 COPY ${PROJECT}/generated_pkg/ /ros2_ws/src/generated_pkg/
-COPY ${PROJECT}/env.sh /env.sh
+COPY tool/env.sh /env.sh
 
 # Build the package
 WORKDIR /ros2_ws

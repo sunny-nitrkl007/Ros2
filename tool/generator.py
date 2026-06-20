@@ -201,8 +201,8 @@ def generate_env():
         lines.append(f"export ROS_DISCOVERY_SERVER={ip}:{port}")
 
     content = "\n".join(lines) + "\n"
-    # written to project root so Dockerfile can COPY it independently of generated_pkg
-    env_path = os.path.join(PROJECT_PATH, "env.sh")
+    # written to tool/ so Dockerfile can reference one common path
+    env_path = os.path.join(TOOL_DIR, "env.sh")
     with open(env_path, "w", encoding="utf-8") as f:
         f.write(content)
     print(f"   -> env.sh  (domain_id={domain_id}"
