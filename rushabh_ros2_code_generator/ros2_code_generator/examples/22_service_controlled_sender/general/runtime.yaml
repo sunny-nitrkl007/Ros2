@@ -1,0 +1,3 @@
+runtime:
+  namespace:
+    value: /demo_robot

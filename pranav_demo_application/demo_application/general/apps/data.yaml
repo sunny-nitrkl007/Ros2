@@ -1,0 +1,69 @@
+data:
+
+# -------- Topics --------
+
+  - name: obstacle_data_
+    topic_name: obstacle_data
+    topic_path: /perception/obstacle_data
+    config:
+      structure:
+        - {name: id, type: int32}
+        - {name: distance, type: float32}
+        - {name: relative_velocity, type: float32}
+        - {name: object_type, type: string}
+
+  - name: trajectory_data
+    topic_name: trajectory
+    topic_path: /planning/trajectory
+    config:
+      structure:
+        - {name: x_points, type: float32[]}
+        - {name: y_points, type: float32[]}
+        - {name: target_speed, type: float32}
+        - {name: emergency_flag, type: bool}
+
+  - name: emergency_brake_data
+    topic_name: emergency_brake
+    topic_path: /safety/emergency_brake
+    config:
+      structure:
+        - {name: apply_brake, type: bool}
+        - {name: brake_force, type: float32}
+        - {name: reason, type: string}
+
+# -------- Services --------
+
+  - name: get_lane_info_data
+    service_name: get_lane_info
+    service_path: /perception/get_lane_info
+    config:
+      request_structure:
+        - {name: request, type: bool}
+      response_structure:
+        - {name: lane_center_offset, type: float32}
+        - {name: lane_width, type: float32}
+        - {name: lane_type, type: string}
+
+  - name: check_risk_data
+    service_name: check_risk
+    service_path: /safety/check_risk
+    config:
+      request_structure:
+        - {name: obstacle_distance, type: float32}
+        - {name: vehicle_speed, type: float32}
+      response_structure:
+        - {name: risk_detected, type: bool}
+        - {name: collision_probability, type: float32}
+        - {name: risk_level, type: string}
+
+  - name: request_path_update_data
+    service_name: request_path_update
+    service_path: /planning/request_path_update
+    config:
+      request_structure:
+        - {name: emergency, type: bool}
+        - {name: obstacle_distance, type: float32}
+      response_structure:
+        - {name: success, type: bool}
+        - {name: new_target_speed, type: float32}
+        - {name: status_msg, type: string}

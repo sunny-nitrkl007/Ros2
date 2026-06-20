@@ -1,0 +1,15 @@
+# ==============================================================================
+# Topics grammar
+# ------------------------------------------------------------------------------
+# Leave empty only for service-only or empty examples.
+#
+# Topic format:
+#   - name: chatter
+#     topic_name: /chatter
+#     message_type: std_msgs/msg/String
+#     qos_profile: reliable_default
+#
+# message_type format:
+#   package_name/msg/MessageName
+# ===============================================================================
+topics: []

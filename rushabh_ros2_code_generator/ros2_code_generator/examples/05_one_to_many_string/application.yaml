@@ -1,0 +1,30 @@
+schema_version: "1.3"
+
+application:
+  name: rsg_v1_1_n_string
+  description: Smart defaults example for rsg_v1_1_n_string.
+  version: 0.1.0
+
+package:
+  name: rsg_v1_1_n_string
+  maintainer_name: Generated User
+  maintainer_email: user@example.com
+  license: Apache-2.0
+
+generation:
+  enabled: true
+  output_package_name: rsg_v1_1_n_string
+  output_directory: output
+  language: cpp
+  build_system: ament_cmake
+  ros_distro: humble
+  code_layout:
+    mode: inline_user_sections
+  artifacts:
+    core_package: true
+    config: true
+    launch: true
+    tests: true
+    scripts: true
+    readme: true
+    generation_report: true

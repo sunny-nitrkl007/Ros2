@@ -1,0 +1,50 @@
+# ==============================================================================
+# Application grammar
+# ------------------------------------------------------------------------------
+# Demo purpose:
+#   Clean three-node cross pub/sub routing matrix using only std_msgs/msg/String.
+#
+# What this proves:
+#   - Nodes can have multiple publishers and subscribers.
+#   - Communication is represented through topic contracts, not direct node links.
+#   - Generated placeholders/functions stay in the correct node source file.
+#   - Loopback pub/sub is valid: node_b publishes and subscribes to one topic.
+#
+# No parameters, services, clients, or custom interfaces are used here so the
+# generated C++ is very easy to inspect.
+# ===============================================================================
+schema_version: "1.3"
+
+application:
+  name: rsg_v1_three_node_cross_pubsub_matrix
+  description: Three-node string-only cross pub/sub matrix showing node-local placeholder generation.
+  version: 0.1.0
+
+package:
+  name: rsg_v1_three_node_cross_pubsub_matrix
+  maintainer_name: Generated User
+  maintainer_email: user@example.com
+  license: Apache-2.0
+
+defaults:
+  namespace: /matrix_demo
+  log_level: info
+  use_sim_time: false
+
+generation:
+  enabled: true
+  output_package_name: rsg_v1_three_node_cross_pubsub_matrix
+  output_directory: output
+  language: cpp
+  build_system: ament_cmake
+  ros_distro: humble
+  code_layout:
+    mode: inline_user_sections
+  artifacts:
+    core_package: true
+    config: true
+    launch: true
+    tests: true
+    scripts: true
+    readme: true
+    generation_report: true

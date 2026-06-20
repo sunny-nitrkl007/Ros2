@@ -1,0 +1,42 @@
+contracts:
+  - name: safety_system
+    interfaces:
+      - name: safety_cmd
+        interactions:
+
+          - name: sub_obstacle_data
+            type: pub-sub
+            topic_name: obstacle_data
+            qos_profile: sub_default_qos
+            dataref:
+              - obstacle_data_
+
+          - name: sub_trajectory
+            type: pub-sub
+            topic_name: trajectory
+            qos_profile: sub_default_qos
+            dataref:
+              - trajectory_data
+
+          - name: pub_emergency_brake
+            type: pub-sub
+            topic_name: emergency_brake
+            qos_profile: pub_default_qos
+            dataref:
+              - emergency_brake_data
+
+          - name: server_check_risk
+            type: service
+            service_name: check_risk
+            qos_profile: server_default_qos
+            dataref:
+              - check_risk_data
+
+
+node:
+  name: safety_node
+  package: safety_pkg
+  executable: safety_exec
+  namespace: "/safety"
+  parameter_ref: safety_system_parameters
+  discovery_profile: standard_ecu

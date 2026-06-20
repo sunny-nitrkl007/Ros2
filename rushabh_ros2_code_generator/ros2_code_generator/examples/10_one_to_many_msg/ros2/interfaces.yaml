@@ -1,0 +1,13 @@
+interfaces:
+  messages:
+    - name: MachineStatus
+      fields:
+        - type: string
+          name: state
+        - type: float64
+          name: temperature
+        - type: bool
+          name: enabled
+        - type: uint32
+          name: sequence_id
+  services: []

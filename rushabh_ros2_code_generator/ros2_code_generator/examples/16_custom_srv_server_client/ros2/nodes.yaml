@@ -1,0 +1,18 @@
+nodes:
+  items:
+    - name: server
+      executable: server
+      generation:
+        class_name: ServerNode
+      services:
+        - name: main_service
+          service_ref: set_mode
+          callback: on_request
+    - name: client
+      executable: client
+      generation:
+        class_name: ClientNode
+      clients:
+        - name: main_client
+          service_ref: set_mode
+          response_callback: on_response

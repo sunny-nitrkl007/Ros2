@@ -1,0 +1,97 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-791884269b9c97bdd196.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "rsg_v1_three_node_cross_pubsub_matrix",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "node_a::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-node_a-e80db0878888a47a7a7c.json",
+					"name" : "node_a",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "node_b::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-node_b-cd46a557d2f6164bec78.json",
+					"name" : "node_b",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "node_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-node_c-01d7d69de7f5fc3f38be.json",
+					"name" : "node_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "rsg_v1_three_node_cross_pubsub_matrix_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-rsg_v1_three_node_cross_pubsub_matrix_uninstall-1ef247d355fa981ad229.json",
+					"name" : "rsg_v1_three_node_cross_pubsub_matrix_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-4c558fc82c212de0eb91.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/rushabhm/CAT/Milestone_2/US_822313_pub-sub_data_model_for_ROS2/tool_dev_cycle/reduced_scope/rsg_v1_core/output/rsg_v1_three_node_cross_pubsub_matrix/build/rsg_v1_three_node_cross_pubsub_matrix",
+		"source" : "/home/rushabhm/CAT/Milestone_2/US_822313_pub-sub_data_model_for_ROS2/tool_dev_cycle/reduced_scope/rsg_v1_core/output/rsg_v1_three_node_cross_pubsub_matrix"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

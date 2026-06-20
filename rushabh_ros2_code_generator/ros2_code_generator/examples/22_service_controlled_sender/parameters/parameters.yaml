@@ -1,0 +1,24 @@
+parameters:
+  node_parameters:
+    sender:
+      items:
+        - name: publish_rate_hz
+          type: double
+          default: 1.0
+          min: 0.1
+          max: 20.0
+          dynamic: true
+        - name: enabled
+          type: bool
+          default: true
+          dynamic: true
+        - name: sending_enabled
+          type: bool
+          default: true
+          dynamic: true
+    receiver:
+      items:
+        - name: receiving_enabled
+          type: bool
+          default: true
+          dynamic: true

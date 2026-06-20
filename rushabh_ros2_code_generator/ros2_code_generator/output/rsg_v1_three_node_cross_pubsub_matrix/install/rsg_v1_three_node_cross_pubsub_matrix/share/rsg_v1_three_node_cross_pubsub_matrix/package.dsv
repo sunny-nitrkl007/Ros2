@@ -1,0 +1,8 @@
+source;share/rsg_v1_three_node_cross_pubsub_matrix/hook/cmake_prefix_path.ps1
+source;share/rsg_v1_three_node_cross_pubsub_matrix/hook/cmake_prefix_path.dsv
+source;share/rsg_v1_three_node_cross_pubsub_matrix/hook/cmake_prefix_path.sh
+source;share/rsg_v1_three_node_cross_pubsub_matrix/local_setup.bash
+source;share/rsg_v1_three_node_cross_pubsub_matrix/local_setup.dsv
+source;share/rsg_v1_three_node_cross_pubsub_matrix/local_setup.ps1
+source;share/rsg_v1_three_node_cross_pubsub_matrix/local_setup.sh
+source;share/rsg_v1_three_node_cross_pubsub_matrix/local_setup.zsh

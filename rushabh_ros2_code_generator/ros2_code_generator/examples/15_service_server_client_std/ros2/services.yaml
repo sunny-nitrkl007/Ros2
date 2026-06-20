@@ -1,0 +1,7 @@
+services:
+  - name: reset_robot
+    service_name: /robot1/reset
+    service_type: std_srvs/srv/Trigger
+  - name: health_check
+    service_name: /robot1/health
+    service_type: std_srvs/srv/Trigger

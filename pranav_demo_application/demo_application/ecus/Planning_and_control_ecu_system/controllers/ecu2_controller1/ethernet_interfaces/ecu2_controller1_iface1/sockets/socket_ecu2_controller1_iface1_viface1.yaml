@@ -1,0 +1,14 @@
+vlan_name: ecu2_controller1_iface1_viface1
+sockets:
+  - name: ros2_perception_socket_1
+    endpoint_address: 192.168.10.1
+    port_no: 7412
+    protocol: udp
+    deployments:
+      - deployment_type: ros2_node
+        node_name: planning_node
+        domain_name: domain0
+
+        # topic_name: vehicle_status_topic_def
+        # qos_profile: vehicle_status_datawriter_profile
+        # partitions: ["POWERTRAIN", "DASHBOARD"]

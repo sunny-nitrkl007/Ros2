@@ -1,0 +1,13 @@
+connections:
+  - type: ecu_port_to_ecu_port
+    id: ecu_conn_1
+    ecu1_port: Perception_ecu_port
+    ecu2_port: Planning_and_control_ecu_port
+  - type: ecu_port_to_ecu_port
+    id: ecu_conn_2
+    ecu1_port: Perception_ecu_port
+    ecu2_port: Safety_monitoring_ecu_port
+  - type: ecu_port_to_ecu_port
+    id: ecu_conn_2
+    ecu1_port: Planning_and_control_ecu_port
+    ecu2_port: Safety_monitoring_ecu_port

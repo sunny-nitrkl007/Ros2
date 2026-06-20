@@ -1,0 +1,18 @@
+nodes:
+  items:
+    - name: sender
+      executable: sender
+      generation:
+        class_name: SenderNode
+      publishers:
+        - name: main_pub
+          topic_ref: chatter
+          rate_hz: 1.0
+    - name: receiver
+      executable: receiver
+      generation:
+        class_name: ReceiverNode
+      subscribers:
+        - name: main_sub
+          topic_ref: chatter
+          callback: on_message
