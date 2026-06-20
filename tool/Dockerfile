@@ -20,6 +20,7 @@ RUN /bin/bash -c "\
 
 # Source ROS base and env.sh (domain_id, discovery server, ament paths) in every bash session
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
+    echo "source /ros2_ws/install/setup.bash" >> /etc/bash.bashrc && \
     echo "source /env.sh" >> /etc/bash.bashrc
 
 # Entrypoint sources ROS jazzy, then runs whatever command is passed

@@ -200,13 +200,6 @@ def generate_env():
         port = discovery.get("server_port",  11811)
         lines.append(f"export ROS_DISCOVERY_SERVER={ip}:{port}")
 
-    # ROS workspace paths — same for all projects, but kept here so env.sh
-    # is the single source of all environment config sourced by the container
-    lines += [
-        "export AMENT_PREFIX_PATH=/ros2_ws/install/generated_pkg:/opt/ros/jazzy",
-        "export PATH=/ros2_ws/install/generated_pkg/lib/generated_pkg:/opt/ros/jazzy/bin:$PATH",
-    ]
-
     content = "\n".join(lines) + "\n"
     # written to tool/ so Dockerfile can reference one common path
     env_path = os.path.join(TOOL_DIR, "env.sh")
