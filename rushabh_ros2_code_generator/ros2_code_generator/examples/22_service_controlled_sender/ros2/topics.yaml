@@ -1,0 +1,6 @@
+topics:
+  - name: heartbeat
+    topic_name: /demo_robot/heartbeat
+    message_type: std_msgs/msg/String
+    qos_profile: reliable_default
+    description: Heartbeat topic controlled by SetSending service.

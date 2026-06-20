@@ -1,0 +1,51 @@
+parameter_profiles:
+
+  # -------- Perception --------
+  - name: perception_system_parameters
+    description: "Perception system configuration"
+    parameters:
+      - name: sensor_update_rate_hz
+        type: float64
+        default: 20.0
+
+      - name: obstacle_detection_range_m
+        type: float64
+        default: 100.0
+
+      - name: enable_object_classification
+        type: bool
+        default: true
+
+
+  # -------- Planning --------
+  - name: planning_system_parameters
+    description: "Planning system configuration"
+    parameters:
+      - name: planning_rate_hz
+        type: float64
+        default: 10.0
+
+      - name: max_speed_mps
+        type: float64
+        default: 30.0
+
+      - name: safe_follow_distance_m
+        type: float64
+        default: 10.0
+
+
+  # -------- Safety --------
+  - name: safety_system_parameters
+    description: "Safety monitoring configuration"
+    parameters:
+      - name: emergency_brake_threshold
+        type: float64
+        default: 0.8
+
+      - name: reaction_time_ms
+        type: int32
+        default: 100
+
+      - name: enable_emergency_override
+        type: bool
+        default: true

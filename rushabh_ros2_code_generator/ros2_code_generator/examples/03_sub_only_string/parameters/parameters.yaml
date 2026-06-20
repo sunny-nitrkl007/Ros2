@@ -1,0 +1,19 @@
+# ==============================================================================
+# Parameters grammar
+# ------------------------------------------------------------------------------
+# Leave node_parameters empty if this app has no parameters.
+#
+# Supported parameter types:
+#   bool, int, double, string
+#
+# Supported validation:
+#   - int/double: min, max
+#   - string: allowed_values
+#   - dynamic: true/false
+#
+# Node usage in ros2/nodes.yaml:
+#   parameters:
+#     parameter_group_ref: sender
+# ===============================================================================
+parameters:
+  node_parameters: {}

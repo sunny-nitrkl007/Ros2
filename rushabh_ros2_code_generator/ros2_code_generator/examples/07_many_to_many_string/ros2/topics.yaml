@@ -1,0 +1,4 @@
+topics:
+  - name: chatter
+    topic_name: /chatter
+    message_type: std_msgs/msg/String

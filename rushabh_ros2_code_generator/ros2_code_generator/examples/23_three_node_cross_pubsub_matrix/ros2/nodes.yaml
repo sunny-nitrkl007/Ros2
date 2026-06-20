@@ -1,0 +1,106 @@
+# ==============================================================================
+# Nodes grammar
+# ------------------------------------------------------------------------------
+# This is the actual routing matrix.
+#
+# Node A:
+#   Publishes 3 topics: two for C, one for B.
+#   Subscribes 2 topics: one from C, one from B.
+#
+# Node B:
+#   Publishes 2 topics: one for A, one internal loopback.
+#   Subscribes 2 topics: one from A, one internal loopback from itself.
+#
+# Node C:
+#   Publishes 1 topic for A.
+#   Subscribes 2 topics from A.
+# ===============================================================================
+nodes:
+  defaults:
+    type: regular
+    endpoint_logging: true
+
+  items:
+    - name: node_a
+      executable: node_a
+      generation:
+        class_name: NodeA
+      publishers:
+        - name: a_to_c_status_pub
+          topic_ref: a_to_c_status
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+        - name: a_to_c_command_pub
+          topic_ref: a_to_c_command
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+        - name: a_to_b_event_pub
+          topic_ref: a_to_b_event
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+      subscribers:
+        - name: c_to_a_feedback_sub
+          topic_ref: c_to_a_feedback
+          callback: on_c_feedback
+          logging: true
+
+        - name: b_to_a_report_sub
+          topic_ref: b_to_a_report
+          callback: on_b_report
+          logging: true
+
+    - name: node_b
+      executable: node_b
+      generation:
+        class_name: NodeB
+      publishers:
+        - name: b_to_a_report_pub
+          topic_ref: b_to_a_report
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+        - name: b_internal_status_pub
+          topic_ref: b_internal_status
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+      subscribers:
+        - name: a_to_b_event_sub
+          topic_ref: a_to_b_event
+          callback: on_a_event
+          logging: true
+
+        - name: b_internal_status_sub
+          topic_ref: b_internal_status
+          callback: on_internal_status
+          logging: true
+
+    - name: node_c
+      executable: node_c
+      generation:
+        class_name: NodeC
+      publishers:
+        - name: c_to_a_feedback_pub
+          topic_ref: c_to_a_feedback
+          publish_mode: timer
+          rate_hz: 1.0
+          logging: true
+
+      subscribers:
+        - name: a_to_c_status_sub
+          topic_ref: a_to_c_status
+          callback: on_a_status
+          logging: true
+
+        - name: a_to_c_command_sub
+          topic_ref: a_to_c_command
+          callback: on_a_command
+          logging: true

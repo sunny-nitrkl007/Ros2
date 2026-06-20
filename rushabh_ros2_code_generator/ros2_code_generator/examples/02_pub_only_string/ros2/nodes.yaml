@@ -1,0 +1,10 @@
+nodes:
+  items:
+    - name: sender
+      executable: sender
+      generation:
+        class_name: SenderNode
+      publishers:
+        - name: main_pub
+          topic_ref: chatter
+          rate_hz: 1.0

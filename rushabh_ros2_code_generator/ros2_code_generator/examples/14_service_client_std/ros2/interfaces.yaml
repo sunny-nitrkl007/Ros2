@@ -1,0 +1,27 @@
+# ==============================================================================
+# Interfaces grammar
+# ------------------------------------------------------------------------------
+# messages:
+#   Custom messages to generate under msg/.
+#   Leave [] when using existing message types such as std_msgs/msg/String.
+#
+# services:
+#   Custom services to generate under srv/.
+#   Leave [] when using existing service types such as std_srvs/srv/Trigger.
+#
+# Message field format:
+#   - type: string
+#     name: state
+#
+# Service format:
+#   - name: SetMode
+#     request:
+#       - type: string
+#         name: mode
+#     response:
+#       - type: bool
+#         name: success
+# ===============================================================================
+interfaces:
+  messages: []
+  services: []

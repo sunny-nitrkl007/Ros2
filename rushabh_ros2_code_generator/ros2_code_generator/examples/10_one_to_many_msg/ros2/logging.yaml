@@ -1,0 +1,13 @@
+# ==============================================================================
+# Logging grammar
+# ------------------------------------------------------------------------------
+# enabled:
+#   true  -> generate RCLCPP logs where endpoint logging is enabled.
+#   false -> suppress generated RCLCPP logs.
+#
+# default_level:
+#   Supported common values: debug, info, warn, error, fatal
+# ===============================================================================
+logging:
+  enabled: true
+  default_level: info

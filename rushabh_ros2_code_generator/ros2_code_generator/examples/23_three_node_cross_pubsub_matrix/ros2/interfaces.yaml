@@ -1,0 +1,9 @@
+# ==============================================================================
+# Interfaces grammar
+# ------------------------------------------------------------------------------
+# No custom interfaces are used in this example.
+# All topics use std_msgs/msg/String so routing is easy to inspect.
+# ===============================================================================
+interfaces:
+  messages: []
+  services: []

@@ -1,0 +1,10 @@
+nodes:
+  items:
+    - name: client
+      executable: client
+      generation:
+        class_name: ClientNode
+      clients:
+        - name: main_client
+          service_ref: health_check
+          response_callback: on_response

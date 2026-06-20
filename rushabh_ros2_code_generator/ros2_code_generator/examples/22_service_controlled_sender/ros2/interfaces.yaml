@@ -1,0 +1,13 @@
+# Clean YAML only; no inline curly-brace mappings.
+interfaces:
+  messages: []
+  services:
+    - name: SetSending
+      request:
+        - type: bool
+          name: enabled
+      response:
+        - type: bool
+          name: success
+        - type: string
+          name: message

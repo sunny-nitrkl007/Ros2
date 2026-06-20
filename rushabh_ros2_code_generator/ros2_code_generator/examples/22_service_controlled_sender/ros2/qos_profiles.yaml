@@ -1,0 +1,6 @@
+qos_profiles:
+  - name: reliable_default
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 10

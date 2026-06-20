@@ -1,0 +1,10 @@
+nodes:
+  items:
+    - name: server
+      executable: server
+      generation:
+        class_name: ServerNode
+      services:
+        - name: main_service
+          service_ref: reset_robot
+          callback: on_request

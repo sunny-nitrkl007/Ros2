@@ -1,0 +1,7 @@
+ecus:
+  - Perception_ecu_system:
+    - perception_contracts.yaml
+  - Planning_and_control_ecu_system:
+    - planning_contracts.yaml
+    Safety_monitoring_ecu_system:
+    - safety_contracts.yaml

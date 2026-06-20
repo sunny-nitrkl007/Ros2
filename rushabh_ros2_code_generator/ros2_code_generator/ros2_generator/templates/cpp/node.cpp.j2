@@ -1,0 +1,311 @@
+#include "{{ app.package_name }}/generated/{{ node.name }}.hpp"
+
+#include <functional>
+#include <sstream>
+
+using namespace std::chrono_literals;
+
+namespace {{ app.package_name }}
+{
+namespace generated
+{
+
+{{ node.class_name }}::{{ node.class_name }}(const rclcpp::NodeOptions & options)
+: rclcpp::Node("{{ node.name }}", options)
+{
+  // Version: v1.0.0 - Generated constructor orchestration.
+  declare_parameters();
+  load_parameters();
+  setup_parameter_callbacks();
+  setup_publishers();
+  setup_subscribers();
+  setup_services();
+  setup_clients();
+  setup_watchdogs();
+{% if node.logging.enabled and node.logging.log_startup %}
+  RCLCPP_INFO(this->get_logger(), "Node '{{ node.name }}' started.");
+{% endif %}
+}
+
+{{ node.class_name }}::~{{ node.class_name }}()
+{
+{% if node.logging.enabled and node.logging.log_shutdown %}
+  RCLCPP_INFO(this->get_logger(), "Node '{{ node.name }}' shutting down.");
+{% endif %}
+}
+
+void {{ node.class_name }}::declare_parameters()
+{
+  // Purpose: Declare all grammar-defined parameters with defaults.
+  // Version: v1.0.0 - Added bool/int/double/string parameter declaration.
+{% for p in node.parameters %}
+  this->declare_parameter<{{ p.cpp_type }}>("{{ p.name }}", {{ p.cpp_default }});
+{% endfor %}
+}
+
+void {{ node.class_name }}::load_parameters()
+{
+  // Purpose: Load declared parameter values into generated member variables.
+  // Version: v1.0.0 - Initial parameter loading.
+{% for p in node.parameters %}
+  this->get_parameter("{{ p.name }}", {{ p.name }}_);
+{% endfor %}
+}
+
+void {{ node.class_name }}::setup_parameter_callbacks()
+{
+  // Purpose: Register runtime parameter validation and update callback.
+  // Version: v1.0.0 - Initial dynamic parameter callback.
+  parameter_callback_handle_ = this->add_on_set_parameters_callback(
+    std::bind(&{{ node.class_name }}::on_parameter_update, this, std::placeholders::_1));
+}
+
+rcl_interfaces::msg::SetParametersResult {{ node.class_name }}::on_parameter_update(
+  const std::vector<rclcpp::Parameter> & parameters)
+{
+  // Purpose: Validate and apply dynamic parameter updates.
+  // Version: v1.0.0 - Added min/max and allowed_values validation.
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+
+  for (const auto & parameter : parameters) {
+{% for p in node.parameters %}
+    if (parameter.get_name() == "{{ p.name }}") {
+{% if not p.dynamic %}
+      result.successful = false;
+      result.reason = "Parameter '{{ p.name }}' is not dynamic.";
+      return result;
+{% else %}
+{% if p.type == 'double' %}
+      const auto value = parameter.as_double();
+{% if p.min is not none %}
+      if (value < {{ p.min }}) { result.successful = false; result.reason = "{{ p.name }} below min"; return result; }
+{% endif %}
+{% if p.max is not none %}
+      if (value > {{ p.max }}) { result.successful = false; result.reason = "{{ p.name }} above max"; return result; }
+{% endif %}
+      {{ p.name }}_ = value;
+{% elif p.type == 'int' %}
+      const auto value = parameter.as_int();
+{% if p.min is not none %}
+      if (value < {{ p.min }}) { result.successful = false; result.reason = "{{ p.name }} below min"; return result; }
+{% endif %}
+{% if p.max is not none %}
+      if (value > {{ p.max }}) { result.successful = false; result.reason = "{{ p.name }} above max"; return result; }
+{% endif %}
+      {{ p.name }}_ = value;
+{% elif p.type == 'bool' %}
+      {{ p.name }}_ = parameter.as_bool();
+{% elif p.type == 'string' %}
+      const auto value = parameter.as_string();
+{% if p.allowed_values %}
+      if ({% for v in p.allowed_values %}value != "{{ v }}"{% if not loop.last %} && {% endif %}{% endfor %}) {
+        result.successful = false;
+        result.reason = "{{ p.name }} has unsupported value";
+        return result;
+      }
+{% endif %}
+      {{ p.name }}_ = value;
+{% endif %}
+{% if node.logging.enabled and node.logging.log_parameter_updates %}
+      RCLCPP_INFO(this->get_logger(), "Updated parameter '{{ p.name }}'.");
+{% endif %}
+{% endif %}
+    }
+{% endfor %}
+  }
+  return result;
+}
+
+{% for q in qos_profiles.values() %}
+rclcpp::QoS {{ node.class_name }}::make_qos_{{ q.name }}() const
+{
+  // Purpose: Build QoS profile '{{ q.name }}' from grammar.
+  // Version: v1.0.0 - Initial QoS profile generation.
+  rclcpp::QoS qos(rclcpp::KeepLast({{ q.depth }}));
+{% if q.reliability == 'reliable' %}
+  qos.reliable();
+{% else %}
+  qos.best_effort();
+{% endif %}
+{% if q.durability == 'transient_local' %}
+  qos.transient_local();
+{% else %}
+  qos.durability_volatile();
+{% endif %}
+  return qos;
+}
+{% endfor %}
+
+void {{ node.class_name }}::setup_publishers()
+{
+  // Purpose: Create publishers and timer callbacks.
+  // Version: v1.0.0 - Initial publisher generation.
+{% for pub in node.publishers %}
+  {{ pub.name }}_ = this->create_publisher<{{ parse_ros_type(pub.topic.message_type, 'msg').cpp_type }}>(
+    "{{ pub.topic.topic_name }}", make_qos_{{ pub.topic.qos_profile }}());
+{% if pub.rate_parameter %}
+  const auto {{ pub.name }}_period_ms = static_cast<int>(1000.0 / {{ pub.rate_parameter }}_);
+{% else %}
+  const auto {{ pub.name }}_period_ms = static_cast<int>(1000.0 / {{ pub.rate_hz }});
+{% endif %}
+  {{ pub.name }}_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds({{ pub.name }}_period_ms),
+    std::bind(&{{ node.class_name }}::publish_{{ pub.name }}, this));
+{% endfor %}
+}
+
+void {{ node.class_name }}::setup_subscribers()
+{
+  // Purpose: Create subscribers declared in grammar.
+  // Version: v1.0.0 - Initial subscriber generation.
+{% for sub in node.subscribers %}
+  {{ sub.name }}_ = this->create_subscription<{{ parse_ros_type(sub.topic.message_type, 'msg').cpp_type }}>(
+    "{{ sub.topic.topic_name }}", make_qos_{{ sub.topic.qos_profile }}(),
+    std::bind(&{{ node.class_name }}::{{ sub.callback }}, this, std::placeholders::_1));
+{% endfor %}
+}
+
+void {{ node.class_name }}::setup_services()
+{
+  // Purpose: Create service servers declared in grammar.
+  // Version: v1.0.0 - Initial service server generation.
+{% for srv in node.services %}
+  {{ srv.name }}_ = this->create_service<{{ parse_ros_type(srv.service.service_type, 'srv').cpp_type }}>(
+    "{{ srv.service.service_name }}",
+    std::bind(&{{ node.class_name }}::{{ srv.callback }}, this, std::placeholders::_1, std::placeholders::_2));
+{% endfor %}
+}
+
+void {{ node.class_name }}::setup_clients()
+{
+  // Purpose: Create service clients declared in grammar.
+  // Version: v1.0.0 - Initial service client generation.
+{% for cli in node.clients %}
+  {{ cli.name }}_ = this->create_client<{{ parse_ros_type(cli.service.service_type, 'srv').cpp_type }}>("{{ cli.service.service_name }}");
+{% endfor %}
+}
+
+void {{ node.class_name }}::setup_watchdogs()
+{
+  // Purpose: Create subscriber watchdog timers.
+  // Version: v1.0.0 - Initial watchdog generation.
+{% for sub in node.subscribers %}
+{% if sub.watchdog.enabled %}
+  {{ sub.name }}_watchdog_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds({{ sub.watchdog.timeout_ms }}),
+    std::bind(&{{ node.class_name }}::check_watchdog_{{ sub.name }}, this));
+{% endif %}
+{% endfor %}
+}
+
+{% for pub in node.publishers %}
+void {{ node.class_name }}::publish_{{ pub.name }}()
+{
+  // Purpose: Publish one message for publisher '{{ pub.name }}'.
+  // Version: v1.0.0 - Calls user hook for business message population.
+{% if 'enabled' in node.parameters|map(attribute='name')|list %}
+  if (!enabled_) {
+    return;
+  }
+{% endif %}
+  auto msg = {{ parse_ros_type(pub.topic.message_type, 'msg').cpp_type }}();
+{% if pub.user_hook %}
+  user_logic_.{{ pub.user_hook }}(msg, {{ pub.name }}_count_);
+{% else %}
+  // USER LOGIC NOTE:
+  // No user_hook configured. Generated code publishes a default-constructed message.
+  // Add user_hook in grammar to populate message from src/user/{{ node.name }}_logic.cpp.
+{% endif %}
+  {{ pub.name }}_->publish(msg);
+  ++{{ pub.name }}_count_;
+{% if node.logging.enabled and pub.logging %}
+  RCLCPP_INFO(this->get_logger(), "Published message on {{ pub.topic.topic_name }}.");
+{% endif %}
+}
+{% endfor %}
+
+{% for sub in node.subscribers %}
+void {{ node.class_name }}::{{ sub.callback }}(const {{ parse_ros_type(sub.topic.message_type, 'msg').cpp_type }}::SharedPtr msg)
+{
+  // Purpose: Receive message, update watchdog timestamp, then call user logic.
+  // Version: v1.0.0 - Initial subscriber callback generation.
+{% if sub.watchdog.enabled %}
+  {{ sub.name }}_last_msg_time_ = this->now();
+  {{ sub.name }}_has_msg_ = true;
+{% endif %}
+{% if node.logging.enabled and sub.logging %}
+  RCLCPP_INFO(this->get_logger(), "Received message on {{ sub.topic.topic_name }}.");
+{% endif %}
+  user_logic_.{{ sub.callback }}(*msg);
+}
+
+{% if sub.watchdog.enabled %}
+void {{ node.class_name }}::check_watchdog_{{ sub.name }}()
+{
+  // Purpose: Detect stale input for subscriber '{{ sub.name }}'.
+  // Version: v1.0.0 - Initial subscriber watchdog generation.
+  if (!{{ sub.name }}_has_msg_) {
+    RCLCPP_{{ 'ERROR' if sub.watchdog.severity == 'error' else 'WARN' }}(
+      this->get_logger(), "Watchdog waiting for first message on {{ sub.topic.topic_name }}.");
+    return;
+  }
+  const auto age_ms = (this->now() - {{ sub.name }}_last_msg_time_).nanoseconds() / 1000000;
+  if (age_ms > {{ sub.watchdog.timeout_ms }}) {
+    RCLCPP_{{ 'ERROR' if sub.watchdog.severity == 'error' else 'WARN' }}(
+      this->get_logger(), "Watchdog timeout on {{ sub.topic.topic_name }}: %ld ms", age_ms);
+{% if sub.watchdog.user_hook %}
+    user_logic_.{{ sub.watchdog.user_hook }}();
+{% endif %}
+  }
+}
+{% endif %}
+{% endfor %}
+
+{% for srv in node.services %}
+void {{ node.class_name }}::{{ srv.callback }}(
+  const std::shared_ptr<{{ parse_ros_type(srv.service.service_type, 'srv').cpp_type }}::Request> request,
+  std::shared_ptr<{{ parse_ros_type(srv.service.service_type, 'srv').cpp_type }}::Response> response)
+{
+  // Purpose: Service server callback for '{{ srv.name }}'.
+  // Version: v1.0.0 - Delegates business response to user logic.
+{% if node.logging.enabled and srv.logging %}
+  RCLCPP_INFO(this->get_logger(), "Service request received on {{ srv.service.service_name }}.");
+{% endif %}
+  user_logic_.{{ srv.callback }}(*request, *response);
+}
+{% endfor %}
+
+{% for cli in node.clients %}
+bool {{ node.class_name }}::wait_for_{{ cli.name }}()
+{
+  // Purpose: Wait for service client '{{ cli.name }}' with finite timeout.
+  // Version: v1.0.0 - Prevents infinite blocking.
+  return {{ cli.name }}_->wait_for_service(std::chrono::milliseconds({{ cli.wait_timeout_ms }}));
+}
+
+void {{ node.class_name }}::call_{{ cli.name }}_async()
+{
+  // Purpose: Send async request for service client '{{ cli.name }}'.
+  // Version: v1.0.0 - Initial async client helper.
+  if (!wait_for_{{ cli.name }}()) {
+    RCLCPP_WARN(this->get_logger(), "Service {{ cli.service.service_name }} not available.");
+    return;
+  }
+  auto request = std::make_shared<{{ parse_ros_type(cli.service.service_type, 'srv').cpp_type }}::Request>();
+  user_logic_.prepare_{{ cli.name }}_request(*request);
+  auto future = {{ cli.name }}_->async_send_request(
+    request,
+    [this](rclcpp::Client<{{ parse_ros_type(cli.service.service_type, 'srv').cpp_type }}>::SharedFuture future_response) {
+{% if cli.response_callback %}
+      user_logic_.{{ cli.response_callback }}(*future_response.get());
+{% else %}
+      (void)future_response;
+{% endif %}
+    });
+  (void)future;
+}
+{% endfor %}
+
+}  // namespace generated
+}  // namespace {{ app.package_name }}

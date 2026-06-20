@@ -1,0 +1,17 @@
+from pathlib import Path
+
+
+def test_required_files_exist():
+    root = Path(__file__).resolve().parents[1]
+    required = ["CMakeLists.txt", "package.xml", "config/params.yaml", "launch/bringup.launch.py"]
+{% for node in nodes %}
+    required += ["src/{{ node.name }}.cpp", "include/{{ app.package_name }}/{{ node.name }}.hpp"]
+{% endfor %}
+{% for m in interfaces.messages %}
+    required += ["msg/{{ m.name }}.msg"]
+{% endfor %}
+{% for s in interfaces.services %}
+    required += ["srv/{{ s.name }}.srv"]
+{% endfor %}
+    for rel in required:
+        assert (root / rel).exists(), f"Missing generated file: {rel}"

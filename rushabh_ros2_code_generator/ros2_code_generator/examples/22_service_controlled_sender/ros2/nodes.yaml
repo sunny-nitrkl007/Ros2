@@ -1,0 +1,43 @@
+nodes:
+  defaults:
+    type: regular
+    endpoint_logging: true
+  items:
+    - name: sender
+      executable: sender
+      generation:
+        class_name: SenderNode
+      parameters:
+        parameter_group_ref: sender
+      publishers:
+        - name: heartbeat_pub
+          topic_ref: heartbeat
+          publish_mode: timer
+          rate_parameter: publish_rate_hz
+          logging: true
+      services:
+        - name: set_sending_service
+          service_ref: set_sending
+          callback: on_set_sending_request
+          logging: true
+          control:
+            target_parameter: sending_enabled
+            request_field: enabled
+            response_success_field: success
+            response_message_field: message
+    - name: receiver
+      executable: receiver
+      generation:
+        class_name: ReceiverNode
+      parameters:
+        parameter_group_ref: receiver
+      subscribers:
+        - name: heartbeat_sub
+          topic_ref: heartbeat
+          callback: on_heartbeat
+          logging: true
+          watchdog:
+            enabled: true
+            timeout_ms: 3000
+            severity: warn
+            idle_state: true
