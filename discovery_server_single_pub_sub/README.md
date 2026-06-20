@@ -54,7 +54,7 @@ First build takes 3–5 minutes. Subsequent builds use cache.
 ### Terminal 1 — Start container + Discovery Server
 
 ```bash
-docker run -it --name ros2_test ros2_ds_single bash
+docker run -it --rm --name ros2_test ros2_ds_single bash
 ```
 
 Inside the container:

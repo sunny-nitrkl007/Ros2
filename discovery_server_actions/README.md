@@ -93,7 +93,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_actions -f tool/Doc
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name actions_test ros2_ds_actions bash
+docker run -it --rm --name actions_test ros2_ds_actions bash
 fastdds discovery -i 0 -p 11811
 ```
 

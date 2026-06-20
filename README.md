@@ -148,7 +148,7 @@ docker build --no-cache -f discovery_server_custom_interfaces/Dockerfile -t ros2
 ### Run
 
 ```bash
-docker run -it --name ros2_test <image_name> bash
+docker run -it --rm --name ros2_test <image_name> bash
 ```
 
 Then in separate terminals:

@@ -61,7 +61,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_failover -f tool/Do
 ### Terminal 1 — Container + Primary Discovery Server (ID 0, port 11811)
 
 ```bash
-docker run -it --name failover_test ros2_discovery_server_failover bash
+docker run -it --rm --name failover_test ros2_discovery_server_failover bash
 fastdds discovery -i 0 -p 11811
 ```
 

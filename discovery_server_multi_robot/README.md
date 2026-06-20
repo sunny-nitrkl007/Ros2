@@ -65,7 +65,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_multi_robot -f tool
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name multi_robot_test ros2_discovery_server_multi_robot bash
+docker run -it --rm --name multi_robot_test ros2_discovery_server_multi_robot bash
 fastdds discovery -i 0 -p 11811
 ```
 

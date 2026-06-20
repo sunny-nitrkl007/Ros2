@@ -87,7 +87,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_lifecycle -f tool/D
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name lifecycle_test ros2_ds_lifecycle bash
+docker run -it --rm --name lifecycle_test ros2_ds_lifecycle bash
 fastdds discovery -i 0 -p 11811
 ```
 

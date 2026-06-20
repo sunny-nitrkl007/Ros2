@@ -48,7 +48,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_multi_pub_single_su
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name multi_pub_single_sub_test ros2_discovery_server_multi_pub_single_sub bash
+docker run -it --rm --name multi_pub_single_sub_test ros2_discovery_server_multi_pub_single_sub bash
 fastdds discovery -i 0 -p 11811
 ```
 

@@ -60,7 +60,7 @@ docker build --no-cache --build-arg PROJECT=discovery_server_services -f tool/Do
 ### Terminal 1 — Container + Discovery Server
 
 ```bash
-docker run -it --name services_test ros2_discovery_server_services bash
+docker run -it --rm --name services_test ros2_discovery_server_services bash
 fastdds discovery -i 0 -p 11811
 ```
 

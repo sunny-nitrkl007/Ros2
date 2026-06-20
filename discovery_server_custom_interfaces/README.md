@@ -129,7 +129,7 @@ colcon resolves the build order automatically via `package.xml` dependencies: `c
 ### Terminal 1 — Start the Discovery Server
 
 ```bash
-docker run -it --name ds_custom ros2_ds_custom_interfaces bash
+docker run -it --rm --name ds_custom ros2_ds_custom_interfaces bash
 fastdds discovery -i 0 -p 11811
 ```
 
