@@ -92,7 +92,8 @@ void Lifecycle_talker::publish_message()
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<Lifecycle_talker>());
+    auto node = std::make_shared<Lifecycle_talker>();
+    rclcpp::spin(node->get_node_base_interface());
     rclcpp::shutdown();
     return 0;
 }

@@ -84,7 +84,8 @@ void Lifecycle_listener::callback(const std_msgs::msg::String::SharedPtr msg)
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<Lifecycle_listener>());
+    auto node = std::make_shared<Lifecycle_listener>();
+    rclcpp::spin(node->get_node_base_interface());
     rclcpp::shutdown();
     return 0;
 }
