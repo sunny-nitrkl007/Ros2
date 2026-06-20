@@ -1,0 +1,30 @@
+# V3 change: parameters now carry explicit type annotations.
+# V2 was bare key: value. V3 is key: {value, type}.
+# This lets the generator emit strongly-typed declare_parameter<T>() calls
+# instead of always defaulting to double or string.
+
+parameters:
+  arm_controller:
+    joint_names:
+      value: [shoulder, elbow, wrist]
+      type: string_array
+    max_velocity:
+      value: 1.0
+      type: double
+    control_rate:
+      value: 100.0
+      type: double
+    mode:
+      value: "idle"
+      type: string
+
+  collision_detector:
+    safety_margin:
+      value: 0.05
+      type: double
+    check_rate:
+      value: 50.0
+      type: double
+    alert_on_proximity:
+      value: true
+      type: bool

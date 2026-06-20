@@ -1,0 +1,9 @@
+application:
+  name: robot_arm_system
+  version: "3.0"
+  domain_id: 10
+  namespace: /robot1
+
+  nodes:
+    - arm_controller
+    - collision_detector
