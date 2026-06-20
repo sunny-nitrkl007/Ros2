@@ -1,6 +1,8 @@
 application:
   name: actions_system
   domain_id: 10
+  apt_packages:
+    - ros-jazzy-example-interfaces
   nodes:
     - fibonacci_server
     - fibonacci_client

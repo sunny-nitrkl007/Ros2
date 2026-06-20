@@ -52,7 +52,7 @@ void {{ node.name | capitalize }}::send_goal()
     options.feedback_callback = [this](
         rclcpp_action::ClientGoalHandle<{{ action_type }}>::SharedPtr,
         const std::shared_ptr<const {{ action_type }}::Feedback> feedback) {
-            const auto & seq = feedback->partial_sequence;
+            const auto & seq = feedback->sequence;
             RCLCPP_INFO(this->get_logger(),
                 "Feedback: %zu values so far, latest F=%d",
                 seq.size(), seq.empty() ? -1 : seq.back());

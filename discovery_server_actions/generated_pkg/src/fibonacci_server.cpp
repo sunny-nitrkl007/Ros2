@@ -59,7 +59,7 @@ void Fibonacci_server::execute(
         "Executing: Fibonacci(%d) with %d ms between steps.", order, step_delay_ms_);
 
     auto feedback = std::make_shared<example_interfaces::action::Fibonacci::Feedback>();
-    auto & seq    = feedback->partial_sequence;
+    auto & seq    = feedback->sequence;
     seq.push_back(0);
     seq.push_back(1);
 

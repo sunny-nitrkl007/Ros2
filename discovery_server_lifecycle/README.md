@@ -76,8 +76,8 @@ python tool/generator.py --project discovery_server_lifecycle
 
 ## Step 2 — Build
 
-```bash
-docker build --no-cache --build-arg PROJECT=discovery_server_lifecycle -f tool/Dockerfile -t ros2_ds_lifecycle .
+```
+docker build --no-cache -f tool/Dockerfile -t ros2_ds_lifecycle .
 ```
 
 ---
@@ -114,7 +114,7 @@ ros2 run generated_pkg lifecycle_listener
 
 Same — registered with DS, no subscriptions yet.
 
-### Terminal 4 — Drive State Transitions with CLI
+### Terminal 4 — Drive State Transitions
 
 ```bash
 docker exec -it lifecycle_test bash
@@ -124,13 +124,15 @@ docker exec -it lifecycle_test bash
 
 ## Step 4 — State Transition Commands (run in Terminal 4)
 
-All commands use `ros2 lifecycle set <node_name> <transition>`.
+> **Note:** `ros2 lifecycle set` does not work with FastDDS Discovery Server — the DS
+> propagates participant presence but not service endpoint data. Use `ros2 service call`
+> directly instead. Transition IDs: configure=1, cleanup=2, activate=3, deactivate=4
 
 ### Phase 1 — Configure both nodes
 
 ```bash
-ros2 lifecycle set /lifecycle_talker configure
-ros2 lifecycle set /lifecycle_listener configure
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 1}}"
+ros2 service call /lifecycle_listener/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 1}}"
 ```
 
 Talker output:
@@ -146,85 +148,51 @@ Listener output:
 ### Phase 2 — Activate both nodes
 
 ```bash
-ros2 lifecycle set /lifecycle_talker activate
-ros2 lifecycle set /lifecycle_listener activate
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 3}}"
+ros2 service call /lifecycle_listener/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 3}}"
 ```
 
 Talker output:
 ```
 [INFO] [lifecycle_talker]: on_activate: publishing started. State: active.
 [INFO] [lifecycle_talker]: Publishing: 'Hello from lifecycle_talker! count=0'
-[INFO] [lifecycle_talker]: Publishing: 'Hello from lifecycle_talker! count=1'
 ```
 
 Listener output:
 ```
 [INFO] [lifecycle_listener]: on_activate: now processing messages. State: active.
 [INFO] [lifecycle_listener]: [lifecycle] Received: Hello from lifecycle_talker! count=0
-[INFO] [lifecycle_listener]: [lifecycle] Received: Hello from lifecycle_talker! count=1
 ```
 
 ### Phase 3 — Deactivate the talker only
 
 ```bash
-ros2 lifecycle set /lifecycle_talker deactivate
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 4}}"
 ```
-
-```
-[INFO] [lifecycle_talker]: on_deactivate: publishing stopped. State: inactive.
-```
-
-The listener stops receiving. The DS still knows both nodes exist.
 
 ### Phase 4 — Reactivate
 
 ```bash
-ros2 lifecycle set /lifecycle_talker activate
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 3}}"
 ```
 
-Publishing resumes from where count left off.
-
-### Phase 5 — Deactivate listener only
+### Phase 5 — Full cleanup cycle
 
 ```bash
-ros2 lifecycle set /lifecycle_listener deactivate
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 4}}"
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 2}}"
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 1}}"
+ros2 service call /lifecycle_talker/change_state lifecycle_msgs/srv/ChangeState "{transition: {id: 3}}"
 ```
-
-```
-[INFO] [lifecycle_listener]: on_deactivate: messages arriving but ignored. State: inactive.
-```
-
-The talker keeps publishing — the listener's subscription is still active but `active_` flag is false so callbacks return immediately.
-
-### Phase 6 — Full cleanup cycle
-
-```bash
-ros2 lifecycle set /lifecycle_talker deactivate   # if still active
-ros2 lifecycle set /lifecycle_talker cleanup
-ros2 lifecycle set /lifecycle_talker configure
-ros2 lifecycle set /lifecycle_talker activate
-```
-
-This exercises the full cycle: destroy publisher → recreate it → start publishing again.
 
 ---
 
 ## Introspection Commands
 
-Check the current state of any lifecycle node:
-
 ```bash
-ros2 lifecycle get /lifecycle_talker
-# lifecycle_talker [active]
-
-ros2 lifecycle list
-# /lifecycle_talker
-# /lifecycle_listener
-```
-
-List all available transitions from current state:
-```bash
-ros2 lifecycle get /lifecycle_talker --all-transitions
+ros2 service call /lifecycle_talker/get_state lifecycle_msgs/srv/GetState "{}"
+ros2 service call /lifecycle_listener/get_state lifecycle_msgs/srv/GetState "{}"
+ros2 node list
 ```
 
 Check the DS sees both nodes regardless of lifecycle state:

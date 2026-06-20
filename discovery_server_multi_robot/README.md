@@ -54,8 +54,8 @@ python tool/generator.py --project discovery_server_multi_robot
 
 ## Step 2 — Build
 
-```bash
-docker build --no-cache --build-arg PROJECT=discovery_server_multi_robot -f tool/Dockerfile -t ros2_discovery_server_multi_robot .
+```
+docker build --no-cache -f tool/Dockerfile -t ros2_discovery_server_multi_robot .
 ```
 
 ---

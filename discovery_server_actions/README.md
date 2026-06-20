@@ -15,14 +15,16 @@ This project uses `example_interfaces/action/Fibonacci` — a built-in ROS2 acti
 **Topology:** `fibonacci_client` --[goal]--> Discovery Server --[route]--> `fibonacci_server` --[feedback/result]--> `fibonacci_client`
 
 **What makes actions interesting for DS testing:**
-An action internally creates **5 sub-topics** per action:
+An action internally creates **5 DDS endpoints** per action:
 - `_action/send_goal` (service)
 - `_action/cancel_goal` (service)
 - `_action/get_result` (service)
 - `_action/feedback` (topic)
 - `_action/status` (topic)
 
-The DS must register and route all 5. This is the heaviest per-interaction endpoint registration load of any ROS2 primitive.
+The DS introduces the two participants (client and server) to each other. All 5 endpoints then establish direct peer-to-peer DDS connections — the DS is not in the data path.
+
+> **Note:** `ros2 topic list` and `ros2 service list` will **not** show these endpoints when using FastDDS Discovery Server — the DS propagates participant presence but not endpoint data. The action communication still works correctly; it just cannot be introspected via the CLI list commands.
 
 ---
 
@@ -82,8 +84,8 @@ Generated files:
 
 ## Step 2 — Build
 
-```bash
-docker build --no-cache --build-arg PROJECT=discovery_server_actions -f tool/Dockerfile -t ros2_ds_actions .
+```
+docker build --no-cache -f tool/Dockerfile -t ros2_ds_actions .
 ```
 
 ---
@@ -147,24 +149,20 @@ Expected:
 
 ## What to Observe
 
-### 1 — The 5 internal sub-topics the DS must register
+### 1 — Nodes visible, endpoints not
 
 ```bash
 docker exec -it actions_test bash
-ros2 topic list
-ros2 service list
+ros2 node list
 ```
 
 You will see:
 ```
-/fibonacci/_action/feedback
-/fibonacci/_action/status
-/fibonacci/_action/cancel_goal
-/fibonacci/_action/get_result
-/fibonacci/_action/send_goal
+/fibonacci_server
+/fibonacci_client
 ```
 
-All 5 exist before the first goal is even sent — the DS registered them during node startup.
+Both nodes are registered with the DS on startup. However, `ros2 topic list` and `ros2 service list` will only show `/parameter_events` and `/rosout` — the 5 action endpoints exist and communicate, but the DS does not propagate endpoint metadata to CLI tools.
 
 ### 2 — Goal cancellation mid-flight
 

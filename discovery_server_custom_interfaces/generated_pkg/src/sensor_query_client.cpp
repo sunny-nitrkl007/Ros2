@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "custom_interfaces_pkg/srv/sensorquery.hpp"
+#include "custom_interfaces_pkg/srv/sensor_query.hpp"
 #include "sensor_query_client.hpp"
 
 using namespace std::chrono_literals;

@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import argparse
 import yaml
@@ -61,12 +62,16 @@ print("================================\n")
 
 # ---------- type conversion helpers ----------
 
+def camel_to_snake(name):
+    # ROS2 header convention: CamelCase type name → snake_case filename
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+
 def msg_to_cpp(msg):
     return msg.replace("/", "::")
 
 def msg_to_include(msg):
     parts = msg.split("/")
-    parts[-1] = parts[-1].lower()
+    parts[-1] = camel_to_snake(parts[-1])
     return "/".join(parts) + ".hpp"
 
 def srv_to_cpp(srv):
@@ -74,7 +79,7 @@ def srv_to_cpp(srv):
 
 def srv_to_include(srv):
     parts = srv.split("/")
-    parts[-1] = parts[-1].lower()
+    parts[-1] = camel_to_snake(parts[-1])
     return "/".join(parts) + ".hpp"
 
 def action_to_cpp(action):
@@ -82,7 +87,7 @@ def action_to_cpp(action):
 
 def action_to_include(action):
     parts = action.split("/")
-    parts[-1] = parts[-1].lower()
+    parts[-1] = camel_to_snake(parts[-1])
     return "/".join(parts) + ".hpp"
 
 
@@ -206,6 +211,21 @@ def generate_package(nodes):
     print("   -> package.xml")
 
 
+def generate_dockerfile():
+    extra_packages = application.get("extra_packages", [])
+    apt_packages   = application.get("apt_packages", [])
+    template = env.get_template("Dockerfile.jinja")
+    rendered = template.render(
+        project=args.project,
+        extra_packages=extra_packages,
+        apt_packages=apt_packages,
+    )
+    dockerfile_path = os.path.join(TOOL_DIR, "Dockerfile")
+    with open(dockerfile_path, "w", encoding="utf-8") as f:
+        f.write(rendered)
+    print(f"   -> {dockerfile_path}  (extra_packages: {extra_packages or 'none'}, apt_packages: {apt_packages or 'none'})")
+
+
 def main():
     print(f"\n==> Generating project: {args.project}\n")
 
@@ -219,6 +239,9 @@ def main():
         generate_node(node)
 
     generate_package(resolved_nodes)
+
+    print("\n>> Dockerfile")
+    generate_dockerfile()
 
     print("\n===== GENERATION COMPLETE =====")
     print(f"Nodes  : {application['nodes']}")

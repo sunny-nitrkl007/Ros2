@@ -50,7 +50,7 @@ void Fibonacci_client::send_goal()
     options.feedback_callback = [this](
         rclcpp_action::ClientGoalHandle<example_interfaces::action::Fibonacci>::SharedPtr,
         const std::shared_ptr<const example_interfaces::action::Fibonacci::Feedback> feedback) {
-            const auto & seq = feedback->partial_sequence;
+            const auto & seq = feedback->sequence;
             RCLCPP_INFO(this->get_logger(),
                 "Feedback: %zu values so far, latest F=%d",
                 seq.size(), seq.empty() ? -1 : seq.back());

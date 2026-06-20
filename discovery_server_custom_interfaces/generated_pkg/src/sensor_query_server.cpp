@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "custom_interfaces_pkg/srv/sensorquery.hpp"
+#include "custom_interfaces_pkg/srv/sensor_query.hpp"
 #include "sensor_query_server.hpp"
 
 Sensor_query_server::Sensor_query_server()

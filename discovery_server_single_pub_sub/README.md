@@ -41,7 +41,7 @@ Generated files:
 ## Step 2 — Build Docker Image
 
 From `discoveryTesting/` (always from here, not from inside `tool/`):
-```bash
+```
 docker build --no-cache -f tool/Dockerfile -t ros2_ds_single .
 ```
 

@@ -114,10 +114,8 @@ This project uses its own Dockerfile (not the shared `tool/Dockerfile`) because 
 
 Run from `discoveryTesting/`:
 
-```bash
-docker build --no-cache \
-  -f discovery_server_custom_interfaces/Dockerfile \
-  -t ros2_ds_custom_interfaces .
+```
+docker build --no-cache -f tool/Dockerfile -t ros2_ds_custom_interfaces .
 ```
 
 colcon resolves the build order automatically via `package.xml` dependencies: `custom_interfaces_pkg` is built first, then `generated_pkg`.
@@ -207,4 +205,4 @@ ros2 interface show custom_interfaces_pkg/srv/SensorQuery
 | `custom_interfaces_pkg not found` during build | `AMENT_PREFIX_PATH` must include the interfaces install path — Dockerfile sets this via `ENV` |
 | `Package 'custom_interfaces_pkg' not found` at ros2 run | Container built from wrong image — rebuild and re-run using `ros2_ds_custom_interfaces` |
 | Subscriber receives nothing | Ensure `ROS_DISCOVERY_SERVER` is set in every terminal before `ros2 run` |
-| Docker build `COPY` error | Must run `docker build` from `discoveryTesting/` root, not from inside the project folder |
+| Docker build `COPY` error | Must run `docker build` from `Version2.0/` root, not from inside the project folder |

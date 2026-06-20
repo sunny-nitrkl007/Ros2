@@ -3,7 +3,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "custom_interfaces_pkg/srv/sensorquery.hpp"
+#include "custom_interfaces_pkg/srv/sensor_query.hpp"
 
 
 class Sensor_query_client : public rclcpp::Node

@@ -49,8 +49,8 @@ The generator auto-detects `std_srvs` as a dependency and writes it into `CMakeL
 
 ## Step 2 — Build
 
-```bash
-docker build --no-cache --build-arg PROJECT=discovery_server_services -f tool/Dockerfile -t ros2_discovery_server_services .
+```
+docker build --no-cache -f tool/Dockerfile -t ros2_discovery_server_services .
 ```
 
 ---

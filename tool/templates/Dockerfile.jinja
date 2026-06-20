@@ -1,0 +1,33 @@
+FROM ros:jazzy
+{% if apt_packages %}
+RUN apt-get update && apt-get install -y --no-install-recommends \
+{%- for pkg in apt_packages %}
+    {{ pkg }} \
+{%- endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{% endif %}
+RUN mkdir -p /ros2_ws/src
+
+{% for pkg in extra_packages -%}
+COPY {{ project }}/{{ pkg }}/ /ros2_ws/src/{{ pkg }}/
+{% endfor -%}
+COPY {{ project }}/generated_pkg/ /ros2_ws/src/generated_pkg/
+COPY tool/env.sh /env.sh
+
+WORKDIR /ros2_ws
+
+RUN /bin/bash -c "\
+    source /opt/ros/jazzy/setup.bash && \
+    colcon build{% if not extra_packages %} --packages-select generated_pkg{% endif %}"
+
+ENV AMENT_PREFIX_PATH=/ros2_ws/install/generated_pkg{% for pkg in extra_packages %}:/ros2_ws/install/{{ pkg }}{% endfor %}:/opt/ros/jazzy
+ENV PATH=/ros2_ws/install/generated_pkg/lib/generated_pkg:/opt/ros/jazzy/bin:$PATH
+
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
+    echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc && \
+    echo "source /env.sh" >> /root/.bashrc
+
+COPY tool/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

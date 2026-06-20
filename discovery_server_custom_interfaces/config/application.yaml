@@ -1,6 +1,8 @@
 application:
   name: custom_interfaces_system
   domain_id: 10
+  extra_packages:
+    - custom_interfaces_pkg
   nodes:
     - sensor_publisher
     - sensor_subscriber
