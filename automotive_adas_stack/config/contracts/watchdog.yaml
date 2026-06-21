@@ -1,0 +1,33 @@
+contract:
+  node:
+    name: watchdog
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: watchdog_params
+
+  callback_groups:
+    - name: watch_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: producer
+      dataref: heartbeat
+      qos_profile: reliable_qos
+
+    - type: pub-sub
+      role: consumer
+      dataref: safety_status
+      qos_profile: safety_qos
+      callback_group: watch_group
+
+    - type: service
+      role: server
+      dataref: system_health
+      callback_group: watch_group
+
+  timers:
+    - name: heartbeat_tick
+      rate_hz: 10.0
+      callback_group: watch_group

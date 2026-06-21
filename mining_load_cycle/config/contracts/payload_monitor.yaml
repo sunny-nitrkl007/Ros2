@@ -1,0 +1,27 @@
+contract:
+  node:
+    name: payload_monitor
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: payload_monitor_params
+
+  callback_groups:
+    - name: payload_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: bucket_state
+      qos_profile: cycle_qos
+      callback_group: payload_group
+
+    - type: pub-sub
+      role: producer
+      dataref: payload_status
+      qos_profile: cycle_qos
+
+    - type: service
+      role: client
+      dataref: check_payload

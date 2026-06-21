@@ -1,0 +1,28 @@
+contract:
+  node:
+    name: bucket_controller
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: bucket_controller_params
+
+  callback_groups:
+    - name: bucket_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: dig_command
+      qos_profile: reliable_qos
+      callback_group: bucket_group
+
+    - type: pub-sub
+      role: producer
+      dataref: bucket_state
+      qos_profile: cycle_qos
+
+    - type: service
+      role: server
+      dataref: check_payload
+      callback_group: bucket_group

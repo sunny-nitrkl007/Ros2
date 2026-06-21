@@ -1,0 +1,6 @@
+discovery_profiles:
+  mining_super_client:
+    mode: SUPER_CLIENT
+    servers:
+      - ip: 127.0.0.1
+        port: 11811

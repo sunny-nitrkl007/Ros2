@@ -1,0 +1,34 @@
+contract:
+  node:
+    name: route_planner
+    executor:
+      type: multi_threaded
+      threads: 2
+    parameter_ref: route_planner_params
+
+  callback_groups:
+    - name: planning_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: vehicle_pose
+      qos_profile: realtime_qos
+      callback_group: planning_group
+
+    - type: pub-sub
+      role: consumer
+      dataref: obstacle_map
+      qos_profile: reliable_qos
+      callback_group: planning_group
+
+    - type: pub-sub
+      role: producer
+      dataref: planned_route
+      qos_profile: reliable_qos
+
+  timers:
+    - name: planning_tick
+      rate_hz: 5.0
+      callback_group: planning_group

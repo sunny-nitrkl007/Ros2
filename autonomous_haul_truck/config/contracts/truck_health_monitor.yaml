@@ -1,0 +1,27 @@
+contract:
+  node:
+    name: truck_health_monitor
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: truck_health_monitor_params
+
+  callback_groups:
+    - name: health_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: producer
+      dataref: health_report
+      qos_profile: reliable_qos
+
+    - type: service
+      role: server
+      dataref: system_status
+      callback_group: health_group
+
+  timers:
+    - name: health_tick
+      rate_hz: 2.0
+      callback_group: health_group

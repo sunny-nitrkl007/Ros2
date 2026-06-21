@@ -1,0 +1,18 @@
+qos_profiles:
+  reliable_qos:
+    history: keep_last
+    depth: 10
+    reliability: reliable
+    deadline_ms: 200
+
+  cycle_qos:
+    history: keep_last
+    depth: 5
+    reliability: reliable
+    deadline_ms: 500
+
+  fleet_qos:
+    history: keep_last
+    depth: 10
+    reliability: reliable
+    deadline_ms: 1000

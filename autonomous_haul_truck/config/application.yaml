@@ -1,0 +1,11 @@
+application:
+  name: autonomous_haul_truck
+  domain_id: 30
+  discovery_profile: truck_super_client
+  nodes:
+    - gps_imu_fusion
+    - lidar_processor
+    - route_planner
+    - vehicle_controller
+    - hazard_detector
+    - truck_health_monitor

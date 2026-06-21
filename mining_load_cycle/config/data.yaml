@@ -1,0 +1,50 @@
+data:
+  messages:
+    truck_pose:
+      type: geometry_msgs/msg/PoseStamped
+      topic_path: /mining/truck/truck_pose
+
+    dig_command:
+      type: geometry_msgs/msg/Vector3
+      topic_path: /mining/excavator/dig_command
+
+    bucket_state:
+      type: geometry_msgs/msg/Vector3
+      topic_path: /mining/excavator/bucket_state
+
+    proximity_alert:
+      type: std_msgs/msg/Bool
+      topic_path: /mining/excavator/proximity_alert
+
+    payload_status:
+      type: geometry_msgs/msg/Vector3
+      topic_path: /mining/truck/payload_status
+
+    waypoint_command:
+      type: geometry_msgs/msg/PoseStamped
+      topic_path: /mining/fleet/waypoint_command
+
+    load_assignment:
+      type: std_msgs/msg/String
+      topic_path: /mining/fleet/load_assignment
+
+    health_telemetry:
+      type: diagnostic_msgs/msg/DiagnosticArray
+      topic_path: /mining/fleet/health_telemetry
+
+    cycle_report:
+      type: std_msgs/msg/String
+      topic_path: /mining/fleet/cycle_report
+
+  services:
+    check_payload:
+      type: std_srvs/srv/Trigger
+      service_path: /mining/excavator/check_payload
+
+    request_load:
+      type: std_srvs/srv/Trigger
+      service_path: /mining/fleet/request_load
+
+    emergency_stop:
+      type: std_srvs/srv/Trigger
+      service_path: /mining/fleet/emergency_stop

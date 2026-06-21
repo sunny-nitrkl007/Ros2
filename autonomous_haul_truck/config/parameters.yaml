@@ -1,0 +1,72 @@
+parameters:
+  gps_imu_fusion_params:
+    fusion_rate:
+      type: double
+      value: 20.0
+    position_noise:
+      type: double
+      value: 0.3
+    heading_drift:
+      type: double
+      value: 0.005
+
+  lidar_processor_params:
+    scan_rate:
+      type: double
+      value: 10.0
+    max_range:
+      type: double
+      value: 100.0
+    obstacle_density:
+      type: double
+      value: 0.15
+
+  route_planner_params:
+    planning_rate:
+      type: double
+      value: 5.0
+    destination_x:
+      type: double
+      value: 500.0
+    destination_y:
+      type: double
+      value: 0.0
+    waypoint_spacing:
+      type: double
+      value: 20.0
+
+  vehicle_controller_params:
+    max_speed:
+      type: double
+      value: 12.0
+    max_steering:
+      type: double
+      value: 25.0
+    control_rate:
+      type: double
+      value: 20.0
+    brake_decel:
+      type: double
+      value: 2.5
+
+  hazard_detector_params:
+    critical_distance:
+      type: double
+      value: 8.0
+    warning_distance:
+      type: double
+      value: 20.0
+    check_rate:
+      type: double
+      value: 50.0
+
+  truck_health_monitor_params:
+    engine_temp_max:
+      type: double
+      value: 95.0
+    hydraulic_pressure_min:
+      type: double
+      value: 150.0
+    report_rate:
+      type: double
+      value: 2.0

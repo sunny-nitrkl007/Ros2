@@ -1,0 +1,13 @@
+application:
+  name: mining_load_cycle
+  domain_id: 40
+  discovery_profile: mining_super_client
+  nodes:
+    - arm_planner
+    - bucket_controller
+    - proximity_detector
+    - truck_navigator
+    - payload_monitor
+    - load_dispatcher
+    - fleet_monitor
+    - site_logger

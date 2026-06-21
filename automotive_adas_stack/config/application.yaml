@@ -1,0 +1,13 @@
+application:
+  name: automotive_adas_stack
+  domain_id: 20
+  discovery_profile: adas_super_client
+  nodes:
+    - sensor_fusion
+    - object_detector
+    - path_planner
+    - decision_maker
+    - safety_monitor
+    - watchdog
+  apt_packages:
+    - ros-jazzy-visualization-msgs

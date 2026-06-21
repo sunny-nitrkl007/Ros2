@@ -1,0 +1,22 @@
+contract:
+  node:
+    name: lidar_processor
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: lidar_processor_params
+
+  callback_groups:
+    - name: scan_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: producer
+      dataref: obstacle_map
+      qos_profile: reliable_qos
+
+  timers:
+    - name: scan_tick
+      rate_hz: 10.0
+      callback_group: scan_group

@@ -1,0 +1,63 @@
+parameters:
+  sensor_fusion_params:
+    lidar_range:
+      type: double
+      value: 50.0
+    fusion_rate:
+      type: double
+      value: 50.0
+    grid_resolution:
+      type: double
+      value: 0.1
+
+  object_detector_params:
+    confidence_threshold:
+      type: double
+      value: 0.75
+    max_objects:
+      type: int
+      value: 20
+    detection_range:
+      type: double
+      value: 30.0
+
+  path_planner_params:
+    planning_rate:
+      type: double
+      value: 20.0
+    look_ahead_distance:
+      type: double
+      value: 10.0
+    max_speed:
+      type: double
+      value: 15.0
+
+  decision_maker_params:
+    target_speed:
+      type: double
+      value: 10.0
+    brake_threshold:
+      type: double
+      value: 5.0
+    steering_gain:
+      type: double
+      value: 0.5
+
+  safety_monitor_params:
+    check_rate:
+      type: double
+      value: 50.0
+    min_safe_distance:
+      type: double
+      value: 3.0
+    fault_timeout:
+      type: double
+      value: 0.5
+
+  watchdog_params:
+    heartbeat_rate:
+      type: double
+      value: 10.0
+    timeout_threshold:
+      type: double
+      value: 1.0

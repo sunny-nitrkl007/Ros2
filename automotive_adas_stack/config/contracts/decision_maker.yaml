@@ -1,0 +1,35 @@
+contract:
+  node:
+    name: decision_maker
+    executor:
+      type: multi_threaded
+      threads: 2
+    parameter_ref: decision_maker_params
+
+  callback_groups:
+    - name: decision_group
+      type: mutually_exclusive
+    - name: service_group
+      type: reentrant
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: planned_path
+      qos_profile: reliable_qos
+      callback_group: decision_group
+
+    - type: pub-sub
+      role: consumer
+      dataref: safety_status
+      qos_profile: safety_qos
+      callback_group: decision_group
+
+    - type: pub-sub
+      role: producer
+      dataref: driving_command
+      qos_profile: reliable_qos
+
+    - type: service
+      role: client
+      dataref: emergency_stop

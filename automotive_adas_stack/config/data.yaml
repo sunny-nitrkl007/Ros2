@@ -1,0 +1,34 @@
+data:
+  messages:
+    fused_environment:
+      type: nav_msgs/msg/OccupancyGrid
+      topic_path: /adas/perception/fused_environment
+
+    detected_objects:
+      type: visualization_msgs/msg/MarkerArray
+      topic_path: /adas/perception/detected_objects
+
+    planned_path:
+      type: nav_msgs/msg/Path
+      topic_path: /adas/planning/planned_path
+
+    driving_command:
+      type: geometry_msgs/msg/Twist
+      topic_path: /adas/planning/driving_command
+
+    safety_status:
+      type: diagnostic_msgs/msg/DiagnosticArray
+      topic_path: /adas/safety/safety_status
+
+    heartbeat:
+      type: std_msgs/msg/Bool
+      topic_path: /adas/safety/heartbeat
+
+  services:
+    emergency_stop:
+      type: std_srvs/srv/Trigger
+      service_path: /adas/safety/emergency_stop
+
+    system_health:
+      type: std_srvs/srv/Trigger
+      service_path: /adas/safety/system_health

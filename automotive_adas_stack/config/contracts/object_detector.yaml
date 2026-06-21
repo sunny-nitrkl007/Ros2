@@ -1,0 +1,23 @@
+contract:
+  node:
+    name: object_detector
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: object_detector_params
+
+  callback_groups:
+    - name: detection_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: fused_environment
+      qos_profile: realtime_qos
+      callback_group: detection_group
+
+    - type: pub-sub
+      role: producer
+      dataref: detected_objects
+      qos_profile: reliable_qos

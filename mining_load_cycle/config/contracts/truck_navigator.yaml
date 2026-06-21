@@ -1,0 +1,28 @@
+contract:
+  node:
+    name: truck_navigator
+    executor:
+      type: single_threaded
+      threads: 1
+    parameter_ref: truck_navigator_params
+
+  callback_groups:
+    - name: nav_group
+      type: mutually_exclusive
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: waypoint_command
+      qos_profile: reliable_qos
+      callback_group: nav_group
+
+    - type: pub-sub
+      role: producer
+      dataref: truck_pose
+      qos_profile: reliable_qos
+
+  timers:
+    - name: navigation_tick
+      rate_hz: 10.0
+      callback_group: nav_group

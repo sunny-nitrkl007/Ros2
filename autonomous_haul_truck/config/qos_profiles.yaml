@@ -1,0 +1,19 @@
+qos_profiles:
+  realtime_qos:
+    history: keep_last
+    depth: 5
+    reliability: best_effort
+    deadline_ms: 50
+
+  reliable_qos:
+    history: keep_last
+    depth: 10
+    reliability: reliable
+    deadline_ms: 200
+
+  safety_qos:
+    history: keep_last
+    depth: 10
+    reliability: reliable
+    deadline_ms: 20
+    lifespan_ms: 100

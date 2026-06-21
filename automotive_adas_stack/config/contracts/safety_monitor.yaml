@@ -1,0 +1,41 @@
+contract:
+  node:
+    name: safety_monitor
+    executor:
+      type: multi_threaded
+      threads: 2
+    parameter_ref: safety_monitor_params
+
+  callback_groups:
+    - name: monitor_group
+      type: mutually_exclusive
+    - name: service_group
+      type: reentrant
+
+  interactions:
+    - type: pub-sub
+      role: consumer
+      dataref: detected_objects
+      qos_profile: reliable_qos
+      callback_group: monitor_group
+
+    - type: pub-sub
+      role: consumer
+      dataref: driving_command
+      qos_profile: reliable_qos
+      callback_group: monitor_group
+
+    - type: pub-sub
+      role: producer
+      dataref: safety_status
+      qos_profile: safety_qos
+
+    - type: service
+      role: server
+      dataref: emergency_stop
+      callback_group: service_group
+
+  timers:
+    - name: safety_check
+      rate_hz: 50.0
+      callback_group: monitor_group

@@ -1,0 +1,82 @@
+parameters:
+  arm_planner_params:
+    dig_rate:
+      type: double
+      value: 5.0
+    dig_depth:
+      type: double
+      value: 2.5
+    swing_speed:
+      type: double
+      value: 0.3
+
+  bucket_controller_params:
+    max_load_kg:
+      type: double
+      value: 250.0
+    fill_rate:
+      type: double
+      value: 30.0
+    dump_threshold:
+      type: double
+      value: 0.85
+
+  proximity_detector_params:
+    check_rate:
+      type: double
+      value: 10.0
+    proximity_radius:
+      type: double
+      value: 12.0
+    excavator_x:
+      type: double
+      value: 0.0
+    excavator_y:
+      type: double
+      value: 0.0
+
+  truck_navigator_params:
+    nav_rate:
+      type: double
+      value: 10.0
+    max_speed:
+      type: double
+      value: 8.0
+    position_tolerance:
+      type: double
+      value: 2.0
+
+  payload_monitor_params:
+    target_payload_kg:
+      type: double
+      value: 200.0
+    check_interval:
+      type: double
+      value: 2.0
+
+  load_dispatcher_params:
+    cycle_rate:
+      type: double
+      value: 2.0
+    dig_zone_x:
+      type: double
+      value: 5.0
+    dig_zone_y:
+      type: double
+      value: 0.0
+    dump_zone_x:
+      type: double
+      value: 150.0
+    dump_zone_y:
+      type: double
+      value: 0.0
+
+  fleet_monitor_params:
+    monitor_rate:
+      type: double
+      value: 1.0
+
+  site_logger_params:
+    log_rate:
+      type: double
+      value: 0.5

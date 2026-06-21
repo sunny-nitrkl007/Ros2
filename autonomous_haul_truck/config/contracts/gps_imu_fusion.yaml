@@ -1,0 +1,22 @@
+contract:
+  node:
+    name: gps_imu_fusion
+    executor:
+      type: multi_threaded
+      threads: 2
+    parameter_ref: gps_imu_fusion_params
+
+  callback_groups:
+    - name: fusion_group
+      type: reentrant
+
+  interactions:
+    - type: pub-sub
+      role: producer
+      dataref: vehicle_pose
+      qos_profile: realtime_qos
+
+  timers:
+    - name: fusion_tick
+      rate_hz: 20.0
+      callback_group: fusion_group
