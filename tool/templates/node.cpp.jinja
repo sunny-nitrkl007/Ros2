@@ -124,9 +124,10 @@ using namespace std::chrono_literals;
 // ─────────────────────────────────────────────────────────────────────────────
 void {{ node.class_name }}::{{ sub.callback_name }}(const {{ sub.cpp_type }}::SharedPtr msg)
 {
+    //-- begin impl [{{ sub.callback_name }}] ----------------------------------------
     (void)msg;
-    // TODO: handle incoming message on {{ sub.topic }}
-    RCLCPP_DEBUG(this->get_logger(), "{{ sub.callback_name }} called");
+    // implement: handle message on {{ sub.topic }}
+    //-- end impl [{{ sub.callback_name }}] ------------------------------------------
 }
 
 {% endfor %}
@@ -136,10 +137,11 @@ void {{ node.class_name }}::{{ srv.callback_name }}(
     const {{ srv.cpp_type }}::Request::SharedPtr request,
     {{ srv.cpp_type }}::Response::SharedPtr response)
 {
+    //-- begin impl [{{ srv.callback_name }}] ----------------------------------------
     (void)request;
     (void)response;
-    // TODO: implement {{ srv.service_name }} logic
-    RCLCPP_INFO(this->get_logger(), "{{ srv.callback_name }} called");
+    // implement: {{ srv.service_name }}
+    //-- end impl [{{ srv.callback_name }}] ------------------------------------------
 }
 
 {% endfor %}
@@ -147,7 +149,9 @@ void {{ node.class_name }}::{{ srv.callback_name }}(
 // ─────────────────────────────────────────────────────────────────────────────
 void {{ node.class_name }}::{{ timer.name }}()
 {
-    // TODO: implement — runs at {{ timer.rate_hz }} Hz
+    //-- begin impl [{{ timer.name }}] -----------------------------------------------
+    // implement: runs at {{ timer.rate_hz }} Hz
+    //-- end impl [{{ timer.name }}] -------------------------------------------------
 }
 
 {% endfor %}

@@ -1,5 +1,4 @@
 #include "arm_controller.hpp"
-#include <cmath>
 
 using namespace std::chrono_literals;
 
@@ -79,9 +78,11 @@ ArmController::ArmController()
 // ─────────────────────────────────────────────────────────────────────────────
 void ArmController::on_joint_commands(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
 {
+    //-- begin impl [on_joint_commands] ----------------------------------------
     if (msg->joint_names.empty()) return;
     RCLCPP_INFO(this->get_logger(), "Received joint_commands for %zu joints",
         msg->joint_names.size());
+    //-- end impl [on_joint_commands] ----------------------------------------
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,15 +90,18 @@ void ArmController::on_set_mode(
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response)
 {
+    //-- begin impl [on_set_mode] ----------------------------------------
     mode_ = request->data ? "active" : "idle";
     response->success = true;
     response->message = "Mode set to: " + mode_;
     RCLCPP_INFO(this->get_logger(), "Mode changed to: %s", mode_.c_str());
+    //-- end impl [on_set_mode] ----------------------------------------
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 void ArmController::control_loop()
 {
+    //-- begin impl [control_loop] ----------------------------------------
     static uint64_t tick = 0;
     ++tick;
 
@@ -131,6 +135,7 @@ void ArmController::control_loop()
                     res->success, res->message.c_str());
             });
     }
+    //-- end impl [control_loop] ----------------------------------------
 }
 
 int main(int argc, char * argv[])

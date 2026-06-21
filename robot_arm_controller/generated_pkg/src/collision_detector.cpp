@@ -1,5 +1,4 @@
 #include "collision_detector.hpp"
-#include <cmath>
 
 using namespace std::chrono_literals;
 
@@ -65,7 +64,9 @@ CollisionDetector::CollisionDetector()
 // ─────────────────────────────────────────────────────────────────────────────
 void CollisionDetector::on_joint_states(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
+    //-- begin impl [on_joint_states] ----------------------------------------
     latest_positions_ = msg->position;
+    //-- end impl [on_joint_states] ----------------------------------------
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,14 +74,17 @@ void CollisionDetector::on_check_collision(
     const std_srvs::srv::Trigger::Request::SharedPtr request,
     std_srvs::srv::Trigger::Response::SharedPtr response)
 {
+    //-- begin impl [on_check_collision] ----------------------------------------
     (void)request;
     response->success = !collision_detected_;
     response->message = collision_detected_ ? "COLLISION DETECTED" : "Clear";
+    //-- end impl [on_check_collision] ----------------------------------------
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 void CollisionDetector::safety_check()
 {
+    //-- begin impl [safety_check] ----------------------------------------
     if (latest_positions_.empty()) return;
 
     bool any_collision = false;
@@ -99,6 +103,7 @@ void CollisionDetector::safety_check()
         RCLCPP_WARN(this->get_logger(), "Collision state changed: %s",
             collision_detected_ ? "COLLISION" : "Clear");
     }
+    //-- end impl [safety_check] ----------------------------------------
 }
 
 int main(int argc, char * argv[])
