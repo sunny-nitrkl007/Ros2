@@ -1,5 +1,4 @@
 #include "arm_controller.hpp"
-
 #include <cmath>
 
 using namespace std::chrono_literals;
@@ -26,12 +25,15 @@ ArmController::ArmController()
     {
         rclcpp::QoS qos(rclcpp::KeepLast(5));
         qos.best_effort();
+        qos.deadline(std::chrono::milliseconds(20));
         joint_states_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/robot1/joint_states", qos);
         RCLCPP_INFO(this->get_logger(), "Publisher ready: /robot1/joint_states");
     }
     {
         rclcpp::QoS qos(rclcpp::KeepLast(10));
         qos.reliable();
+        qos.deadline(std::chrono::milliseconds(200));
+        qos.lifespan(std::chrono::milliseconds(1000));
         arm_status_pub_ = this->create_publisher<std_msgs::msg::String>("/robot1/arm_status", qos);
         RCLCPP_INFO(this->get_logger(), "Publisher ready: /robot1/arm_status");
     }
@@ -40,6 +42,7 @@ ArmController::ArmController()
     {
         rclcpp::QoS qos(rclcpp::KeepLast(10));
         qos.reliable();
+        qos.deadline(std::chrono::milliseconds(200));
         auto sub_opts = rclcpp::SubscriptionOptions();
         sub_opts.callback_group = control_group_;
         joint_commands_sub_ = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
@@ -76,11 +79,9 @@ ArmController::ArmController()
 // ─────────────────────────────────────────────────────────────────────────────
 void ArmController::on_joint_commands(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
 {
-    if (!msg->joint_names.empty()) {
-        RCLCPP_INFO(this->get_logger(),
-            "Received command for %zu joints (first: %s)",
-            msg->joint_names.size(), msg->joint_names[0].c_str());
-    }
+    if (msg->joint_names.empty()) return;
+    RCLCPP_INFO(this->get_logger(), "Received joint_commands for %zu joints",
+        msg->joint_names.size());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,41 +98,37 @@ void ArmController::on_set_mode(
 // ─────────────────────────────────────────────────────────────────────────────
 void ArmController::control_loop()
 {
-    static int tick = 0;
+    static uint64_t tick = 0;
     ++tick;
 
-    double t = this->now().seconds();
-
-    // Publish simulated sinusoidal joint states at 100 Hz
+    // Publish sinusoidal joint states at 100 Hz
     auto js = sensor_msgs::msg::JointState();
     js.header.stamp = this->now();
     js.name = joint_names_;
+    double t = tick * 0.01;
     for (size_t i = 0; i < joint_names_.size(); ++i) {
-        double phase = t * 0.5 * static_cast<double>(i + 1);
-        js.position.push_back(std::sin(phase));
-        js.velocity.push_back(max_velocity_ * 0.5 * std::cos(phase));
+        double phase = static_cast<double>(i) * M_PI / 3.0;
+        js.position.push_back(std::sin(t + phase) * max_velocity_);
+        js.velocity.push_back(std::cos(t + phase) * max_velocity_);
     }
     joint_states_pub_->publish(js);
 
-    // Publish a status string every second
+    // Publish arm_status every 1 s (100 ticks)
     if (tick % 100 == 0) {
         auto status = std_msgs::msg::String();
-        status.data = "mode=" + mode_ + "  tick=" + std::to_string(tick);
+        status.data = "mode=" + mode_ + " tick=" + std::to_string(tick);
         arm_status_pub_->publish(status);
         RCLCPP_INFO(this->get_logger(), "Status: %s", status.data.c_str());
     }
 
-    // Call check_collision service every 2 seconds
+    // Call check_collision every 2 s (200 ticks)
     if (tick % 200 == 0 && check_collision_client_->service_is_ready()) {
         auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
         check_collision_client_->async_send_request(req,
             [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-                auto resp = future.get();
-                if (!resp->success) {
-                    RCLCPP_WARN(this->get_logger(), "Collision check: %s", resp->message.c_str());
-                } else {
-                    RCLCPP_DEBUG(this->get_logger(), "Collision check: Clear");
-                }
+                auto res = future.get();
+                RCLCPP_INFO(this->get_logger(), "CollisionCheck: success=%d msg=%s",
+                    res->success, res->message.c_str());
             });
     }
 }

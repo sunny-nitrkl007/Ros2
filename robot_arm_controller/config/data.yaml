@@ -1,0 +1,26 @@
+data:
+  messages:
+    joint_commands:
+      type: trajectory_msgs/msg/JointTrajectory
+      topic_path: /robot1/joint_commands
+
+    joint_states:
+      type: sensor_msgs/msg/JointState
+      topic_path: /robot1/joint_states
+
+    arm_status:
+      type: std_msgs/msg/String
+      topic_path: /robot1/arm_status
+
+    collision_alert:
+      type: std_msgs/msg/Bool
+      topic_path: /robot1/collision_alert
+
+  services:
+    set_mode:
+      type: std_srvs/srv/SetBool
+      service_path: /robot1/set_mode
+
+    check_collision:
+      type: std_srvs/srv/Trigger
+      service_path: /robot1/check_collision

@@ -1,0 +1,52 @@
+contract:
+  name: arm_controller_system
+
+  node:
+    name: arm_controller
+    executor:
+      type: multi_threaded
+      threads: 4
+    parameter_ref: arm_controller
+    discovery_profile: robot_arm_ds
+
+  callback_groups:
+    - name: control_group
+      type: mutually_exclusive
+    - name: service_group
+      type: reentrant
+
+  timers:
+    - name: control_loop
+      rate_hz: 100.0
+      callback_group: control_group
+
+  interactions:
+    - name: pub_joint_states
+      type: pub-sub
+      role: producer
+      dataref: joint_states
+      qos_profile: sensor_qos
+
+    - name: pub_arm_status
+      type: pub-sub
+      role: producer
+      dataref: arm_status
+      qos_profile: reliable_qos
+
+    - name: sub_joint_commands
+      type: pub-sub
+      role: consumer
+      dataref: joint_commands
+      qos_profile: reliable_qos
+      callback_group: control_group
+
+    - name: server_set_mode
+      type: service
+      role: server
+      dataref: set_mode
+      callback_group: service_group
+
+    - name: client_check_collision
+      type: service
+      role: client
+      dataref: check_collision

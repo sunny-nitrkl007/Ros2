@@ -1,5 +1,0 @@
-discovery:
-  mode: server
-  server_ip: 127.0.0.1
-  server_port: 11811
-  server_id: 0

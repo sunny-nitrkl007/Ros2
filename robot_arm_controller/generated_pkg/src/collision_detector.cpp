@@ -1,5 +1,4 @@
 #include "collision_detector.hpp"
-
 #include <cmath>
 
 using namespace std::chrono_literals;
@@ -14,7 +13,7 @@ CollisionDetector::CollisionDetector()
     check_rate_ = this->get_parameter("check_rate").as_double();
     this->declare_parameter<bool>("alert_on_proximity", true);
     alert_on_proximity_ = this->get_parameter("alert_on_proximity").as_bool();
-    RCLCPP_INFO(this->get_logger(), "Parameters loaded. safety_margin=%.3f", safety_margin_);
+    RCLCPP_INFO(this->get_logger(), "Parameters loaded.");
 
     // ── Callback groups ───────────────────────────────────────────────────────
     safety_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -23,6 +22,8 @@ CollisionDetector::CollisionDetector()
     {
         rclcpp::QoS qos(rclcpp::KeepLast(10));
         qos.reliable();
+        qos.deadline(std::chrono::milliseconds(200));
+        qos.lifespan(std::chrono::milliseconds(1000));
         collision_alert_pub_ = this->create_publisher<std_msgs::msg::Bool>("/robot1/collision_alert", qos);
         RCLCPP_INFO(this->get_logger(), "Publisher ready: /robot1/collision_alert");
     }
@@ -31,6 +32,7 @@ CollisionDetector::CollisionDetector()
     {
         rclcpp::QoS qos(rclcpp::KeepLast(5));
         qos.best_effort();
+        qos.deadline(std::chrono::milliseconds(20));
         auto sub_opts = rclcpp::SubscriptionOptions();
         sub_opts.callback_group = safety_group_;
         joint_states_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -68,41 +70,34 @@ void CollisionDetector::on_joint_states(const sensor_msgs::msg::JointState::Shar
 
 // ─────────────────────────────────────────────────────────────────────────────
 void CollisionDetector::on_check_collision(
-    const std_srvs::srv::Trigger::Request::SharedPtr /*request*/,
+    const std_srvs::srv::Trigger::Request::SharedPtr request,
     std_srvs::srv::Trigger::Response::SharedPtr response)
 {
+    (void)request;
     response->success = !collision_detected_;
-    response->message = collision_detected_ ? "COLLISION RISK DETECTED" : "Clear";
-    RCLCPP_INFO(this->get_logger(), "check_collision query → %s", response->message.c_str());
+    response->message = collision_detected_ ? "COLLISION DETECTED" : "Clear";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 void CollisionDetector::safety_check()
 {
-    if (!alert_on_proximity_ || latest_positions_.empty()) {
-        return;
-    }
+    if (latest_positions_.empty()) return;
 
-    // Joints approach limits (±1.0 rad simulated range) — flag within safety_margin_
-    bool near_limit = false;
+    bool any_collision = false;
     for (double pos : latest_positions_) {
         if (std::abs(pos) > (1.0 - safety_margin_)) {
-            near_limit = true;
+            any_collision = true;
             break;
         }
     }
 
-    if (near_limit != collision_detected_) {
-        collision_detected_ = near_limit;
+    if (any_collision != collision_detected_) {
+        collision_detected_ = any_collision;
         auto alert = std_msgs::msg::Bool();
         alert.data = collision_detected_;
         collision_alert_pub_->publish(alert);
-
-        if (collision_detected_) {
-            RCLCPP_WARN(this->get_logger(), "COLLISION ALERT: joint approaching limit (safety_margin=%.3f)", safety_margin_);
-        } else {
-            RCLCPP_INFO(this->get_logger(), "Collision alert cleared — joints back in safe range.");
-        }
+        RCLCPP_WARN(this->get_logger(), "Collision state changed: %s",
+            collision_detected_ ? "COLLISION" : "Clear");
     }
 }
 

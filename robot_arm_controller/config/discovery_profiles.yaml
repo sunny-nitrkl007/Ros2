@@ -1,0 +1,7 @@
+discovery_profiles:
+  robot_arm_ds:
+    mode: SUPER_CLIENT
+    servers:
+      - id: 0
+        ip: 127.0.0.1
+        port: 11811

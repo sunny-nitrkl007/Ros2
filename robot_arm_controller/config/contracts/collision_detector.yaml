@@ -1,0 +1,39 @@
+contract:
+  name: collision_detector_system
+
+  node:
+    name: collision_detector
+    executor:
+      type: multi_threaded
+      threads: 2
+    parameter_ref: collision_detector
+    discovery_profile: robot_arm_ds
+
+  callback_groups:
+    - name: safety_group
+      type: mutually_exclusive
+
+  timers:
+    - name: safety_check
+      rate_hz: 50.0
+      callback_group: safety_group
+
+  interactions:
+    - name: sub_joint_states
+      type: pub-sub
+      role: consumer
+      dataref: joint_states
+      qos_profile: sensor_qos
+      callback_group: safety_group
+
+    - name: pub_collision_alert
+      type: pub-sub
+      role: producer
+      dataref: collision_alert
+      qos_profile: reliable_qos
+
+    - name: server_check_collision
+      type: service
+      role: server
+      dataref: check_collision
+      callback_group: safety_group

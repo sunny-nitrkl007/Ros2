@@ -29,21 +29,26 @@ def load_yaml(rel_path):
     with open(full, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
+def load_yaml_optional(rel_path):
+    full = os.path.join(PROJECT_PATH, rel_path)
+    if not os.path.isfile(full):
+        return None
+    print(f"  loading {full}")
+    with open(full, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
 def out(rel_path):
     return os.path.join(PROJECT_PATH, rel_path)
 
-application  = load_yaml("config/application.yaml")["application"]
-interfaces   = load_yaml("config/interfaces.yaml")["interfaces"]
-qos_profiles = load_yaml("config/qos_profiles.yaml").get("qos_profiles") or {}
-parameters   = load_yaml("config/parameters.yaml").get("parameters") or {}
+application      = load_yaml("config/application.yaml")["application"]
+data             = load_yaml("config/data.yaml")["data"]
+qos_profiles     = load_yaml("config/qos_profiles.yaml").get("qos_profiles") or {}
+parameters       = load_yaml("config/parameters.yaml").get("parameters") or {}
+disc_profiles    = load_yaml("config/discovery_profiles.yaml").get("discovery_profiles") or {}
 
-_disc_raw  = {}
-_disc_file = os.path.join(PROJECT_PATH, "config/discovery.yaml")
-if os.path.isfile(_disc_file):
-    with open(_disc_file, encoding="utf-8") as _f:
-        _disc_raw = yaml.safe_load(_f).get("discovery", {})
-    print(f"  loading {_disc_file}")
-discovery = _disc_raw
+# Resolve project-wide discovery profile from application.yaml
+_disc_name  = application.get("discovery_profile", "")
+discovery   = disc_profiles.get(_disc_name, {})
 
 # ── Type conversion helpers ───────────────────────────────────────────────────
 
@@ -68,7 +73,9 @@ def type_to_include(ros_type):
 
 PARAM_CPP = {
     'double':       ('double',                   'as_double()'),
+    'float64':      ('double',                   'as_double()'),
     'int':          ('int64_t',                  'as_int()'),
+    'int32':        ('int64_t',                  'as_int()'),
     'bool':         ('bool',                     'as_bool()'),
     'string':       ('std::string',              'as_string()'),
     'string_array': ('std::vector<std::string>', 'as_string_array()'),
@@ -77,7 +84,7 @@ PARAM_CPP = {
 }
 
 def format_cpp_default(value, ptype):
-    if ptype == 'string':
+    if ptype in ('string',):
         return f'"{value}"'
     if ptype == 'string_array':
         return '{' + ', '.join(f'"{v}"' for v in value) + '}'
@@ -87,11 +94,12 @@ def format_cpp_default(value, ptype):
         return 'true' if value else 'false'
     return str(value)
 
-def resolve_params(group_name):
+def resolve_params(ref_name):
     result = {}
-    for pname, pdata in (parameters.get(group_name) or {}).items():
+    group = parameters.get(ref_name) or {}
+    for pname, pdata in group.items():
         ptype = pdata['type']
-        cpp_type, getter = PARAM_CPP[ptype]
+        cpp_type, getter = PARAM_CPP.get(ptype, ('auto', 'get()'))
         result[pname] = {
             'cpp_type':     cpp_type,
             'default_expr': format_cpp_default(pdata['value'], ptype),
@@ -117,22 +125,22 @@ def collect_deps(nodes):
             deps.add(entry['cpp_type'].split('::')[0])
     return sorted(deps)
 
-# ── Node resolver ─────────────────────────────────────────────────────────────
+# ── Node resolver — reads contract file ──────────────────────────────────────
 
 def resolve_node(node_name):
-    raw = load_yaml(f"config/nodes/{node_name}.yaml")['node']
+    raw     = load_yaml(f"config/contracts/{node_name}.yaml")["contract"]
+    node_def = raw["node"]
 
     node = {
-        'name':            node_name,
-        'class_name':      to_class_name(node_name),
-        'namespace':       raw.get('namespace', ''),
-        'executor':        raw.get('executor', {'type': 'single_threaded', 'threads': 1}),
+        'name':            node_def['name'],
+        'class_name':      to_class_name(node_def['name']),
+        'executor':        node_def.get('executor', {'type': 'single_threaded', 'threads': 1}),
         'publishers':      [],
         'subscribers':     [],
         'service_servers': [],
         'service_clients': [],
         'timers':          raw.get('timers', []),
-        'parameters':      resolve_params(raw.get('parameters', '')),
+        'parameters':      resolve_params(node_def.get('parameter_ref', '')),
         'all_includes':    set(),
     }
 
@@ -141,61 +149,66 @@ def resolve_node(node_name):
         for cg in raw.get('callback_groups', [])
     ]
 
-    for pub in raw.get('publishers', []):
-        iface = interfaces['messages'][pub['interface']]
-        qos   = qos_profiles.get(pub.get('qos', 'reliable_qos'), {})
-        cpp_t = type_to_cpp(iface['type'])
-        inc   = type_to_include(iface['type'])
-        node['all_includes'].add(inc)
-        node['publishers'].append({
-            'interface_name': pub['interface'],
-            'topic':          pub.get('topic', iface['default_topic']),
-            'cpp_type':       cpp_t,
-            'qos':            qos,
-            'member_name':    f"{pub['interface']}_pub_",
-        })
+    for interaction in raw.get('interactions', []):
+        itype   = interaction['type']    # 'pub-sub' or 'service'
+        role    = interaction['role']    # 'producer', 'consumer', 'server', 'client'
+        dataref = interaction['dataref']
+        qos     = qos_profiles.get(interaction.get('qos_profile', 'reliable_qos'), {})
+        cbg     = interaction.get('callback_group', '')
 
-    for sub in raw.get('subscribers', []):
-        iface = interfaces['messages'][sub['interface']]
-        qos   = qos_profiles.get(sub.get('qos', 'reliable_qos'), {})
-        cpp_t = type_to_cpp(iface['type'])
-        inc   = type_to_include(iface['type'])
-        node['all_includes'].add(inc)
-        node['subscribers'].append({
-            'interface_name': sub['interface'],
-            'topic':          sub.get('topic', iface['default_topic']),
-            'cpp_type':       cpp_t,
-            'qos':            qos,
-            'callback_group': sub.get('callback_group', ''),
-            'member_name':    f"{sub['interface']}_sub_",
-            'callback_name':  f"on_{sub['interface']}",
-        })
+        if itype == 'pub-sub' and role == 'producer':
+            entry  = data['messages'][dataref]
+            cpp_t  = type_to_cpp(entry['type'])
+            inc    = type_to_include(entry['type'])
+            node['all_includes'].add(inc)
+            node['publishers'].append({
+                'interface_name': dataref,
+                'topic':          entry['topic_path'],
+                'cpp_type':       cpp_t,
+                'qos':            qos,
+                'member_name':    f"{dataref}_pub_",
+            })
 
-    for srv in raw.get('service_servers', []):
-        iface = interfaces['services'][srv['interface']]
-        cpp_t = type_to_cpp(iface['type'])
-        inc   = type_to_include(iface['type'])
-        node['all_includes'].add(inc)
-        node['service_servers'].append({
-            'interface_name': srv['interface'],
-            'service_name':   srv.get('service', iface['default_name']),
-            'cpp_type':       cpp_t,
-            'callback_group': srv.get('callback_group', ''),
-            'member_name':    f"{srv['interface']}_srv_",
-            'callback_name':  f"on_{srv['interface']}",
-        })
+        elif itype == 'pub-sub' and role == 'consumer':
+            entry  = data['messages'][dataref]
+            cpp_t  = type_to_cpp(entry['type'])
+            inc    = type_to_include(entry['type'])
+            node['all_includes'].add(inc)
+            node['subscribers'].append({
+                'interface_name': dataref,
+                'topic':          entry['topic_path'],
+                'cpp_type':       cpp_t,
+                'qos':            qos,
+                'callback_group': cbg,
+                'member_name':    f"{dataref}_sub_",
+                'callback_name':  f"on_{dataref}",
+            })
 
-    for cli in raw.get('service_clients', []):
-        iface = interfaces['services'][cli['interface']]
-        cpp_t = type_to_cpp(iface['type'])
-        inc   = type_to_include(iface['type'])
-        node['all_includes'].add(inc)
-        node['service_clients'].append({
-            'interface_name': cli['interface'],
-            'service_name':   cli.get('service', iface['default_name']),
-            'cpp_type':       cpp_t,
-            'member_name':    f"{cli['interface']}_client_",
-        })
+        elif itype == 'service' and role == 'server':
+            entry  = data['services'][dataref]
+            cpp_t  = type_to_cpp(entry['type'])
+            inc    = type_to_include(entry['type'])
+            node['all_includes'].add(inc)
+            node['service_servers'].append({
+                'interface_name': dataref,
+                'service_name':   entry['service_path'],
+                'cpp_type':       cpp_t,
+                'callback_group': cbg,
+                'member_name':    f"{dataref}_srv_",
+                'callback_name':  f"on_{dataref}",
+            })
+
+        elif itype == 'service' and role == 'client':
+            entry  = data['services'][dataref]
+            cpp_t  = type_to_cpp(entry['type'])
+            inc    = type_to_include(entry['type'])
+            node['all_includes'].add(inc)
+            node['service_clients'].append({
+                'interface_name': dataref,
+                'service_name':   entry['service_path'],
+                'cpp_type':       cpp_t,
+                'member_name':    f"{dataref}_client_",
+            })
 
     node['all_includes'] = sorted(node['all_includes'])
     return node
@@ -205,20 +218,25 @@ def resolve_node(node_name):
 def generate_dockerfile():
     extra_packages = application.get("extra_packages", [])
     apt_packages   = application.get("apt_packages", [])
+
+    servers    = discovery.get("servers", [{}])
+    first_srv  = servers[0] if servers else {}
+
     template = env.get_template("Dockerfile.jinja")
     rendered = template.render(
         project=args.project,
         extra_packages=extra_packages,
         apt_packages=apt_packages,
         domain_id=application.get("domain_id", 10),
-        discovery_mode=discovery.get("mode", ""),
-        discovery_ip=discovery.get("server_ip", "127.0.0.1"),
-        discovery_port=discovery.get("server_port", 11811),
+        discovery_mode="server" if discovery else "",
+        discovery_ip=first_srv.get("ip", "127.0.0.1"),
+        discovery_port=first_srv.get("port", 11811),
     )
     dockerfile_path = os.path.join(TOOL_DIR, "Dockerfile")
     with open(dockerfile_path, "w", encoding="utf-8") as f:
         f.write(rendered)
-    print(f"   -> {dockerfile_path}  (apt_packages: {apt_packages or 'none'}, DS: {discovery.get('mode', 'none')})")
+    mode = discovery.get("mode", "CLIENT")
+    print(f"   -> {dockerfile_path}  (mode: {mode}, DS: {first_srv.get('ip')}:{first_srv.get('port')})")
 
 # ── Code generation ───────────────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -36,7 +37,7 @@ private:
     double check_rate_;
     bool alert_on_proximity_;
 
-    // Runtime state
+    // State
     std::vector<double> latest_positions_;
     bool collision_detected_ = false;
 };

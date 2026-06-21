@@ -34,6 +34,12 @@ using namespace std::chrono_literals;
 {% if pub.qos.durability is defined and pub.qos.durability == "transient_local" %}
         qos.transient_local();
 {% endif %}
+{% if pub.qos.deadline_ms is defined %}
+        qos.deadline(std::chrono::milliseconds({{ pub.qos.deadline_ms }}));
+{% endif %}
+{% if pub.qos.lifespan_ms is defined %}
+        qos.lifespan(std::chrono::milliseconds({{ pub.qos.lifespan_ms }}));
+{% endif %}
         {{ pub.member_name }} = this->create_publisher<{{ pub.cpp_type }}>("{{ pub.topic }}", qos);
         RCLCPP_INFO(this->get_logger(), "Publisher ready: {{ pub.topic }}");
     }
@@ -46,6 +52,9 @@ using namespace std::chrono_literals;
     {
         rclcpp::QoS qos(rclcpp::KeepLast({{ sub.qos.depth | default(10) }}));
         qos.{{ sub.qos.reliability | default("reliable") }}();
+{% if sub.qos.deadline_ms is defined %}
+        qos.deadline(std::chrono::milliseconds({{ sub.qos.deadline_ms }}));
+{% endif %}
 {% if sub.callback_group %}
         auto sub_opts = rclcpp::SubscriptionOptions();
         sub_opts.callback_group = {{ sub.callback_group }}_;

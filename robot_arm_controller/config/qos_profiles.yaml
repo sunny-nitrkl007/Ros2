@@ -1,15 +1,32 @@
 qos_profiles:
-  reliable_qos:
-    reliability: reliable
-    durability: volatile
-    history: keep_last
-    depth: 10
-
   sensor_qos:
     reliability: best_effort
     durability: volatile
     history: keep_last
     depth: 5
+    deadline_ms: 20
+
+  reliable_qos:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 10
+    deadline_ms: 200
+    lifespan_ms: 1000
+
+  server_default_qos:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 5
+    deadline_ms: 500
+
+  client_default_qos:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 5
+    deadline_ms: 500
 
   latch_qos:
     reliability: reliable

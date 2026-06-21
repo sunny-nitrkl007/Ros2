@@ -2,7 +2,7 @@ application:
   name: robot_arm_system
   version: "3.0"
   domain_id: 10
-  namespace: /robot1
+  discovery_profile: robot_arm_ds
 
   apt_packages:
     - ros-jazzy-trajectory-msgs
