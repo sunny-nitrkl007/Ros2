@@ -24,6 +24,9 @@ void {{ node.name | capitalize }}::send_request()
         return;
     }
     auto request = std::make_shared<{{ srv_type }}::Request>();
+    //-- begin impl [fill_request] -------------------------------------------
+    // populate request fields here
+    //-- end impl [fill_request] ---------------------------------------------
     auto future  = client_->async_send_request(
         request,
         [this](rclcpp::Client<{{ srv_type }}>::SharedFuture f) {

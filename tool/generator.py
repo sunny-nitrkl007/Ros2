@@ -3,7 +3,7 @@ import re
 import sys
 import argparse
 import yaml
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 TOOL_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR  = os.path.dirname(TOOL_DIR)
@@ -30,7 +30,10 @@ if os.path.isdir(PROJECT_TEMPLATES):
     template_dirs.append(PROJECT_TEMPLATES)
 template_dirs.append(TOOL_TEMPLATES)
 
-env = Environment(loader=FileSystemLoader(template_dirs))
+env = Environment(
+    loader=FileSystemLoader(template_dirs),
+    undefined=StrictUndefined,
+)
 
 
 def load_yaml(rel_path):
@@ -60,10 +63,120 @@ print(f"Parameter groups  : {list(parameters.keys())}")
 print("================================\n")
 
 
-# ---------- type conversion helpers ----------
+# ── Impl block preservation ───────────────────────────────────────────────────
+# Markers wrap developer-written sections so re-running the generator keeps them.
+# Format:  //-- begin impl [name] ---...
+#              <your code>
+#          //-- end impl [name] ---...
+
+IMPL_RE     = re.compile(
+    r'([ \t]*)//-- begin impl \[([^\]]+)\] -+\n(.*?)\1//-- end impl \[\2\] -+',
+    re.DOTALL
+)
+IMPL_DASHES = '-' * 40
+
+def extract_impl_blocks(path):
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding='utf-8') as f:
+        content = f.read()
+    # group(1)=indent, group(2)=name, group(3)=content
+    return {m.group(2): m.group(3) for m in IMPL_RE.finditer(content)}
+
+def inject_impl_blocks(rendered, preserved):
+    if not preserved:
+        return rendered
+    def replacer(m):
+        indent = m.group(1)
+        name   = m.group(2)
+        if name in preserved:
+            return (
+                f'{indent}//-- begin impl [{name}] {IMPL_DASHES}\n' +
+                preserved[name] +
+                f'{indent}//-- end impl [{name}] {IMPL_DASHES}'
+            )
+        return m.group(0)
+    return IMPL_RE.sub(replacer, rendered)
+
+
+# ── Config validator ──────────────────────────────────────────────────────────
+
+_TOPIC_TYPES  = ("publisher", "subscriber", "lifecycle_publisher", "lifecycle_subscriber")
+_SRV_TYPES    = ("service_server", "service_client")
+_ACTION_TYPES = ("action_server", "action_client")
+_LC_TYPES     = ("lifecycle_publisher", "lifecycle_subscriber")
+
+def validate_config():
+    errors = []
+
+    for node_name in application.get('nodes', []):
+        node_file = f"config/nodes/{node_name}.yaml"
+        full_path = os.path.join(PROJECT_PATH, node_file)
+
+        if not os.path.isfile(full_path):
+            errors.append(f"Node '{node_name}': file missing at {node_file}")
+            continue
+
+        with open(full_path, encoding='utf-8') as f:
+            node_yaml = yaml.safe_load(f).get('node', {})
+
+        ntype = node_yaml.get('type', '')
+        all_types = _TOPIC_TYPES + _SRV_TYPES + _ACTION_TYPES
+        if ntype not in all_types:
+            errors.append(
+                f"Node '{node_name}': unknown type '{ntype}' "
+                f"(valid: {all_types})"
+            )
+            continue
+
+        if ntype in _TOPIC_TYPES:
+            topic = node_yaml.get('topic', '')
+            if not topic:
+                errors.append(f"Node '{node_name}': missing 'topic' field")
+            elif topic not in topics:
+                errors.append(
+                    f"Node '{node_name}': topic '{topic}' not found in topics.yaml "
+                    f"(defined: {list(topics.keys())})"
+                )
+
+            qos_name = node_yaml.get('qos', '')
+            if qos_name and qos_name not in qos_profiles:
+                errors.append(
+                    f"Node '{node_name}': qos '{qos_name}' not found in qos_profiles.yaml "
+                    f"(defined: {list(qos_profiles.keys())})"
+                )
+
+        elif ntype in _SRV_TYPES:
+            if not node_yaml.get('service'):
+                errors.append(f"Node '{node_name}': missing 'service' field")
+            if not node_yaml.get('srv_type'):
+                errors.append(f"Node '{node_name}': missing 'srv_type' field")
+
+        elif ntype in _ACTION_TYPES:
+            if not node_yaml.get('action'):
+                errors.append(f"Node '{node_name}': missing 'action' field")
+            if not node_yaml.get('action_type'):
+                errors.append(f"Node '{node_name}': missing 'action_type' field")
+
+        param_group = node_yaml.get('parameters', '')
+        if param_group and param_group not in parameters:
+            errors.append(
+                f"Node '{node_name}': parameter group '{param_group}' not found in parameters.yaml "
+                f"(defined: {list(parameters.keys())})"
+            )
+
+    if errors:
+        print(f"\nERROR: {len(errors)} config error(s):")
+        for e in errors:
+            print(f"  ✗ {e}")
+        sys.exit(1)
+
+    print("  Config OK")
+
+
+# ── Type conversion helpers ───────────────────────────────────────────────────
 
 def camel_to_snake(name):
-    # ROS2 header convention: CamelCase type name → snake_case filename
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
 
 def msg_to_cpp(msg):
@@ -91,13 +204,7 @@ def action_to_include(action):
     return "/".join(parts) + ".hpp"
 
 
-# ---------- dependency collection ----------
-
-_TOPIC_TYPES  = ("publisher", "subscriber", "lifecycle_publisher", "lifecycle_subscriber")
-_SRV_TYPES    = ("service_server", "service_client")
-_ACTION_TYPES = ("action_server", "action_client")
-_LC_TYPES     = ("lifecycle_publisher", "lifecycle_subscriber")
-
+# ── Dependency collection ─────────────────────────────────────────────────────
 
 def collect_deps(nodes):
     deps = {"rclcpp"}
@@ -117,7 +224,7 @@ def collect_deps(nodes):
     return sorted(deps)
 
 
-# ---------- node resolution ----------
+# ── Node resolution ───────────────────────────────────────────────────────────
 
 def resolve_node(node_name):
     node_yaml = load_yaml(f"config/nodes/{node_name}.yaml")["node"]
@@ -154,13 +261,13 @@ def resolve_node(node_name):
     return result
 
 
-# ---------- code generation ----------
+# ── Code generation ───────────────────────────────────────────────────────────
 
 def generate_node(node):
-    node_type      = node["type"]
-    msg_type       = msg_include    = ""
-    srv_type       = srv_include    = ""
-    action_type    = action_include = ""
+    node_type   = node["type"]
+    msg_type    = msg_include    = ""
+    srv_type    = srv_include    = ""
+    action_type = action_include = ""
 
     if node_type in _TOPIC_TYPES:
         msg_type    = msg_to_cpp(node["message_type"])
@@ -182,14 +289,20 @@ def generate_node(node):
         action_type=action_type, action_include=action_include,
     )
 
-    rendered_cpp = env.get_template(f"{node_type}.cpp.jinja").render(**ctx)
     cpp_path = out(f"generated_pkg/src/{node['name']}.cpp")
+    hpp_path = out(f"generated_pkg/include/{node['name']}.hpp")
+
+    existing_impls = extract_impl_blocks(cpp_path)
+
+    rendered_cpp = env.get_template(f"{node_type}.cpp.jinja").render(**ctx)
+    rendered_cpp = inject_impl_blocks(rendered_cpp, existing_impls)
     with open(cpp_path, "w", encoding="utf-8") as f:
         f.write(rendered_cpp)
-    print(f"   -> {cpp_path}")
+
+    impl_note = f"  ({len(existing_impls)} impl blocks preserved)" if existing_impls else ""
+    print(f"   -> {cpp_path}{impl_note}")
 
     rendered_hpp = env.get_template("node.hpp.jinja").render(**ctx)
-    hpp_path = out(f"generated_pkg/include/{node['name']}.hpp")
     with open(hpp_path, "w", encoding="utf-8") as f:
         f.write(rendered_hpp)
     print(f"   -> {hpp_path}")
@@ -228,6 +341,9 @@ def generate_dockerfile():
 
 def main():
     print(f"\n==> Generating project: {args.project}\n")
+
+    validate_config()
+    print()
 
     os.makedirs(out("generated_pkg/src"),     exist_ok=True)
     os.makedirs(out("generated_pkg/include"), exist_ok=True)

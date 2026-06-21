@@ -17,12 +17,15 @@
 }
 
 void {{ node.name | capitalize }}::handle_request(
-    const {{ srv_type }}::Request::SharedPtr /*request*/,
+    const {{ srv_type }}::Request::SharedPtr request,
     {{ srv_type }}::Response::SharedPtr response)
 {
     RCLCPP_INFO(this->get_logger(), "Received service request.");
+    //-- begin impl [handle_request] -----------------------------------------
+    (void)request;
     response->success = true;
     response->message = "OK from {{ node.name }}";
+    //-- end impl [handle_request] -------------------------------------------
 }
 
 int main(int argc, char * argv[])

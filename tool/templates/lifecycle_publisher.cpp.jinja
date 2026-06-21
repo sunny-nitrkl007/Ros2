@@ -88,8 +88,10 @@ CallbackReturn {{ node.name | capitalize }}::on_shutdown(const rclcpp_lifecycle:
 void {{ node.name | capitalize }}::publish_message()
 {
     auto msg = {{ msg_type }}();
+    //-- begin impl [publish_message] ----------------------------------------
     msg.data = "Hello from {{ node.name }}! count=" + std::to_string(count_++);
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", msg.data.c_str());
+    //-- end impl [publish_message] ------------------------------------------
     publisher_->publish(msg);
 }
 

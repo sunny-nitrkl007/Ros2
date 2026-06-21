@@ -56,6 +56,7 @@ void {{ node.name | capitalize }}::handle_accepted(
 void {{ node.name | capitalize }}::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<{{ action_type }}>> goal_handle)
 {
+    //-- begin impl [execute] ------------------------------------------------
     const int order = goal_handle->get_goal()->order;
     RCLCPP_INFO(this->get_logger(),
         "Executing: Fibonacci(%d) with %d ms between steps.", order, step_delay_ms_);
@@ -86,6 +87,7 @@ void {{ node.name | capitalize }}::execute(
     RCLCPP_INFO(this->get_logger(),
         "Goal succeeded. Sequence length=%zu, last value=%d",
         seq.size(), seq.back());
+    //-- end impl [execute] --------------------------------------------------
 }
 
 int main(int argc, char * argv[])
