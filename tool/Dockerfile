@@ -3,7 +3,7 @@ FROM ros:jazzy
 RUN mkdir -p /ros2_ws/src
 
 COPY discovery_server_single_pub_sub/generated_pkg/ /ros2_ws/src/generated_pkg/
-COPY tool/env.sh /env.sh
+COPY tool/docker/env.sh /env.sh
 
 WORKDIR /ros2_ws
 
@@ -18,7 +18,7 @@ RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
     echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc && \
     echo "source /env.sh" >> /root/.bashrc
 
-COPY tool/entrypoint.sh /entrypoint.sh
+COPY tool/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

@@ -42,9 +42,9 @@ discovery:
 
 ## Step 1 — Generate
 
-Run from `Version2.0/`:
+Run from the project directory:
 ```bash
-python3 tool/generator.py --project discovery_server_failover
+python3 tool/generator/generator.py --project discovery_server_failover
 ```
 
 ---

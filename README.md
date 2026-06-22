@@ -39,23 +39,29 @@ Each project folder below tests a specific capability or topology through the di
 ```
 Version2.0/
 ├── tool/                                    # Shared infrastructure — used by all projects
-│   ├── generator.py                         # YAML + Jinja2 → C++ + Dockerfile generator
-│   ├── Dockerfile                           # Generated per project by generator.py (do not edit)
-│   ├── env.sh                               # ROS_DOMAIN_ID and ROS_DISCOVERY_SERVER
-│   ├── entrypoint.sh                        # Container entrypoint (sources ROS + env)
-│   └── templates/                           # Jinja2 templates
-│       ├── publisher.cpp.jinja
-│       ├── subscriber.cpp.jinja
-│       ├── service_server.cpp.jinja
-│       ├── service_client.cpp.jinja
-│       ├── action_server.cpp.jinja
-│       ├── action_client.cpp.jinja
-│       ├── lifecycle_publisher.cpp.jinja
-│       ├── lifecycle_subscriber.cpp.jinja
-│       ├── node.hpp.jinja
-│       ├── CMakeLists.txt.jinja
-│       ├── package.xml.jinja
-│       └── Dockerfile.jinja                 # Dockerfile template (supports extra/apt packages)
+│   ├── generator/
+│   │   ├── generator.py                     # Jinja2 rendering — imports loader
+│   │   └── loader.py                        # YAML loading, validation, type resolution
+│   ├── templates/                           # Jinja2 templates
+│   │   ├── publisher.cpp.jinja
+│   │   ├── subscriber.cpp.jinja
+│   │   ├── service_server.cpp.jinja
+│   │   ├── service_client.cpp.jinja
+│   │   ├── action_server.cpp.jinja
+│   │   ├── action_client.cpp.jinja
+│   │   ├── lifecycle_publisher.cpp.jinja
+│   │   ├── lifecycle_subscriber.cpp.jinja
+│   │   ├── node.hpp.jinja
+│   │   ├── CMakeLists.txt.jinja
+│   │   ├── package.xml.jinja
+│   │   └── Dockerfile.jinja                 # Dockerfile template (supports extra/apt packages)
+│   ├── fastdds/
+│   │   ├── client.xml                       # SUPER_CLIENT profile (reference — not loaded at runtime)
+│   │   └── server.xml                       # DS server profile (reference — CLI flags used instead)
+│   ├── docker/
+│   │   ├── env.sh                           # ROS_DOMAIN_ID and ROS_DISCOVERY_SERVER
+│   │   └── entrypoint.sh                    # Container entrypoint (sources ROS + env)
+│   └── Dockerfile                           # Generated per project by generator.py (do not edit)
 │
 ├── discovery_server_single_pub_sub/
 ├── discovery_server_single_pub_multi_sub/
@@ -98,7 +104,7 @@ Projects that need custom behaviour can add:
 Run the generator first, then build the Docker image. The generator writes `tool/Dockerfile` for the current project before each build.
 
 ```
-python3 tool/generator.py --project <name>
+python3 tool/generator/generator.py --project <name>
 docker build --no-cache -f tool/Dockerfile -t <image> .
 ```
 
@@ -175,18 +181,18 @@ docker build --no-cache -f tool/Dockerfile -t <image> .
 
 ## Generator Commands
 
-Run from `Version2.0/`:
+Run from the project directory:
 
 ```bash
-python3 tool/generator.py --project discovery_server_single_pub_sub
-python3 tool/generator.py --project discovery_server_single_pub_multi_sub
-python3 tool/generator.py --project discovery_server_multi_pub_single_sub
-python3 tool/generator.py --project discovery_server_services
-python3 tool/generator.py --project discovery_server_multi_robot
-python3 tool/generator.py --project discovery_server_failover
-python3 tool/generator.py --project discovery_server_actions
-python3 tool/generator.py --project discovery_server_lifecycle
-python3 tool/generator.py --project discovery_server_custom_interfaces
+python3 tool/generator/generator.py --project discovery_server_single_pub_sub
+python3 tool/generator/generator.py --project discovery_server_single_pub_multi_sub
+python3 tool/generator/generator.py --project discovery_server_multi_pub_single_sub
+python3 tool/generator/generator.py --project discovery_server_services
+python3 tool/generator/generator.py --project discovery_server_multi_robot
+python3 tool/generator/generator.py --project discovery_server_failover
+python3 tool/generator/generator.py --project discovery_server_actions
+python3 tool/generator/generator.py --project discovery_server_lifecycle
+python3 tool/generator/generator.py --project discovery_server_custom_interfaces
 ```
 
 ---
@@ -199,7 +205,7 @@ Always run from `Version2.0/`. Always run the generator first — it writes `too
 
 ```
 # Step 1 — generate code + Dockerfile for the project
-python3 tool/generator.py --project <project_name>
+python3 tool/generator/generator.py --project <project_name>
 
 # Step 2 — build the image
 docker build --no-cache -f tool/Dockerfile -t <image_name> .
@@ -263,7 +269,7 @@ pip install pyyaml jinja2
 ## Adding a New Project
 
 1. Create `my_project/config/` with `application.yaml`, `nodes/*.yaml`, `topics.yaml`, `qos_profiles.yaml`, `parameters.yaml`
-2. Run: `python3 tool/generator.py --project my_project`
+2. Run: `python3 tool/generator/generator.py --project my_project`
 3. Build: `docker build --no-cache -f tool/Dockerfile -t my_image .`
 4. Add `my_project/README.md` with test steps
 
@@ -370,7 +376,7 @@ V4.0 (Real hardware):
 |---|---|---|
 | `Package 'generated_pkg' not found` | `AMENT_PREFIX_PATH` not set | Dockerfile sets it via `ENV` — rebuild with `--no-cache` |
 | `fastdds: command not found` | ROS2 not sourced | Run `source /opt/ros/jazzy/setup.bash` first |
-| Listener receives nothing | DS not running or `ROS_DISCOVERY_SERVER` missing | Ensure server is up; env var is set via `env.sh` in every exec session |
-| Wrong executables in image | Generator not re-run before build | Always run `python3 tool/generator.py --project <name>` before `docker build` |
+| Listener receives nothing | DS not running or `ROS_DISCOVERY_SERVER` missing | Ensure server is up; env var is set via `docker/env.sh` in every exec session |
+| Wrong executables in image | Generator not re-run before build | Always run `python3 tool/generator/generator.py --project <name>` before `docker build` |
 | `ros2 topic list` shows nothing | FastDDS DS limitation | DS propagates participant presence only — use `ros2 node list` instead |
 | Docker build `COPY` error | `docker build` run from wrong directory | Must run from `Version2.0/` root, not from inside the project folder |

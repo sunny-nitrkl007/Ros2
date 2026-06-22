@@ -29,9 +29,9 @@ Each publisher runs at a different rate (2 Hz, 1 Hz, 0.5 Hz) to make interleavin
 
 ## Step 1 — Generate
 
-Run from `Version2.0/`:
+Run from the project directory:
 ```bash
-python3 tool/generator.py --project discovery_server_multi_pub_single_sub
+python3 tool/generator/generator.py --project discovery_server_multi_pub_single_sub
 ```
 
 ---

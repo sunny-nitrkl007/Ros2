@@ -23,9 +23,9 @@ This is the baseline project. All other projects build on what is proven here.
 
 ## Step 1 — Generate C++ Code
 
-Run from `Version2.0/`:
+Run from the project directory:
 ```bash
-python3 tool/generator.py --project discovery_server_single_pub_sub
+python3 tool/generator/generator.py --project discovery_server_single_pub_sub
 ```
 
 Generated files:
@@ -130,7 +130,7 @@ When `ROS_DISCOVERY_SERVER` is set, Fast-DDS gives every ROS2 node one of two ro
 | `CLIENT` | Only discovers participants that match its own topics — a talker only finds listeners on the same topic, nothing else |
 | `SUPER_CLIENT` | Gets the **full registry** from the server — every participant, every topic, every endpoint on the network |
 
-Every node in this project is configured as a **SUPER_CLIENT** (set in `tool/client.xml` and activated automatically when `ROS_DISCOVERY_SERVER` is exported).
+Every node in this project is configured as a **SUPER_CLIENT** (set in `tool/fastdds/client.xml` and activated automatically when `ROS_DISCOVERY_SERVER` is exported).
 
 This is why Test 2 above works:
 
@@ -153,7 +153,7 @@ You never write any SUPER_CLIENT configuration explicitly. Setting the env var i
 # Method 1 — automatic (what you always use in this project)
 
 # Method 2 — manual XML (alternative, same result, not used in test steps)
-export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/tool/client.xml
+export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/tool/fastdds/client.xml
 ```
 
 When ROS2 sees `ROS_DISCOVERY_SERVER`, its middleware layer (rmw_fastrtps) automatically generates a FastDDS participant config in memory — equivalent to writing `<discoveryProtocol>SUPER_CLIENT</discoveryProtocol>` in an XML profile. Your node starts already configured as a SUPER_CLIENT with no XML file involved.
@@ -169,7 +169,7 @@ pointing to 127.0.0.1:11811
 Your node starts — already a SUPER_CLIENT, no XML needed
 ```
 
-`tool/client.xml` exists in this project as **documentation/reference** — to show what ROS2 is doing under the hood, and as a fallback for non-ROS2 Fast-DDS applications that can't use `ROS_DISCOVERY_SERVER`. It is never actually loaded in any of the test steps.
+`tool/fastdds/client.xml` exists in this project as **documentation/reference** — to show what ROS2 is doing under the hood, and as a fallback for non-ROS2 Fast-DDS applications that can't use `ROS_DISCOVERY_SERVER`. It is never actually loaded in any of the test steps.
 
 ---
 

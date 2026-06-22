@@ -68,9 +68,9 @@ The generator auto-adds `rclcpp_lifecycle` and `lifecycle_msgs` to `CMakeLists.t
 
 ## Step 1 — Generate
 
-Run from `Version2.0/`:
+Run from the project directory:
 ```bash
-python3 tool/generator.py --project discovery_server_lifecycle
+python3 tool/generator/generator.py --project discovery_server_lifecycle
 ```
 
 ---
