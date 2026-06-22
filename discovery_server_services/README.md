@@ -39,8 +39,9 @@ node:
 
 ## Step 1 — Generate
 
+Run from `Version2.0/`:
 ```bash
-python tool/generator.py --project discovery_server_services
+python3 tool/generator.py --project discovery_server_services
 ```
 
 The generator auto-detects `std_srvs` as a dependency and writes it into `CMakeLists.txt` and `package.xml`.

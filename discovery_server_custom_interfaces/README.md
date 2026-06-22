@@ -100,8 +100,9 @@ The same applies to the `/sensor_query` service: the DS registers server and cli
 
 ## Generator Command
 
+Run from `Version2.0/`:
 ```bash
-python tool/generator.py --project discovery_server_custom_interfaces
+python3 tool/generator.py --project discovery_server_custom_interfaces
 ```
 
 This regenerates `generated_pkg/` from the YAML config and project templates. The `custom_interfaces_pkg/` is never generated — it is authored manually and contains the canonical `.msg` / `.srv` definitions.

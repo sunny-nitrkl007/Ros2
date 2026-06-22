@@ -23,9 +23,9 @@ This is the baseline project. All other projects build on what is proven here.
 
 ## Step 1 — Generate C++ Code
 
-From `discoveryTesting/`:
+Run from `Version2.0/`:
 ```bash
-python tool/generator.py --project discovery_server_single_pub_sub
+python3 tool/generator.py --project discovery_server_single_pub_sub
 ```
 
 Generated files:
