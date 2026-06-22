@@ -78,7 +78,7 @@ python3 tool/generator/generator.py --project discovery_server_lifecycle
 ## Step 2 — Build
 
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_ds_lifecycle .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_ds_lifecycle .
 ```
 
 ---

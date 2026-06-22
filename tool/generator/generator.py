@@ -152,7 +152,7 @@ def generate_dockerfile(application):
         extra_packages=application.get("extra_packages", []),
         apt_packages=application.get("apt_packages", []),
     )
-    dockerfile_path = os.path.join(PARENT_DIR, "Dockerfile")
+    dockerfile_path = os.path.join(PARENT_DIR, "docker", "Dockerfile")
     with open(dockerfile_path, 'w', encoding='utf-8') as f:
         f.write(rendered)
     print(f"   -> {dockerfile_path}")

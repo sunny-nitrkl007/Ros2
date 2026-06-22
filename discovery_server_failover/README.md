@@ -52,7 +52,7 @@ python3 tool/generator/generator.py --project discovery_server_failover
 ## Step 2 — Build
 
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_discovery_server_failover .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_discovery_server_failover .
 ```
 
 ---

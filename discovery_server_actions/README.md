@@ -86,7 +86,7 @@ Generated files:
 ## Step 2 — Build
 
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_ds_actions .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_ds_actions .
 ```
 
 ---

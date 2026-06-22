@@ -25,10 +25,10 @@ Listener::Listener()
 
 void Listener::callback(const std_msgs::msg::String::SharedPtr msg)
 {
-    //-- begin impl [callback] -----------------------------------------------
+    //-- begin impl [callback] ----------------------------------------
     RCLCPP_INFO(this->get_logger(), "%s %s",
         log_prefix_.c_str(), msg->data.c_str());
-    //-- end impl [callback] -------------------------------------------------
+    //-- end impl [callback] ----------------------------------------
 }
 
 int main(int argc, char * argv[])

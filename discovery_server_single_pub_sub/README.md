@@ -42,7 +42,7 @@ Generated files:
 
 From `discoveryTesting/` (always from here, not from inside `tool/`):
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_ds_single .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_ds_single .
 ```
 
 First build takes 3–5 minutes. Subsequent builds use cache.

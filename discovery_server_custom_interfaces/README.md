@@ -14,7 +14,7 @@ Test that user-defined ROS2 message and service types work correctly through the
 | Custom `.srv` definition | `custom_interfaces_pkg/srv/SensorQuery.srv` |
 | Two-package workspace | `custom_interfaces_pkg` + `generated_pkg` built together |
 | Project-level template overrides | `templates/` — publisher and service templates fill custom fields |
-| Project-specific Dockerfile | Can't use shared `tool/Dockerfile` — must copy both packages |
+| Project-specific Dockerfile | Can't use shared `tool/docker/Dockerfile` — must copy both packages |
 
 ---
 
@@ -111,12 +111,12 @@ This regenerates `generated_pkg/` from the YAML config and project templates. Th
 
 ## Docker Build
 
-This project uses its own Dockerfile (not the shared `tool/Dockerfile`) because it must copy and build two packages.
+This project uses its own Dockerfile (not the shared `tool/docker/Dockerfile`) because it must copy and build two packages.
 
 Run from `discoveryTesting/`:
 
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_ds_custom_interfaces .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_ds_custom_interfaces .
 ```
 
 colcon resolves the build order automatically via `package.xml` dependencies: `custom_interfaces_pkg` is built first, then `generated_pkg`.

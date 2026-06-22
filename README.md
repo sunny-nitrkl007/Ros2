@@ -58,10 +58,10 @@ Version2.0/
 │   ├── fastdds/
 │   │   ├── client.xml                       # SUPER_CLIENT profile (reference — not loaded at runtime)
 │   │   └── server.xml                       # DS server profile (reference — CLI flags used instead)
-│   ├── docker/
-│   │   ├── env.sh                           # ROS_DOMAIN_ID and ROS_DISCOVERY_SERVER
-│   │   └── entrypoint.sh                    # Container entrypoint (sources ROS + env)
-│   └── Dockerfile                           # Generated per project by generator.py (do not edit)
+│   └── docker/
+│       ├── env.sh                           # ROS_DOMAIN_ID and ROS_DISCOVERY_SERVER
+│       ├── entrypoint.sh                    # Container entrypoint (sources ROS + env)
+│       └── Dockerfile                       # Generated per project by generator.py (do not edit)
 │
 ├── discovery_server_single_pub_sub/
 ├── discovery_server_single_pub_multi_sub/
@@ -101,11 +101,11 @@ Projects that need custom behaviour can add:
 
 ## How the Generator Works
 
-Run the generator first, then build the Docker image. The generator writes `tool/Dockerfile` for the current project before each build.
+Run the generator first, then build the Docker image. The generator writes `tool/docker/Dockerfile` for the current project before each build.
 
 ```
 python3 tool/generator/generator.py --project <name>
-docker build --no-cache -f tool/Dockerfile -t <image> .
+docker build --no-cache -f tool/docker/Dockerfile -t <image> .
 ```
 
 ### YAML → Code Flow
@@ -174,7 +174,7 @@ docker build --no-cache -f tool/Dockerfile -t <image> .
      ▼
   ──► generated_pkg/CMakeLists.txt    (CMakeLists.txt.jinja)
   ──► generated_pkg/package.xml       (package.xml.jinja)
-  ──► tool/Dockerfile                 (Dockerfile.jinja)
+  ──► tool/docker/Dockerfile                 (Dockerfile.jinja)
 ```
 
 ---
@@ -199,7 +199,7 @@ python3 tool/generator/generator.py --project discovery_server_custom_interfaces
 
 ## Docker — Build and Run
 
-Always run from `Version2.0/`. Always run the generator first — it writes `tool/Dockerfile` for the selected project.
+Always run from `Version2.0/`. Always run the generator first — it writes `tool/docker/Dockerfile` for the selected project.
 
 ### Build
 
@@ -208,7 +208,7 @@ Always run from `Version2.0/`. Always run the generator first — it writes `too
 python3 tool/generator/generator.py --project <project_name>
 
 # Step 2 — build the image
-docker build --no-cache -f tool/Dockerfile -t <image_name> .
+docker build --no-cache -f tool/docker/Dockerfile -t <image_name> .
 ```
 
 | Project | Image name |
@@ -270,7 +270,7 @@ pip install pyyaml jinja2
 
 1. Create `my_project/config/` with `application.yaml`, `nodes/*.yaml`, `topics.yaml`, `qos_profiles.yaml`, `parameters.yaml`
 2. Run: `python3 tool/generator/generator.py --project my_project`
-3. Build: `docker build --no-cache -f tool/Dockerfile -t my_image .`
+3. Build: `docker build --no-cache -f tool/docker/Dockerfile -t my_image .`
 4. Add `my_project/README.md` with test steps
 
 No changes to `tool/` needed for standard node types.

@@ -32,7 +32,7 @@ void Talker::publish_message()
     //-- begin impl [publish_message] ----------------------------------------
     msg.data = "Hello from talker! count=" + std::to_string(count_++);
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", msg.data.c_str());
-    //-- end impl [publish_message] ------------------------------------------
+    //-- end impl [publish_message] ----------------------------------------
     publisher_->publish(msg);
 }
 

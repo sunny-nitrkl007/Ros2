@@ -39,7 +39,7 @@ python3 tool/generator/generator.py --project discovery_server_multi_pub_single_
 ## Step 2 — Build
 
 ```
-docker build --no-cache -f tool/Dockerfile -t ros2_discovery_server_multi_pub_single_sub .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_discovery_server_multi_pub_single_sub .
 ```
 
 ---
