@@ -115,7 +115,7 @@ def generate_dockerfile(application, discovery):
         discovery_ip=first_srv.get("ip", "127.0.0.1"),
         discovery_port=first_srv.get("port", 11811),
     )
-    dockerfile_path = os.path.join(PARENT_DIR, "Dockerfile")
+    dockerfile_path = os.path.join(PARENT_DIR, "docker", "Dockerfile")
     with open(dockerfile_path, "w", encoding="utf-8") as f:
         f.write(rendered)
     mode = discovery.get("mode", "CLIENT")

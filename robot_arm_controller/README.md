@@ -402,7 +402,7 @@ OK CMakeLists.txt + package.xml  (deps: rclcpp, sensor_msgs, std_msgs, std_srvs,
 ### Build Docker Image
 
 ```bash
-docker build --no-cache -f tool/Dockerfile -t ros2_v3_robot_arm .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_v3_robot_arm .
 ```
 
 ### Run (3 terminals)

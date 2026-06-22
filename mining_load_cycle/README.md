@@ -552,7 +552,7 @@ The generator resolves all references, produces:
 - `generated_pkg/src/<node>.cpp` — constructor (parameters, publishers, subscribers, timers), impl block stubs
 - `generated_pkg/CMakeLists.txt` — ament targets, dependency resolution
 - `generated_pkg/package.xml` — ROS2 package manifest
-- `tool/Dockerfile` — Discovery Server environment config
+- `tool/docker/Dockerfile` — Discovery Server environment config
 
 ---
 
@@ -599,7 +599,7 @@ OK CMakeLists.txt + package.xml  (deps: diagnostic_msgs, geometry_msgs, rclcpp, 
 ### Build Docker Image
 
 ```bash
-docker build --no-cache -f tool/Dockerfile -t ros2_v3_mining .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_v3_mining .
 ```
 
 ### Run

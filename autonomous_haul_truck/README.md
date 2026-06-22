@@ -492,7 +492,7 @@ OK CMakeLists.txt + package.xml  (deps: diagnostic_msgs, geometry_msgs, nav_msgs
 ### Build Docker Image
 
 ```bash
-docker build --no-cache -f tool/Dockerfile -t ros2_v3_haul_truck .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_v3_haul_truck .
 ```
 
 ### Run

@@ -34,9 +34,9 @@ Version3.0/
 │   │   ├── CMakeLists.txt.jinja
 │   │   ├── package.xml.jinja
 │   │   └── Dockerfile.jinja   # FastDDS SUPER_CLIENT environment config
-│   ├── docker/
-│   │   └── entrypoint.sh      # Container entrypoint
-│   └── Dockerfile             # Generated per project (overwritten on each run)
+│   └── docker/
+│       ├── entrypoint.sh      # Container entrypoint
+│       └── Dockerfile         # Generated per project (overwritten on each run)
 │
 ├── robot_arm_controller/      # Demo: multi-role robot arm (domain_id 10)
 ├── automotive_adas_stack/     # Demo: CAT ADAS pipeline (domain_id 20)
@@ -99,7 +99,7 @@ generated_pkg/include/<node>.hpp   ← class declaration, subscriber/service sig
 generated_pkg/src/<node>.cpp       ← constructor wiring + impl block stubs (preserved on re-runs)
 generated_pkg/CMakeLists.txt       ← ament targets, all deps auto-resolved from data.yaml types
 generated_pkg/package.xml          ← ROS2 package manifest
-tool/Dockerfile                    ← FastDDS SUPER_CLIENT config baked in
+tool/docker/Dockerfile                    ← FastDDS SUPER_CLIENT config baked in
 ```
 
 ---
@@ -283,7 +283,7 @@ OK CMakeLists.txt + package.xml  (deps: geometry_msgs, nav_msgs, rclcpp, std_srv
 Then build and run:
 
 ```bash
-docker build --no-cache -f tool/Dockerfile -t ros2_v3_<project> .
+docker build --no-cache -f tool/docker/Dockerfile -t ros2_v3_<project> .
 fastdds discovery -i 0 -p 11811   # terminal 1
 docker run --rm --network host ros2_v3_<project>   # terminal 2
 ```
