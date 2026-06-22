@@ -386,9 +386,10 @@ collision_detector::safety_check (50 Hz)
 
 ### Generate C++
 
+Run from the project directory:
+
 ```bash
-cd Version3.0
-python tool/generator.py --project robot_arm_controller
+python3 tool/generator.py --project robot_arm_controller
 ```
 
 Expected output:

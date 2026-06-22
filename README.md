@@ -264,9 +264,10 @@ Each demo has its own `README.md` explaining the YAML files, node behaviour, dat
 
 ## Generating a Project
 
+Run from the project directory:
+
 ```bash
-cd Version3.0
-python tool/generator.py --project <project_name>
+python3 tool/generator.py --project <project_name>
 ```
 
 The generator prints a summary line per node:

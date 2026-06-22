@@ -472,9 +472,10 @@ The generator (`tool/generator.py`) walks this dependency graph, resolves all re
 
 ### Generate C++ from YAML
 
+Run from the project directory:
+
 ```bash
-cd Version3.0
-python tool/generator.py --project autonomous_haul_truck
+python3 tool/generator.py --project autonomous_haul_truck
 ```
 
 Expected output:

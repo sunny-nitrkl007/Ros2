@@ -577,9 +577,10 @@ All services use `std_srvs/srv/Trigger` (empty request, `{success, message}` res
 
 ### Generate C++ from YAML
 
+Run from the project directory:
+
 ```bash
-cd Version3.0
-python tool/generator.py --project mining_load_cycle
+python3 tool/generator.py --project mining_load_cycle
 ```
 
 Expected output:
