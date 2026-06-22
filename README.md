@@ -1,6 +1,6 @@
 # ROS2 Discovery Server — Version 3.0
 
-Version 3.0 extends the V2 YAML-driven generator with **multi-role nodes** — a single node YAML now declares all roles a node plays simultaneously (publisher + subscriber + service server + service client + timers), with explicit callback groups and typed parameters.
+Version 3.0 is a **YAML-driven ROS2 code generator**. You declare every node's behaviour in config files — topics, services, QoS policies, parameters, callback groups, and the FastDDS Discovery Server configuration. The generator reads those files and produces ready-to-compile C++ and a Dockerfile. You only write business logic.
 
 ---
 
@@ -8,13 +8,15 @@ Version 3.0 extends the V2 YAML-driven generator with **multi-role nodes** — a
 
 | Feature | V2 | V3 |
 |---|---|---|
-| Node roles | One role per node file | Multiple roles per node file |
-| Interface registry | `topics.yaml` + inline `srv_type` | `interfaces.yaml` — unified msg + srv |
+| Node roles | One role per node file | One contract per node — all roles (pub + sub + server + client + timers) in one file |
+| Interface registry | `topics.yaml` + inline `srv_type` | `data.yaml` — unified messages + services registry |
+| Node config files | `nodes/<name>.yaml` with inline `publishers:` / `subscribers:` lists | `contracts/<name>.yaml` with flat `interactions:` list using `dataref:` |
+| Discovery config | Static `discovery.yaml` or `env.sh` | `discovery_profiles.yaml` — named profiles, referenced by `application.yaml` |
 | Parameters | Bare `key: value` | `key: {value: x, type: double}` → typed `declare_parameter<T>()` |
-| Callback groups | Not supported | `mutually_exclusive` / `reentrant` per callback |
-| Executor | Always `rclcpp::spin` | `single_threaded` or `multi_threaded` with thread count |
-| Dockerfile | Manual per project | Generated from `Dockerfile.jinja` via generator |
-| Discovery config | Static `env.sh` | `discovery.yaml` → `ENV ROS_DISCOVERY_SERVER` in Dockerfile |
+| Callback groups | Not supported | `mutually_exclusive` / `reentrant` per callback, declared in contract |
+| Executor | Always `rclcpp::spin` | `single_threaded` or `multi_threaded` with configurable thread count |
+| Dockerfile | Manual per project | Generated from `Dockerfile.jinja` via `discovery_profiles.yaml` → ENV vars |
+| Generator | Single `generator.py` monolith | Split: `config.py` (YAML loading + validation) + `generator.py` (Jinja2 rendering) |
 
 ---
 
@@ -23,35 +25,40 @@ Version 3.0 extends the V2 YAML-driven generator with **multi-role nodes** — a
 ```
 Version3.0/
 ├── tool/
-│   ├── generator.py              # YAML + Jinja2 → C++ + Dockerfile
-│   ├── Dockerfile                # Generated per project (do not edit)
-│   ├── entrypoint.sh             # Container entrypoint
+│   ├── config.py              # YAML loading, validation, type resolution (no Jinja2)
+│   ├── generator.py           # Jinja2 rendering only — imports config
+│   ├── Dockerfile             # Generated per project (overwritten on each run)
+│   ├── entrypoint.sh          # Container entrypoint
 │   └── templates/
-│       ├── node.cpp.jinja        # Multi-role C++ node body
-│       ├── node.hpp.jinja        # Node class header
+│       ├── node.cpp.jinja     # C++ node body with impl block preservation
+│       ├── node.hpp.jinja     # Node class header
 │       ├── CMakeLists.txt.jinja
 │       ├── package.xml.jinja
-│       └── Dockerfile.jinja      # Dockerfile template
+│       └── Dockerfile.jinja   # FastDDS SUPER_CLIENT environment config
 │
-└── robot_arm_controller/
-    ├── config/
-    │   ├── application.yaml      # Node list, domain_id, apt_packages
-    │   ├── discovery.yaml        # DS address → ENV ROS_DISCOVERY_SERVER
-    │   ├── interfaces.yaml       # Unified msg + srv registry (the contracts)
-    │   ├── qos_profiles.yaml     # Named QoS profiles
-    │   ├── parameters.yaml       # Typed parameter values per node
-    │   └── nodes/
-    │       ├── arm_controller.yaml
-    │       └── collision_detector.yaml
-    └── generated_pkg/
-        ├── src/
-        │   ├── arm_controller.cpp
-        │   └── collision_detector.cpp
-        ├── include/
-        │   ├── arm_controller.hpp
-        │   └── collision_detector.hpp
-        ├── CMakeLists.txt
-        └── package.xml
+├── robot_arm_controller/      # Demo: multi-role robot arm (domain_id 10)
+├── automotive_adas_stack/     # Demo: CAT ADAS pipeline (domain_id 20)
+├── autonomous_haul_truck/     # Demo: CAT autonomous haul truck (domain_id 30)
+└── mining_load_cycle/         # Demo: CAT excavator-truck load cycle (domain_id 40)
+```
+
+Each project has the same layout:
+
+```
+<project>/
+├── config/
+│   ├── application.yaml        # Package name, domain_id, discovery_profile, node list
+│   ├── data.yaml               # Shared type registry — all messages and services
+│   ├── qos_profiles.yaml       # Named QoS profiles used in contracts
+│   ├── parameters.yaml         # Typed parameters per node group
+│   ├── discovery_profiles.yaml # FastDDS DS address and mode
+│   └── contracts/
+│       └── <node_name>.yaml    # One per node: interactions, callback groups, timers
+└── generated_pkg/
+    ├── include/<node>.hpp
+    ├── src/<node>.cpp
+    ├── CMakeLists.txt
+    └── package.xml
 ```
 
 ---
@@ -59,200 +66,230 @@ Version3.0/
 ## YAML → Code Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      config/application.yaml                        │
-│                                                                     │
-│   domain_id: 10        ──► ENV ROS_DOMAIN_ID in Dockerfile         │
-│   apt_packages:        ──► RUN apt-get install in Dockerfile        │
-│   nodes: [arm_controller, collision_detector]                       │
-└───────────────┬─────────────────────────────────────────────────────┘
-                │ for each node name
-                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    config/nodes/<name>.yaml                         │
-│                                                                     │
-│   publishers:   [{interface: joint_states, qos: sensor_qos}]       │
-│   subscribers:  [{interface: joint_commands, callback_group: ...}]  │
-│   service_servers: [{interface: set_mode}]                          │
-│   service_clients: [{interface: check_collision}]                   │
-│   timers:       [{name: control_loop, rate_hz: 100.0}]             │
-│   executor:     {type: multi_threaded, threads: 4}                 │
-│   callback_groups: [{name: control_group, type: mutually_exclusive}]│
-└────┬──────────────────┬──────────────────────────────────────────---┘
-     │ interface lookup  │ qos / parameter lookup
-     ▼                   ▼
-┌──────────────────┐  ┌────────────────────────────────────────────────┐
-│ interfaces.yaml  │  │ qos_profiles.yaml  │  parameters.yaml          │
-│                  │  │                    │                           │
-│ messages:        │  │ sensor_qos:        │  arm_controller:          │
-│   joint_states:  │  │   reliability:     │    joint_names:           │
-│     type: ...    │  │     best_effort    │      value: [...]         │
-│     default_     │  │   depth: 5         │      type: string_array   │
-│     topic: ...   │  │                    │    max_velocity:          │
-│ services:        │  │ reliable_qos:      │      value: 1.0           │
-│   set_mode:      │  │   reliability:     │      type: double         │
-│     type: ...    │  │     reliable       │                           │
-│     default_     │  │   depth: 10        │  ──► typed                │
-│     name: ...    │  │                    │      declare_parameter<T> │
-└──────────────────┘  └────────────────────────────────────────────────┘
-     │
-     ▼ generator resolves types:
-  sensor_msgs/msg/JointState
-    ├── type_to_cpp()      ──► sensor_msgs::msg::JointState
-    └── type_to_include()  ──► sensor_msgs/msg/joint_state.hpp
+application.yaml
+    │
+    ├── domain_id ──────────────────────────────► ENV ROS_DOMAIN_ID in Dockerfile
+    │
+    ├── discovery_profile: <name> ──────────────► discovery_profiles.yaml
+    │                                               └── ip + port → ENV ROS_DISCOVERY_SERVER
+    │                                               └── mode: SUPER_CLIENT → participant XML
+    │
+    └── nodes: [node_a, node_b, ...]
+              │
+              └── contracts/<node>.yaml
+                        │
+                        ├── parameter_ref: <group> ──► parameters.yaml
+                        │                               └── typed declare_parameter<T>()
+                        │
+                        ├── interactions[].qos_profile: ──► qos_profiles.yaml
+                        │                                    └── rclcpp::QoS depth/reliability/
+                        │                                        deadline_ms/lifespan_ms
+                        │
+                        └── interactions[].dataref: ──────► data.yaml
+                                                             ├── type → #include + C++ template args
+                                                             └── topic_path / service_path → string
+```
 
-  ──► generated_pkg/src/<name>.cpp     (node.cpp.jinja)
-  ──► generated_pkg/include/<name>.hpp (node.hpp.jinja)
-  ──► generated_pkg/CMakeLists.txt     (CMakeLists.txt.jinja)
-  ──► generated_pkg/package.xml        (package.xml.jinja)
-  ──► tool/Dockerfile                  (Dockerfile.jinja + discovery.yaml)
+**Generator outputs (per run):**
+
+```
+generated_pkg/include/<node>.hpp   ← class declaration, subscriber/service signatures, parameters
+generated_pkg/src/<node>.cpp       ← constructor wiring + impl block stubs (preserved on re-runs)
+generated_pkg/CMakeLists.txt       ← ament targets, all deps auto-resolved from data.yaml types
+generated_pkg/package.xml          ← ROS2 package manifest
+tool/Dockerfile                    ← FastDDS SUPER_CLIENT config baked in
 ```
 
 ---
 
-## Project: robot_arm_controller
+## Config File Roles — Quick Reference
 
-A two-node robot arm simulation demonstrating V3 multi-role nodes and cross-node service calls.
+### `application.yaml`
 
-### Topology
-
-```
-arm_controller                         collision_detector
-─────────────────                      ──────────────────────
-ROLE: publisher                        ROLE: subscriber
-  /robot1/joint_states  ────────────►  /robot1/joint_states
-  /robot1/arm_status
-
-ROLE: subscriber                       ROLE: service_server
-  /robot1/joint_commands               /robot1/check_collision
-                                          └── responds: Clear / RISK
-ROLE: service_server
-  /robot1/set_mode                     ROLE: publisher
-     data=true  → mode=active            /robot1/collision_alert
-     data=false → mode=idle
-                                       ROLE: timer (50 Hz)
-ROLE: service_client                     safety_check()
-  calls /robot1/check_collision            monitors joint positions
-     every 2 seconds                       fires alert near limit
-
-ROLE: timer (100 Hz)
-  control_loop()
-    publishes sinusoidal joint states
-    publishes arm_status every 1 s
-    calls check_collision every 2 s
-```
-
-### What you observe
-
-- `arm_controller` publishes joint positions using `sin(t * 0.5 * joint_index)` — joints oscillate at different frequencies and naturally swing into the limit zone every few seconds
-- `collision_detector` monitors those positions via subscriber, and when any joint exceeds `(1.0 - safety_margin)` it fires a `collision_alert` and logs a warning
-- `arm_controller` calls `check_collision` every 2 s and logs the response — you see the two nodes interacting in real time
-
----
-
-## Step 1 — Generate
-
-Run from `Version3.0/`:
-
-```bash
-python tool/generator.py --project robot_arm_controller
-```
-
-Outputs: generated C++ files + `tool/Dockerfile`
-
----
-
-## Step 2 — Build
-
-Run from `Version3.0/`:
-
-```bash
-docker build --no-cache -f tool/Dockerfile -t ros2_v3_robot_arm .
-```
-
----
-
-## Step 3 — Test (3 Terminals)
-
-### Terminal 1 — Container + Discovery Server
-
-```bash
-docker run -it --rm --name robot_arm ros2_v3_robot_arm bash
-fastdds discovery -i 0 -p 11811
-```
-
-### Terminal 2 — Arm Controller
-
-```bash
-docker exec -it robot_arm bash
-ros2 run generated_pkg arm_controller
-```
-
-Expected (repeating every second):
-```
-[INFO] [arm_controller]: Status: mode=idle  tick=100
-[INFO] [arm_controller]: Status: mode=idle  tick=200
-[WARN] [arm_controller]: Collision check: COLLISION RISK DETECTED
-```
-
-### Terminal 3 — Collision Detector
-
-```bash
-docker exec -it robot_arm bash
-ros2 run generated_pkg collision_detector
-```
-
-Expected:
-```
-[INFO] [collision_detector]: Parameters loaded. safety_margin=0.050
-[WARN] [collision_detector]: COLLISION ALERT: joint approaching limit (safety_margin=0.050)
-[INFO] [collision_detector]: check_collision query → COLLISION RISK DETECTED
-[INFO] [collision_detector]: Collision alert cleared — joints back in safe range.
-```
-
-### Optional — Toggle arm mode
-
-```bash
-docker exec -it robot_arm bash
-ros2 service call /robot1/set_mode std_srvs/srv/SetBool "{data: true}"
-ros2 service call /robot1/set_mode std_srvs/srv/SetBool "{data: false}"
-```
-
-> **Note:** `ros2 service list` and `ros2 topic list` show nothing with FastDDS DS — use `ros2 node list` to confirm registration. Direct `ros2 service call` works.
-
----
-
-## What Contracts Are and Why They Matter
-
-In V2, topic types were declared inline in each node YAML. Two nodes could reference the same topic with mismatched types — the generator had no way to detect this.
-
-In V3, `interfaces.yaml` is a **contract registry** — one entry per channel:
+Declares the package identity and node list. The generator uses `nodes:` as the ordered list of contract files to process.
 
 ```yaml
-interfaces:
-  messages:
-    joint_states:
-      type: sensor_msgs/msg/JointState   # contract: type AND topic path
-      default_topic: /robot1/joint_states
-
-  services:
-    check_collision:
-      type: std_srvs/srv/Trigger         # contract: request + response shape
-      default_name: /robot1/check_collision
+application:
+  name: my_project       # → package name in CMakeLists + package.xml
+  domain_id: 30          # → ROS_DOMAIN_ID in Dockerfile
+  discovery_profile: my_ds_profile   # → key in discovery_profiles.yaml
+  nodes:
+    - node_a
+    - node_b
 ```
 
-**A contract entry tells you:**
-- What data type flows on this channel — not just a string, the generator enforces it in C++
-- What path the channel lives on — publisher and subscriber both get the same topic string
-- For services: both request fields (above `---` in the `.srv` file) and response fields (below `---`) — the server callback signature and client request type are generated from the same entry
+### `data.yaml`
 
-**Why this matters:** `arm_controller` publishes `joint_states` and `collision_detector` subscribes to `joint_states`. Both reference the contract by name. The generator resolves `sensor_msgs/msg/JointState` once, applies it to both, and generates matching C++ types and include paths. Type mismatch between producer and consumer becomes impossible at generation time.
+The **single source of truth** for all pub-sub channels and service endpoints. Contract files reference entries here by name (`dataref:`). A type mismatch between publisher and subscriber becomes impossible at generation time.
+
+```yaml
+data:
+  messages:
+    my_topic:
+      type: sensor_msgs/msg/JointState  # resolves to C++ type + #include
+      topic_path: /my/namespace/my_topic
+
+  services:
+    my_service:
+      type: std_srvs/srv/Trigger
+      service_path: /my/namespace/my_service
+```
+
+### `qos_profiles.yaml`
+
+Named policies applied by reference in contracts. Supported fields: `reliability`, `history`, `depth`, `deadline_ms`, `lifespan_ms`, `durability`.
+
+```yaml
+qos_profiles:
+  sensor_qos:
+    reliability: best_effort
+    depth: 5
+    deadline_ms: 20
+
+  safety_qos:
+    reliability: reliable
+    depth: 10
+    deadline_ms: 20
+    lifespan_ms: 100    # alert expires after 100 ms if node goes silent
+```
+
+### `discovery_profiles.yaml`
+
+Maps a profile name to a FastDDS Discovery Server address. The generator inserts `ROS_DISCOVERY_SERVER` and the participant XML into the Dockerfile.
+
+```yaml
+discovery_profiles:
+  my_ds_profile:
+    mode: SUPER_CLIENT    # all nodes act as DS clients
+    servers:
+      - ip: 127.0.0.1
+        port: 11811
+```
+
+### `parameters.yaml`
+
+Typed parameter values per node. The generator emits `declare_parameter<T>(name, default)` for each entry. Supported types: `double`, `int`, `bool`, `string`, `string_array`.
+
+```yaml
+parameters:
+  my_node_params:
+    scan_rate:
+      type: double
+      value: 10.0
+    joint_names:
+      type: string_array
+      value: [shoulder, elbow, wrist]
+```
+
+### `contracts/<node>.yaml`
+
+Specifies one node's full behavioural contract. The key concepts:
+
+- **`interactions:`** flat list of all pub-sub and service roles
+- **`dataref:`** references a key in `data.yaml` — type and topic/service path are resolved from there
+- **`callback_group:`** pins a callback to a named group (thread-safety)
+- **`timers:`** declares timer methods with their rate and callback group
+
+```yaml
+contract:
+  node:
+    name: my_node
+    executor: { type: multi_threaded, threads: 2 }
+    parameter_ref: my_node_params
+
+  callback_groups:
+    - name: data_group
+      type: mutually_exclusive
+    - name: service_group
+      type: reentrant           # service servers use reentrant so they never block
+
+  interactions:
+    - type: pub-sub
+      role: producer            # publisher
+      dataref: my_topic
+      qos_profile: sensor_qos
+
+    - type: pub-sub
+      role: consumer            # subscriber
+      dataref: my_topic
+      qos_profile: sensor_qos
+      callback_group: data_group
+
+    - type: service
+      role: server              # service server
+      dataref: my_service
+      callback_group: service_group
+
+    - type: service
+      role: client              # service client (async calls in business logic)
+      dataref: my_service
+
+  timers:
+    - name: my_timer
+      rate_hz: 10.0
+      callback_group: data_group
+```
+
+---
+
+## Impl Block Preservation
+
+The generator protects your business logic across re-runs using fenced impl blocks:
+
+```cpp
+void MyNode::my_timer()
+{
+    //-- begin impl [my_timer] ----------------------------------------
+    // Your code here — preserved on every generator re-run
+    //-- end impl [my_timer] ------------------------------------------
+}
+```
+
+When you re-run the generator (e.g. after adding a new topic to the contract), it extracts all existing impl blocks from the current `.cpp` file and injects them back into the freshly rendered file. The surrounding boilerplate (constructor, publisher setup, subscriber wiring) is regenerated cleanly; only the impl blocks survive as-is.
+
+---
+
+## Demo Projects
+
+| Project | Domain | Nodes | Theme |
+|---|---|---|---|
+| [robot_arm_controller](robot_arm_controller/README.md) | 10 | 2 | Robot arm with cross-node service calls |
+| [automotive_adas_stack](automotive_adas_stack/) | 20 | 6 | ADAS pipeline: sensor fusion → object detection → path planning → decision making |
+| [autonomous_haul_truck](autonomous_haul_truck/README.md) | 30 | 6 | Autonomous 500 m haul run with obstacle avoidance and hazard detection |
+| [mining_load_cycle](mining_load_cycle/README.md) | 40 | 8 | Excavator-truck load cycle with 4-state dispatcher FSM |
+
+Each demo has its own `README.md` explaining the YAML files, node behaviour, data flow, and build/run instructions.
+
+---
+
+## Generating a Project
+
+```bash
+cd Version3.0
+python tool/generator.py --project <project_name>
+```
+
+The generator prints a summary line per node:
+
+```
+OK gps_imu_fusion  [1pub  0sub  0srv_server  0srv_client  1timer]
+OK route_planner   [1pub  2sub  0srv_server  0srv_client  1timer]
+OK CMakeLists.txt + package.xml  (deps: geometry_msgs, nav_msgs, rclcpp, std_srvs)
+```
+
+Then build and run:
+
+```bash
+docker build --no-cache -f tool/Dockerfile -t ros2_v3_<project> .
+fastdds discovery -i 0 -p 11811   # terminal 1
+docker run --rm --network host ros2_v3_<project>   # terminal 2
+```
 
 ---
 
 ## Prerequisites
 
-| Requirement | Version | Purpose |
+| Tool | Version | Purpose |
 |---|---|---|
 | Python | 3.8+ | Running the generator |
 | pyyaml | any | YAML parsing |
