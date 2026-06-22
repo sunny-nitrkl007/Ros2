@@ -4,7 +4,7 @@
 
 This project simulates an **autonomous mining haul truck** driving a 500-metre haul route between a loading zone and a dump point. It demonstrates how a real Caterpillar 793 or 797 autonomous truck processes sensor data, plans a route around obstacles, executes velocity/steering commands, detects proximity hazards, and reports mechanical health — all as a set of ROS2 nodes communicating over a FastDDS Discovery Server.
 
-The project is entirely YAML-driven: all nodes, topics, services, QoS policies, parameters, and the discovery configuration are declared in config files. The generator tool (`tool/generator.py`) reads those files and produces ready-to-compile C++ — no hand-writing of boilerplate.
+The project is entirely YAML-driven: all nodes, topics, services, QoS policies, parameters, and the discovery configuration are declared in config files. The generator tool (`tool/generator/generator.py`) reads those files and produces ready-to-compile C++ — no hand-writing of boilerplate.
 
 ---
 
@@ -464,7 +464,7 @@ application.yaml
                                                             └── topic_path/service_path → string in create_publisher/subscriber/service
 ```
 
-The generator (`tool/generator.py`) walks this dependency graph, resolves all references, and feeds everything into Jinja2 templates to produce C++ source files.
+The generator (`tool/generator/generator.py`) walks this dependency graph, resolves all references, and feeds everything into Jinja2 templates to produce C++ source files.
 
 ---
 
@@ -475,7 +475,7 @@ The generator (`tool/generator.py`) walks this dependency graph, resolves all re
 Run from the project directory:
 
 ```bash
-python3 tool/generator.py --project autonomous_haul_truck
+python3 tool/generator/generator.py --project autonomous_haul_truck
 ```
 
 Expected output:

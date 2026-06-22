@@ -1,10 +1,11 @@
 import os, sys, re, argparse
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
-import config
+import loader as config
 
-TOOL_DIR       = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR       = os.path.dirname(TOOL_DIR)
-TOOL_TEMPLATES = os.path.join(TOOL_DIR, "templates")
+TOOL_DIR       = os.path.dirname(os.path.abspath(__file__))  # tool/generator/
+PARENT_DIR     = os.path.dirname(TOOL_DIR)                    # tool/
+ROOT_DIR       = os.path.dirname(PARENT_DIR)                  # project root
+TOOL_TEMPLATES = os.path.join(PARENT_DIR, "templates")
 
 parser = argparse.ArgumentParser(description="ROS2 V3 code generator")
 parser.add_argument("--project", required=True, help="Project folder name")
@@ -114,7 +115,7 @@ def generate_dockerfile(application, discovery):
         discovery_ip=first_srv.get("ip", "127.0.0.1"),
         discovery_port=first_srv.get("port", 11811),
     )
-    dockerfile_path = os.path.join(TOOL_DIR, "Dockerfile")
+    dockerfile_path = os.path.join(PARENT_DIR, "Dockerfile")
     with open(dockerfile_path, "w", encoding="utf-8") as f:
         f.write(rendered)
     mode = discovery.get("mode", "CLIENT")

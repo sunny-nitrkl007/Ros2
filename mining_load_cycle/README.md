@@ -12,7 +12,7 @@ The simulation demonstrates:
 - Cycle counting and tonne-kilometre productivity logging
 - Fleet health telemetry aggregated from multiple machines
 
-Everything is YAML-driven. Config files declare all topics, services, QoS policies, parameters, and the discovery server. The generator (`tool/generator.py`) produces all C++ boilerplate — you only write business logic inside impl blocks.
+Everything is YAML-driven. Config files declare all topics, services, QoS policies, parameters, and the discovery server. The generator (`tool/generator/generator.py`) produces all C++ boilerplate — you only write business logic inside impl blocks.
 
 ---
 
@@ -580,7 +580,7 @@ All services use `std_srvs/srv/Trigger` (empty request, `{success, message}` res
 Run from the project directory:
 
 ```bash
-python3 tool/generator.py --project mining_load_cycle
+python3 tool/generator/generator.py --project mining_load_cycle
 ```
 
 Expected output:

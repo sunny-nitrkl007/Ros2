@@ -23,7 +23,7 @@ ENV ROS_DISCOVERY_SERVER={{ discovery_ip }}:{{ discovery_port }}
 {% endif %}
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
     echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
-COPY tool/entrypoint.sh /entrypoint.sh
+COPY tool/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

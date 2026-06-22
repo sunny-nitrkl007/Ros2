@@ -11,12 +11,12 @@ Version 3.0 is a **YAML-driven ROS2 code generator**. You declare every node's b
 | Node roles | One role per node file | One contract per node — all roles (pub + sub + server + client + timers) in one file |
 | Interface registry | `topics.yaml` + inline `srv_type` | `data.yaml` — unified messages + services registry |
 | Node config files | `nodes/<name>.yaml` with inline `publishers:` / `subscribers:` lists | `contracts/<name>.yaml` with flat `interactions:` list using `dataref:` |
-| Discovery config | Static `discovery.yaml` or `env.sh` | `discovery_profiles.yaml` — named profiles, referenced by `application.yaml` |
+| Discovery config | Static `discovery.yaml` or `docker/env.sh` | `discovery_profiles.yaml` — named profiles, referenced by `application.yaml` |
 | Parameters | Bare `key: value` | `key: {value: x, type: double}` → typed `declare_parameter<T>()` |
 | Callback groups | Not supported | `mutually_exclusive` / `reentrant` per callback, declared in contract |
 | Executor | Always `rclcpp::spin` | `single_threaded` or `multi_threaded` with configurable thread count |
 | Dockerfile | Manual per project | Generated from `Dockerfile.jinja` via `discovery_profiles.yaml` → ENV vars |
-| Generator | Single `generator.py` monolith | Split: `config.py` (YAML loading + validation) + `generator.py` (Jinja2 rendering) |
+| Generator | Single `generator.py` monolith | Split: `loader.py` (YAML loading + validation) + `generator.py` (Jinja2 rendering) |
 
 ---
 
@@ -25,16 +25,18 @@ Version 3.0 is a **YAML-driven ROS2 code generator**. You declare every node's b
 ```
 Version3.0/
 ├── tool/
-│   ├── config.py              # YAML loading, validation, type resolution (no Jinja2)
-│   ├── generator.py           # Jinja2 rendering only — imports config
-│   ├── Dockerfile             # Generated per project (overwritten on each run)
-│   ├── entrypoint.sh          # Container entrypoint
-│   └── templates/
-│       ├── node.cpp.jinja     # C++ node body with impl block preservation
-│       ├── node.hpp.jinja     # Node class header
-│       ├── CMakeLists.txt.jinja
-│       ├── package.xml.jinja
-│       └── Dockerfile.jinja   # FastDDS SUPER_CLIENT environment config
+│   ├── generator/
+│   │   ├── generator.py       # Jinja2 rendering only — imports loader
+│   │   └── loader.py          # YAML loading, validation, type resolution (no Jinja2)
+│   ├── templates/
+│   │   ├── node.cpp.jinja     # C++ node body with impl block preservation
+│   │   ├── node.hpp.jinja     # Node class header
+│   │   ├── CMakeLists.txt.jinja
+│   │   ├── package.xml.jinja
+│   │   └── Dockerfile.jinja   # FastDDS SUPER_CLIENT environment config
+│   ├── docker/
+│   │   └── entrypoint.sh      # Container entrypoint
+│   └── Dockerfile             # Generated per project (overwritten on each run)
 │
 ├── robot_arm_controller/      # Demo: multi-role robot arm (domain_id 10)
 ├── automotive_adas_stack/     # Demo: CAT ADAS pipeline (domain_id 20)
@@ -267,7 +269,7 @@ Each demo has its own `README.md` explaining the YAML files, node behaviour, dat
 Run from the project directory:
 
 ```bash
-python3 tool/generator.py --project <project_name>
+python3 tool/generator/generator.py --project <project_name>
 ```
 
 The generator prints a summary line per node:

@@ -1,5 +1,5 @@
 """
-config.py — load, validate, and resolve all YAML config into Python dicts.
+loader.py — load, validate, and resolve all YAML config into Python dicts.
 No Jinja2, no file writing. Pure data in, structured dicts out.
 """
 

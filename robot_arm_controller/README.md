@@ -389,7 +389,7 @@ collision_detector::safety_check (50 Hz)
 Run from the project directory:
 
 ```bash
-python3 tool/generator.py --project robot_arm_controller
+python3 tool/generator/generator.py --project robot_arm_controller
 ```
 
 Expected output:
