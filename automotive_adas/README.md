@@ -149,65 +149,62 @@ Expected output:
 
 ---
 
-## Step 2 — Build
+## Step 2 — Build and Run (Docker)
 
-All four packages share one colcon workspace. Build `adas_interfaces` first so the generated message headers are available when the application packages compile.
+Everything after code generation happens inside Docker. The `Dockerfile` copies the generated source into the image and runs `colcon build` during the image build. The `docker-compose.yml` spins up one container per ECU plus a shared FastDDS Discovery Server.
 
-```bash
-cd automotive_adas/generated
+### Project structure for Docker
 
-# Build interfaces first
-colcon build --packages-select adas_interfaces
-source install/setup.bash
-
-# Build all three application packages
-colcon build --packages-select perception_system planning_system safety_system
-source install/setup.bash
+```
+automotive_adas/
+├── Dockerfile             # builds all 4 packages inside the image
+├── docker-compose.yml     # 4 services: ds_server, perception, planning, safety
+└── generated/             # source copied into the image at build time
+    ├── adas_interfaces/
+    ├── perception_system/
+    ├── planning_system/
+    └── safety_system/
 ```
 
----
+### Build the image
 
-## Step 3 — Run (Docker — 4 terminals)
+Run from the project directory:
 
-Each ECU application runs in its own container on a shared Docker bridge network.
-
-**Terminal 1 — FastDDS Discovery Server:**
 ```bash
-docker run -it --rm --name ds_server --network adas_net \
-  ros:jazzy \
-  fastdds discovery -i 0 -p 11811
+docker-compose build
 ```
 
-**Terminal 2 — Perception container:**
+This runs `colcon build` inside the container — `adas_interfaces` first (so message headers are ready), then all three application packages.
+
+### Start all containers
+
 ```bash
-docker run -it --rm --name perception --network adas_net \
-  ros2_adas_perception bash
-source install/setup.bash
-source env.sh
-ros2 run perception_system perception1_node &
-ros2 run perception_system perception2_node
+docker-compose up
 ```
 
-**Terminal 3 — Planning container:**
+All four services start on a shared `adas_net` bridge network:
+
+| Container | Role |
+|---|---|
+| `ds_server` | FastDDS Discovery Server on port 11811 |
+| `perception` | `perception1_node` + `perception2_node` |
+| `planning` | `planning1_node` + `planning2_node` |
+| `safety` | `safety_node` |
+
+`ROS_DISCOVERY_SERVER=ds_server:11811` is set via docker-compose — Docker DNS resolves `ds_server` to the DS container automatically, so no hardcoded IP is needed.
+
+### Interactive shell inside a running container
+
 ```bash
-docker run -it --rm --name planning --network adas_net \
-  ros2_adas_planning bash
-source install/setup.bash
-source env.sh
-ros2 run planning_system planning1_node &
-ros2 run planning_system planning2_node
+docker exec -it automotive_adas-perception-1 bash
 ```
 
-**Terminal 4 — Safety container:**
+From inside the container:
 ```bash
-docker run -it --rm --name safety --network adas_net \
-  ros2_adas_safety bash
-source install/setup.bash
-source env.sh
-ros2 run safety_system safety_node
+ros2 topic list
+ros2 service list
+ros2 topic echo /perception/obstacle_data
 ```
-
-> **Note:** Update `env.sh` in each generated application folder — replace `192.168.10.100` with the actual DS container IP or service name on your Docker network.
 
 ---
 

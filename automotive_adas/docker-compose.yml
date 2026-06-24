@@ -1,0 +1,67 @@
+version: '3.8'
+
+networks:
+  adas_net:
+    driver: bridge
+
+services:
+
+  ds_server:
+    image: ros:jazzy
+    command: >-
+      bash -c "source /opt/ros/jazzy/setup.bash &&
+               fastdds discovery -i 0 -p 11811"
+    networks:
+      - adas_net
+
+  perception:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_DISCOVERY_SERVER=ds_server:11811
+    command: >-
+      bash -c "source /opt/ros/jazzy/setup.bash &&
+               source /ros2_ws/install/setup.bash &&
+               ros2 run perception_system perception1_node &
+               ros2 run perception_system perception2_node &
+               wait"
+    depends_on:
+      - ds_server
+    networks:
+      - adas_net
+
+  planning:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_DISCOVERY_SERVER=ds_server:11811
+    command: >-
+      bash -c "source /opt/ros/jazzy/setup.bash &&
+               source /ros2_ws/install/setup.bash &&
+               ros2 run planning_system planning1_node &
+               ros2 run planning_system planning2_node &
+               wait"
+    depends_on:
+      - ds_server
+    networks:
+      - adas_net
+
+  safety:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_DISCOVERY_SERVER=ds_server:11811
+    command: >-
+      bash -c "source /opt/ros/jazzy/setup.bash &&
+               source /ros2_ws/install/setup.bash &&
+               ros2 run safety_system safety_node"
+    depends_on:
+      - ds_server
+    networks:
+      - adas_net
