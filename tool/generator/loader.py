@@ -1,85 +1,44 @@
 """
-loader.py — load, validate, and resolve all YAML config into Python dicts.
+loader.py — load, validate, and resolve ROS2 grammar YAML into Python dicts.
 No Jinja2, no file writing. Pure data in, structured dicts out.
 """
 
-import os, sys, re, yaml
+import os, sys, yaml
+from glob import glob
+
 
 # ── YAML reader ───────────────────────────────────────────────────────────────
 
-def _read(project_path, rel, required=True):
+def _read(project_path, rel):
     full = os.path.join(project_path, rel)
     if not os.path.isfile(full):
-        if required:
-            print(f"ERROR: required file missing: {full}")
-            sys.exit(1)
-        return None
+        print(f"ERROR: required file missing: {full}")
+        sys.exit(1)
     print(f"  loading {full}")
     with open(full, encoding='utf-8') as f:
         return yaml.safe_load(f)
 
-# ── Type conversion helpers ───────────────────────────────────────────────────
 
-def camel_to_snake(name):
-    s = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s).lower()
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def to_class_name(name):
     return ''.join(w.capitalize() for w in name.split('_'))
 
-def type_to_cpp(ros_type):
-    return ros_type.replace('/', '::')
-
-def type_to_include(ros_type):
-    parts = ros_type.split('/')
-    parts[-1] = camel_to_snake(parts[-1])
-    return '/'.join(parts) + '.hpp'
-
-# ── Parameter helpers ─────────────────────────────────────────────────────────
-
 _PARAM_CPP = {
-    'double':       ('double',                   'as_double()'),
-    'float64':      ('double',                   'as_double()'),
-    'int':          ('int64_t',                  'as_int()'),
-    'int32':        ('int64_t',                  'as_int()'),
-    'bool':         ('bool',                     'as_bool()'),
-    'string':       ('std::string',              'as_string()'),
-    'string_array': ('std::vector<std::string>', 'as_string_array()'),
-    'double_array': ('std::vector<double>',      'as_double_array()'),
-    'int_array':    ('std::vector<int64_t>',     'as_integer_array()'),
+    'double':  ('double',    'as_double()'),
+    'float64': ('double',    'as_double()'),
+    'int':     ('int64_t',   'as_int()'),
+    'int32':   ('int64_t',   'as_int()'),
+    'bool':    ('bool',      'as_bool()'),
+    'string':  ('std::string', 'as_string()'),
 }
 
 def _fmt_default(value, ptype):
-    if ptype == 'string':
-        return f'"{value}"'
-    if ptype == 'string_array':
-        return '{' + ', '.join(f'"{v}"' for v in value) + '}'
-    if ptype in ('double_array', 'int_array'):
-        return '{' + ', '.join(str(v) for v in value) + '}'
     if ptype == 'bool':
         return 'true' if value else 'false'
+    if ptype == 'string':
+        return f'"{value}"'
     return str(value)
-
-def _resolve_params(parameters, ref_name):
-    result = {}
-    for pname, pdata in (parameters.get(ref_name) or {}).items():
-        ptype = pdata['type']
-        cpp_type, getter = _PARAM_CPP.get(ptype, ('auto', 'get()'))
-        result[pname] = {
-            'cpp_type':     cpp_type,
-            'default_expr': _fmt_default(pdata['value'], ptype),
-            'getter':       getter,
-        }
-    return result
-
-# ── Callback group mapping ────────────────────────────────────────────────────
-
-_CBG_TYPE = {
-    'mutually_exclusive': 'rclcpp::CallbackGroupType::MutuallyExclusive',
-    'reentrant':          'rclcpp::CallbackGroupType::Reentrant',
-}
-
-# ── Dependency collection ─────────────────────────────────────────────────────
 
 def collect_deps(nodes):
     deps = {'rclcpp'}
@@ -90,191 +49,178 @@ def collect_deps(nodes):
             deps.add(entry['cpp_type'].split('::')[0])
     return sorted(deps)
 
-# ── Validator ─────────────────────────────────────────────────────────────────
 
-def _validate(project_path, application, data, qos_profiles, parameters, disc_profiles):
-    errors = []
+# ── QoS normaliser ────────────────────────────────────────────────────────────
 
-    disc_name = application.get('discovery_profile', '')
-    if disc_name and disc_name not in disc_profiles:
-        errors.append(
-            f"application.discovery_profile '{disc_name}' not found in discovery_profiles.yaml "
-            f"(defined: {list(disc_profiles.keys())})"
-        )
+def _norm_qos(q):
+    return {
+        'depth':       q.get('history_depth', 10),
+        'reliability': 'reliable' if str(q.get('reliability', 'RELIABLE')).upper() == 'RELIABLE' else 'best_effort',
+        'durability':  'transient_local' if str(q.get('durability', '')).upper() == 'TRANSIENT_LOCAL' else None,
+        'deadline_ms': q.get('deadline_ms') or None,
+        'lifespan_ms': q.get('lifespan_ms') or None,
+    }
 
-    for node_name in application.get('nodes', []):
-        contract_path = os.path.join(project_path, f"config/contracts/{node_name}.yaml")
-        if not os.path.isfile(contract_path):
-            errors.append(f"Node '{node_name}': contract missing at config/contracts/{node_name}.yaml")
-            continue
-
-        with open(contract_path, encoding='utf-8') as f:
-            raw = yaml.safe_load(f)
-        contract = raw.get('contract', {})
-        node_def  = contract.get('node', {})
-
-        pref = node_def.get('parameter_ref', '')
-        if pref and pref not in parameters:
-            errors.append(
-                f"Node '{node_name}': parameter_ref '{pref}' not in parameters.yaml "
-                f"(defined: {list(parameters.keys())})"
-            )
-
-        defined_cbgs = {cg['name'] for cg in contract.get('callback_groups', [])}
-
-        for ix in contract.get('interactions', []):
-            itype   = ix.get('type', '')
-            role    = ix.get('role', '')
-            dataref = ix.get('dataref', '')
-            ix_id   = ix.get('name', f"{role}_{dataref}")
-
-            bucket = 'messages' if itype == 'pub-sub' else 'services' if itype == 'service' else None
-            if bucket and dataref not in data.get(bucket, {}):
-                errors.append(
-                    f"Node '{node_name}' / '{ix_id}': dataref '{dataref}' "
-                    f"not found in data.{bucket} (defined: {list(data.get(bucket, {}).keys())})"
-                )
-
-            qp = ix.get('qos_profile', '')
-            if qp and qp not in qos_profiles:
-                errors.append(
-                    f"Node '{node_name}' / '{ix_id}': qos_profile '{qp}' "
-                    f"not in qos_profiles.yaml (defined: {list(qos_profiles.keys())})"
-                )
-
-            cbg = ix.get('callback_group', '')
-            if cbg and cbg not in defined_cbgs:
-                errors.append(
-                    f"Node '{node_name}' / '{ix_id}': "
-                    f"callback_group '{cbg}' not declared in callback_groups"
-                )
-
-        for timer in contract.get('timers', []):
-            cbg = timer.get('callback_group', '')
-            if cbg and cbg not in defined_cbgs:
-                errors.append(
-                    f"Node '{node_name}' / timer '{timer.get('name', '?')}': "
-                    f"callback_group '{cbg}' not declared in callback_groups"
-                )
-
-    if errors:
-        print(f"\nERROR: {len(errors)} config error(s):")
-        for e in errors:
-            print(f"  ✗ {e}")
-        sys.exit(1)
-
-    print("  Config OK")
 
 # ── Node resolver ─────────────────────────────────────────────────────────────
 
-def _resolve_node(project_path, node_name, data, qos_profiles, parameters):
-    contract_path = os.path.join(project_path, f"config/contracts/{node_name}.yaml")
-    print(f"  loading {contract_path}")
-    with open(contract_path, encoding='utf-8') as f:
-        raw = yaml.safe_load(f)['contract']
-    node_def = raw['node']
+def _resolve_ros2_node(node_name, node_def, interaction_map, topic_map, service_map, qos_map, param_map):
+    publishers      = []
+    subscribers     = []
+    service_servers = []
+    service_clients = []
 
-    node = {
-        'name':            node_def['name'],
-        'class_name':      to_class_name(node_def['name']),
-        'namespace':       node_def.get('namespace', ''),
-        'executor':        node_def.get('executor', {'type': 'single_threaded', 'threads': 1}),
-        'publishers':      [],
-        'subscribers':     [],
-        'service_servers': [],
-        'service_clients': [],
-        'timers':          raw.get('timers', []),
-        'parameters':      _resolve_params(parameters, node_def.get('parameter_ref', '')),
-        'all_includes':    set(),
+    for ref in node_def.get('interactions_ref', []):
+        if ref not in interaction_map:
+            print(f"ERROR: interactions_ref '{ref}' in node '{node_name}' not found in any segment")
+            sys.exit(1)
+        ix    = interaction_map[ref]
+        itype = ix['_type']
+        qos   = _norm_qos(qos_map.get(ix.get('qos_profile', ''), {}))
+
+        if itype == 'publisher':
+            t = topic_map[ix['topic_name']]
+            publishers.append({
+                'interface_name': ref,
+                'topic':          t['topic_path'],
+                'cpp_type':       f"adas_interfaces::msg::{to_class_name(ix['topic_name'])}",
+                'member_name':    f"{ref}_pub_",
+                'qos':            qos,
+            })
+        elif itype == 'subscriber':
+            t = topic_map[ix['topic_name']]
+            subscribers.append({
+                'interface_name': ref,
+                'topic':          t['topic_path'],
+                'cpp_type':       f"adas_interfaces::msg::{to_class_name(ix['topic_name'])}",
+                'member_name':    f"{ref}_sub_",
+                'callback_name':  f"on_{ref}",
+                'callback_group': '',
+                'qos':            qos,
+            })
+        elif itype == 'service_server':
+            s = service_map[ix['service_name']]
+            service_servers.append({
+                'interface_name': ref,
+                'service_name':   s['service_path'],
+                'cpp_type':       f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
+                'member_name':    f"{ref}_srv_",
+                'callback_name':  f"on_{ref}",
+                'callback_group': '',
+            })
+        elif itype == 'service_client':
+            s = service_map[ix['service_name']]
+            service_clients.append({
+                'interface_name': ref,
+                'service_name':   s['service_path'],
+                'cpp_type':       f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
+                'member_name':    f"{ref}_client_",
+            })
+
+    # Includes — one per unique topic/service name used
+    all_includes = set()
+    for ix_ref in node_def.get('interactions_ref', []):
+        ix    = interaction_map[ix_ref]
+        itype = ix['_type']
+        if itype in ('publisher', 'subscriber'):
+            all_includes.add(f"adas_interfaces/msg/{ix['topic_name']}.hpp")
+        elif itype in ('service_server', 'service_client'):
+            all_includes.add(f"adas_interfaces/srv/{ix['service_name']}.hpp")
+
+    # Parameters
+    params    = {}
+    param_ref = node_def.get('parameter_ref', '')
+    if param_ref:
+        profile = param_map.get(param_ref)
+        if not profile:
+            print(f"ERROR: parameter_ref '{param_ref}' in node '{node_name}' not found in parameter_profiles.yaml")
+            sys.exit(1)
+        for p in profile.get('parameters', []):
+            cpp_type, getter = _PARAM_CPP.get(p['type'], ('auto', 'get()'))
+            params[p['name']] = {
+                'cpp_type':     cpp_type,
+                'default_expr': _fmt_default(p['default'], p['type']),
+                'getter':       getter,
+            }
+
+    return {
+        'name':            node_name,
+        'class_name':      to_class_name(node_name),
+        'namespace':       '',
+        'executor':        {'type': 'single_threaded', 'threads': 1},
+        'publishers':      publishers,
+        'subscribers':     subscribers,
+        'service_servers': service_servers,
+        'service_clients': service_clients,
+        'timers':          [],
+        'parameters':      params,
+        'callback_groups': [],
+        'all_includes':    sorted(all_includes),
     }
 
-    node['callback_groups'] = [
-        {**cg, 'cbg_type': _CBG_TYPE.get(cg['type'], 'rclcpp::CallbackGroupType::MutuallyExclusive')}
-        for cg in raw.get('callback_groups', [])
-    ]
-
-    for ix in raw.get('interactions', []):
-        itype   = ix['type']
-        role    = ix['role']
-        dataref = ix['dataref']
-        qos     = qos_profiles.get(ix.get('qos_profile', 'reliable_qos'), {})
-        cbg     = ix.get('callback_group', '')
-
-        if itype == 'pub-sub' and role == 'producer':
-            entry = data['messages'][dataref]
-            cpp_t = type_to_cpp(entry['type'])
-            node['all_includes'].add(type_to_include(entry['type']))
-            node['publishers'].append({
-                'interface_name': dataref,
-                'topic':          entry['topic_path'],
-                'cpp_type':       cpp_t,
-                'qos':            qos,
-                'member_name':    f"{dataref}_pub_",
-            })
-        elif itype == 'pub-sub' and role == 'consumer':
-            entry = data['messages'][dataref]
-            cpp_t = type_to_cpp(entry['type'])
-            node['all_includes'].add(type_to_include(entry['type']))
-            node['subscribers'].append({
-                'interface_name': dataref,
-                'topic':          entry['topic_path'],
-                'cpp_type':       cpp_t,
-                'qos':            qos,
-                'callback_group': cbg,
-                'member_name':    f"{dataref}_sub_",
-                'callback_name':  f"on_{dataref}",
-            })
-        elif itype == 'service' and role == 'server':
-            entry = data['services'][dataref]
-            cpp_t = type_to_cpp(entry['type'])
-            node['all_includes'].add(type_to_include(entry['type']))
-            node['service_servers'].append({
-                'interface_name': dataref,
-                'service_name':   entry['service_path'],
-                'cpp_type':       cpp_t,
-                'callback_group': cbg,
-                'member_name':    f"{dataref}_srv_",
-                'callback_name':  f"on_{dataref}",
-            })
-        elif itype == 'service' and role == 'client':
-            entry = data['services'][dataref]
-            cpp_t = type_to_cpp(entry['type'])
-            node['all_includes'].add(type_to_include(entry['type']))
-            node['service_clients'].append({
-                'interface_name': dataref,
-                'service_name':   entry['service_path'],
-                'cpp_type':       cpp_t,
-                'member_name':    f"{dataref}_client_",
-            })
-
-    node['all_includes'] = sorted(node['all_includes'])
-    return node
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-def load(project_path):
+def load_ros2_grammar(project_path):
     """
-    Load all YAML configs, validate all cross-references, resolve contracts to node dicts.
-    Returns dict with keys: application, nodes, discovery.
-    Calls sys.exit(1) on any config error.
+    Load ROS2 grammar project (general/ layout).
+    Returns: { applications: [...], topics: [...], services: [...] }
     """
-    application   = _read(project_path, "config/application.yaml")["application"]
-    data          = _read(project_path, "config/data.yaml")["data"]
-    qos_profiles  = _read(project_path, "config/qos_profiles.yaml").get("qos_profiles") or {}
-    parameters    = _read(project_path, "config/parameters.yaml").get("parameters") or {}
-    disc_profiles = _read(project_path, "config/discovery_profiles.yaml").get("discovery_profiles") or {}
+    def rd(rel):
+        return _read(project_path, rel)
 
-    discovery = disc_profiles.get(application.get("discovery_profile", ""), {})
+    apps_raw  = rd("general/apps/applications.yaml")
+    topic_raw = rd("general/Interfaces_data/topics_data.yaml")
+    srv_raw   = rd("general/Interfaces_data/services_data.yaml")
+    qos_raw   = rd("general/profiles/qos_profiles.yaml")
+    param_raw = rd("general/profiles/parameter_profiles.yaml")
+    disc_raw  = rd("general/profiles/discovery_profiles.yaml")
 
-    _validate(project_path, application, data, qos_profiles, parameters, disc_profiles)
+    topic_map = {t['topic_name']: t for t in topic_raw['topic_data']}
+    srv_map   = {s['service_name']: s for s in srv_raw['service_data']}
+    qos_map   = {q['name']: q for q in qos_raw['qos_profiles']}
+    param_map = {p['name']: p for p in param_raw['parameter_profiles']}
+    disc_map  = {d['name']: d for d in disc_raw['discovery_profiles']}
 
-    nodes = [
-        _resolve_node(project_path, name, data, qos_profiles, parameters)
-        for name in application['nodes']
-    ]
+    # Load all segment files
+    interaction_map = {}
+    node_def_map    = {}
+    seg_dir = os.path.join(project_path, "general", "apps", "segments")
+    for seg_file in sorted(glob(os.path.join(seg_dir, "*.yaml"))):
+        print(f"  loading {seg_file}")
+        with open(seg_file, encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+        for seg in (data.get('segments') or []):
+            for iblock in (seg.get('interactions') or []):
+                for itype, ilist in iblock.items():
+                    for ix in (ilist or []):
+                        ix['_type'] = itype
+                        interaction_map[ix['name']] = ix
+        for node_def in (data.get('node') or []):
+            node_def_map[node_def['name']] = node_def
 
+    # Build per-application model
+    applications = []
+    for app in apps_raw['application']:
+        disc  = disc_map.get(app.get('discovery_ref', ''), {})
+        nodes = []
+        for node_name in app.get('nodes', []):
+            if node_name not in node_def_map:
+                print(f"ERROR: node '{node_name}' listed in applications.yaml not found in any segment file")
+                sys.exit(1)
+            nodes.append(_resolve_ros2_node(
+                node_name, node_def_map[node_name],
+                interaction_map, topic_map, srv_map, qos_map, param_map,
+            ))
+        applications.append({
+            'name':      app['name'],
+            'discovery': disc,
+            'nodes':     nodes,
+        })
+
+    print("  Config OK")
     return {
-        'application': application,
-        'nodes':       nodes,
-        'discovery':   discovery,
+        'applications': applications,
+        'topics':       list(topic_map.values()),
+        'services':     list(srv_map.values()),
     }

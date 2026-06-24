@@ -1,0 +1,17 @@
+application:
+  - name: perception_system
+    discovery_ref: standard_ecu
+    nodes:
+      - perception1_node
+      - perception2_node
+
+  - name: planning_system
+    discovery_ref: standard_ecu
+    nodes:
+      - planning1_node
+      - planning2_node
+
+  - name: safety_system
+    discovery_ref: standard_ecu
+    nodes:
+      - safety_node

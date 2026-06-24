@@ -1,0 +1,6 @@
+float32 obstacle_distance
+float32 vehicle_speed
+---
+bool risk_detected
+float32 collision_probability
+string risk_level

@@ -1,0 +1,33 @@
+qos_profiles:
+
+  - name: pub_default_qos
+    reliability: RELIABLE
+    durability: VOLATILE
+    history_kind: KEEP_LAST
+    history_depth: 10
+    deadline_ms: 100
+    lifespan_ms: ~
+
+  - name: sub_default_qos
+    reliability: RELIABLE
+    durability: VOLATILE
+    history_kind: KEEP_LAST
+    history_depth: 10
+    deadline_ms: 100
+    lifespan_ms: ~
+
+  - name: client_default_qos
+    reliability: RELIABLE
+    durability: VOLATILE
+    history_kind: KEEP_LAST
+    history_depth: 5
+    deadline_ms: 500
+    lifespan_ms: ~
+
+  - name: server_default_qos
+    reliability: RELIABLE
+    durability: VOLATILE
+    history_kind: KEEP_LAST
+    history_depth: 5
+    deadline_ms: 500
+    lifespan_ms: ~

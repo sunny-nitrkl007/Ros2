@@ -1,0 +1,35 @@
+topic_data:
+
+  - topic_name: obstacle_data
+    topic_path: /perception/obstacle_data
+    structure:
+      - name: id
+        type: int32
+      - name: distance
+        type: float32
+      - name: relative_velocity
+        type: float32
+      - name: object_type
+        type: string
+
+  - topic_name: trajectory
+    topic_path: /planning/trajectory
+    structure:
+      - name: x_points
+        type: float32[]
+      - name: y_points
+        type: float32[]
+      - name: target_speed
+        type: float32
+      - name: emergency_flag
+        type: bool
+
+  - topic_name: emergency_brake
+    topic_path: /safety/emergency_brake
+    structure:
+      - name: apply_brake
+        type: bool
+      - name: brake_force
+        type: float32
+      - name: reason
+        type: string

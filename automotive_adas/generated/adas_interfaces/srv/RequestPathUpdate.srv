@@ -1,0 +1,6 @@
+bool emergency
+float32 obstacle_distance
+---
+bool success
+float32 new_target_speed
+string status_msg

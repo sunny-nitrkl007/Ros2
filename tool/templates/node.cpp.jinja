@@ -34,10 +34,10 @@ using namespace std::chrono_literals;
 {% if pub.qos.durability is defined and pub.qos.durability == "transient_local" %}
         qos.transient_local();
 {% endif %}
-{% if pub.qos.deadline_ms is defined %}
+{% if pub.qos.deadline_ms is defined and pub.qos.deadline_ms %}
         qos.deadline(std::chrono::milliseconds({{ pub.qos.deadline_ms }}));
 {% endif %}
-{% if pub.qos.lifespan_ms is defined %}
+{% if pub.qos.lifespan_ms is defined and pub.qos.lifespan_ms %}
         qos.lifespan(std::chrono::milliseconds({{ pub.qos.lifespan_ms }}));
 {% endif %}
         {{ pub.member_name }} = this->create_publisher<{{ pub.cpp_type }}>("{{ pub.topic }}", qos);
@@ -52,7 +52,7 @@ using namespace std::chrono_literals;
     {
         rclcpp::QoS qos(rclcpp::KeepLast({{ sub.qos.depth | default(10) }}));
         qos.{{ sub.qos.reliability | default("reliable") }}();
-{% if sub.qos.deadline_ms is defined %}
+{% if sub.qos.deadline_ms is defined and sub.qos.deadline_ms %}
         qos.deadline(std::chrono::milliseconds({{ sub.qos.deadline_ms }}));
 {% endif %}
 {% if sub.callback_group %}

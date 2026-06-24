@@ -1,0 +1,3 @@
+#!/bin/bash
+export ROS_DOMAIN_ID=0
+export ROS_DISCOVERY_SERVER=192.168.10.100:11811

@@ -1,0 +1,7 @@
+{% for field in request_fields %}
+{{ field.type }} {{ field.name }}
+{% endfor %}
+---
+{% for field in response_fields %}
+{{ field.type }} {{ field.name }}
+{% endfor %}

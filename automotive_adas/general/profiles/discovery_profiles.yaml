@@ -1,0 +1,9 @@
+discovery_profiles:
+
+  - name: standard_ecu
+    domain_id: 0
+    mode: SUPER_CLIENT
+    discovery_servers:
+      - server_id: 0
+        ip: "192.168.10.100"
+        port: 11811

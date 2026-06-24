@@ -3,7 +3,7 @@
 <package format="3">
   <name>generated_pkg</name>
   <version>0.0.1</version>
-  <description>Generated ROS2 package — robot_arm_controller</description>
+  <description>Generated ROS2 package — generated_pkg</description>
   <maintainer email="user@todo.todo">user</maintainer>
   <license>Apache-2.0</license>
 

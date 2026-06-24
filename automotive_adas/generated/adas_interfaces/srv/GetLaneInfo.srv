@@ -1,0 +1,5 @@
+bool request
+---
+float32 lane_center_offset
+float32 lane_width
+string lane_type

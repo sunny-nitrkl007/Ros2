@@ -1,0 +1,44 @@
+service_data:
+
+  - service_name: get_lane_info
+    service_path: /perception/get_lane_info
+    request_structure:
+      - name: request
+        type: bool
+    response_structure:
+      - name: lane_center_offset
+        type: float32
+      - name: lane_width
+        type: float32
+      - name: lane_type
+        type: string
+
+  - service_name: check_risk
+    service_path: /safety/check_risk
+    request_structure:
+      - name: obstacle_distance
+        type: float32
+      - name: vehicle_speed
+        type: float32
+    response_structure:
+      - name: risk_detected
+        type: bool
+      - name: collision_probability
+        type: float32
+      - name: risk_level
+        type: string
+
+  - service_name: request_path_update
+    service_path: /planning/request_path_update
+    request_structure:
+      - name: emergency
+        type: bool
+      - name: obstacle_distance
+        type: float32
+    response_structure:
+      - name: success
+        type: bool
+      - name: new_target_speed
+        type: float32
+      - name: status_msg
+        type: string

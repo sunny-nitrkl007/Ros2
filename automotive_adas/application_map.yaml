@@ -1,0 +1,7 @@
+# ecus:
+#   - Perception_ecu_system:
+#     - perception_segments.yaml
+#   - Planning_and_control_ecu_system:
+#     - planning_segments.yaml
+#   - Safety_monitoring_ecu_system:
+#     - safety_segments.yaml

@@ -1,0 +1,30 @@
+segments:
+  - name: safety_system
+    interactions:
+      - subscriber:
+          - name: sub_obstacle_data
+            topic_name: obstacle_data
+            qos_profile: sub_default_qos
+
+          - name: sub_trajectory
+            topic_name: trajectory
+            qos_profile: sub_default_qos
+
+      - publisher:
+          - name: pub_emergency_brake
+            topic_name: emergency_brake
+            qos_profile: pub_default_qos
+
+      - service_server:
+          - name: server_check_risk
+            service_name: check_risk
+            qos_profile: server_default_qos
+
+node:
+    - name: safety_node
+      parameter_ref: safety_system_parameters
+      interactions_ref:
+        - sub_obstacle_data
+        - sub_trajectory
+        - pub_emergency_brake
+        - server_check_risk
