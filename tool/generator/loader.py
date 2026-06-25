@@ -86,6 +86,7 @@ def _resolve_ros2_node(node_name, node_def, interaction_map, topic_map, service_
                 'cpp_type':       f"adas_interfaces::msg::{to_class_name(ix['topic_name'])}",
                 'member_name':    f"{ref}_pub_",
                 'qos':            qos,
+                'structure':      t.get('structure', []),
             })
         elif itype == 'subscriber':
             t = topic_map[ix['topic_name']]
@@ -97,24 +98,28 @@ def _resolve_ros2_node(node_name, node_def, interaction_map, topic_map, service_
                 'callback_name':  f"on_{ref}",
                 'callback_group': '',
                 'qos':            qos,
+                'structure':      t.get('structure', []),
             })
         elif itype == 'service_server':
             s = service_map[ix['service_name']]
             service_servers.append({
-                'interface_name': ref,
-                'service_name':   s['service_path'],
-                'cpp_type':       f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
-                'member_name':    f"{ref}_srv_",
-                'callback_name':  f"on_{ref}",
-                'callback_group': '',
+                'interface_name':     ref,
+                'service_name':       s['service_path'],
+                'cpp_type':           f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
+                'member_name':        f"{ref}_srv_",
+                'callback_name':      f"on_{ref}",
+                'callback_group':     '',
+                'request_structure':  s.get('request_structure', []),
+                'response_structure': s.get('response_structure', []),
             })
         elif itype == 'service_client':
             s = service_map[ix['service_name']]
             service_clients.append({
-                'interface_name': ref,
-                'service_name':   s['service_path'],
-                'cpp_type':       f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
-                'member_name':    f"{ref}_client_",
+                'interface_name':    ref,
+                'service_name':      s['service_path'],
+                'cpp_type':          f"adas_interfaces::srv::{to_class_name(ix['service_name'])}",
+                'member_name':       f"{ref}_client_",
+                'request_structure': s.get('request_structure', []),
             })
 
     # Includes — one per unique topic/service name used

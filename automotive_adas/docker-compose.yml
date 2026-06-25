@@ -9,7 +9,7 @@ services:
   ds_server:
     image: ros:jazzy
     command: >-
-      bash -c "source /opt/ros/jazzy/setup.bash &&
+      bash -c "source /opt/ros/jazzy/setup.bash;
                fastdds discovery -i 0 -p 11811"
     networks:
       - adas_net
@@ -22,8 +22,8 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_DISCOVERY_SERVER=ds_server:11811
     command: >-
-      bash -c "source /opt/ros/jazzy/setup.bash &&
-               source /ros2_ws/install/setup.bash &&
+      bash -c "source /opt/ros/jazzy/setup.bash;
+               source /ros2_ws/install/setup.bash;
                ros2 run perception_system perception1_node &
                ros2 run perception_system perception2_node &
                wait"
@@ -40,8 +40,8 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_DISCOVERY_SERVER=ds_server:11811
     command: >-
-      bash -c "source /opt/ros/jazzy/setup.bash &&
-               source /ros2_ws/install/setup.bash &&
+      bash -c "source /opt/ros/jazzy/setup.bash;
+               source /ros2_ws/install/setup.bash;
                ros2 run planning_system planning1_node &
                ros2 run planning_system planning2_node &
                wait"
@@ -58,8 +58,8 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_DISCOVERY_SERVER=ds_server:11811
     command: >-
-      bash -c "source /opt/ros/jazzy/setup.bash &&
-               source /ros2_ws/install/setup.bash &&
+      bash -c "source /opt/ros/jazzy/setup.bash;
+               source /ros2_ws/install/setup.bash;
                ros2 run safety_system safety_node"
     depends_on:
       - ds_server

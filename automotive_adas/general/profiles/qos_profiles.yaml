@@ -5,7 +5,7 @@ qos_profiles:
     durability: VOLATILE
     history_kind: KEEP_LAST
     history_depth: 10
-    deadline_ms: 100
+    deadline_ms: ~
     lifespan_ms: ~
 
   - name: sub_default_qos
@@ -13,7 +13,7 @@ qos_profiles:
     durability: VOLATILE
     history_kind: KEEP_LAST
     history_depth: 10
-    deadline_ms: 100
+    deadline_ms: ~
     lifespan_ms: ~
 
   - name: client_default_qos

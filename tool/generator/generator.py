@@ -9,6 +9,7 @@ TOOL_TEMPLATES = os.path.join(PARENT_DIR, "templates")
 
 parser = argparse.ArgumentParser(description="ROS2 code generator")
 parser.add_argument("--project", required=True, help="Project folder name under the repo root")
+parser.add_argument("--demo", action="store_true", help="Inject demo logic: publish timers, subscriber logs, service stubs")
 args = parser.parse_args()
 
 PROJECT_PATH = os.path.join(ROOT_DIR, args.project)
@@ -31,6 +32,72 @@ IMPL_RE     = re.compile(
     re.DOTALL
 )
 IMPL_DASHES = '-' * 40
+
+# ── Demo script helpers ───────────────────────────────────────────────────────
+
+_YAML_VALS = {
+    'int8': '1', 'int16': '1', 'int32': '1', 'int64': '1',
+    'uint8': '1', 'uint16': '1', 'uint32': '1', 'uint64': '1',
+    'float32': '1.0', 'float64': '1.0',
+    'bool': 'false', 'string': 'demo',
+}
+
+def _yaml_val(ros_type):
+    return '[]' if ros_type.endswith('[]') else _YAML_VALS.get(ros_type, '0')
+
+def _yaml_msg(fields):
+    return '{' + ', '.join(f'{f["name"]}: {_yaml_val(f["type"])}' for f in fields) + '}'
+
+def generate_demo_script(cfg, gen_root):
+    demo_dir = os.path.join(gen_root, "demo")
+    os.makedirs(demo_dir, exist_ok=True)
+
+    lines = [
+        '#!/bin/bash\n',
+        '# Inject demo data: publishes all topics at 1 Hz, calls all services every 5s.\n',
+        '# Copy to any running container and run:\n',
+        '#   docker cp generated/demo/run_demo.sh automotive_adas-perception-1:/tmp/\n',
+        '#   docker exec -it automotive_adas-perception-1 bash /tmp/run_demo.sh\n',
+        '\n',
+        'source /opt/ros/jazzy/setup.bash\n',
+        'source /ros2_ws/install/setup.bash\n',
+        '\n',
+        'cleanup() { echo "Stopping demo..."; kill $(jobs -p) 2>/dev/null; wait; }\n',
+        'trap cleanup SIGINT SIGTERM\n',
+        '\n',
+        'echo "==> ADAS demo: publishing topics at 1 Hz, calling services every 5s"\n',
+        'echo "    Ctrl+C to stop."\n',
+        '\n',
+    ]
+
+    for topic in cfg['topics']:
+        ros_type = f"adas_interfaces/msg/{config.to_class_name(topic['topic_name'])}"
+        yaml_msg = _yaml_msg(topic.get('structure', []))
+        lines.append(
+            f"ros2 topic pub '{topic['topic_path']}' {ros_type} '{yaml_msg}' --rate 1 &\n"
+        )
+
+    lines += ['\n', 'while true; do\n', '    sleep 5\n']
+
+    for svc in cfg['services']:
+        ros_type = f"adas_interfaces/srv/{config.to_class_name(svc['service_name'])}"
+        yaml_req = _yaml_msg(svc.get('request_structure', []))
+        lines.append(
+            f"    ros2 service call '{svc['service_path']}' {ros_type} '{yaml_req}' 2>/dev/null || true\n"
+        )
+
+    lines.append('done\n')
+
+    script_path = os.path.join(demo_dir, "run_demo.sh")
+    with open(script_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.writelines(lines)
+
+    print(f"\n  Demo script → generated/demo/run_demo.sh")
+    print(f"  Copy and run inside any container:")
+    print(f"    docker cp generated/demo/run_demo.sh automotive_adas-perception-1:/tmp/")
+    print(f"    docker exec -it automotive_adas-perception-1 bash /tmp/run_demo.sh")
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 def extract_impl_blocks(path):
     if not os.path.isfile(path):
@@ -176,6 +243,9 @@ def main():
 
         generate_package(app['nodes'], app_dir, app['name'])
         generate_env_sh(app['discovery'], app_dir)
+
+    if args.demo:
+        generate_demo_script(cfg, gen_root)
 
     print(f"\n==> Done. Output: {gen_root}/\n")
 
