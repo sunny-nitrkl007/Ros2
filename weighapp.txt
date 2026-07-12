@@ -1,0 +1,839 @@
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                  ECU STARTUP                                                              │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                       │
+                                                       ▼
+                                            app_startup_init()
+                                                       │
+                                                       ▼
+                                              app_nvm_file_init()
+                                                       │
+         ┌───────────────────────────────┬──────────────────────────────┬──────────────────────────────┬───────────────────┐
+         ▼                               ▼                              ▼                              ▼                   ▼
+app_nvm_weighapp_             app_nvm_save_               app_nvm_calibration_          app_nvm_lift_cal_   app_nvm_tilt_cal_
+machine_spec_config_          zero_weight_values_         values_init()                 values_init()        values_init()
+file_init()                   init()
+
+                                                       │
+                                                       ▼
+                                     LpsSaWeighApp::initialize()
+                                                       │
+          ┌────────────────────────────┬──────────────────────────┬──────────────────────┬─────────────────────┐
+          ▼                            ▼                          ▼                      ▼
+LpsSaInitWeighTbl()          commInitialize()            NvmInitialize()         LpsSaInit()
+                                                                                       │
+                                      ┌────────────────────────────────────────────────┴────────────────────────────────┐
+                                      ▼                                                                                 ▼
+                          LpsSaLoadCalibrationTbl()                                                     LpsSaLoadKinamaticsTbl()
+                                      │                                                                                 │
+                                      ▼                                                                                 ▼
+                                 CalLibInit()                                                                   LpsInit()
+                                      │
+                                      ▼
+                                LpsCalInit()
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                                CONTINUOUS RUNTIME
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                         LpsSaWeighApp::executive()
+                                                       │
+      ┌──────────────────────┬─────────────────────────┼────────────────────────────┬─────────────────────┐
+      ▼                      ▼                         ▼                            ▼
+ PublishCalFromNvm()   LpsSaWeighingScsRx()      LpsSaUpdt()            LpsSaWeighingScsTx()
+       (once)            (subscriber)               │                     (publisher)
+                                                    │
+                                                    ▼
+                                      while(PwmIn->get(InPwm))
+                                                    │
+                                                    │ Input:
+                                                    │ PWM_Buffer_t
+                                                    │ Width[4]
+                                                    │ Period[4]
+                                                    ▼
+                                         LpsSaUpdateWeighingLib()
+                                                    │
+       ┌────────────────────────────────────────────┼────────────────────────────────────────────┐
+       ▼                                            ▼                                            ▼
+LpsSaHydPresTransferFunc()              LpsSaLiftCylExtTransferFunc()        LpsSaTiltCylExtTransferFunc()
+ Input: Width/Period                      Input: Width/Period                  Input:
+ Output: Pressure                         Output: Lift Extension               Lift PWM + Tilt PWM
+                                                                              Output:
+                                                                              Tilt Extension
+
+       ▼                                            ▼                                            ▼
+ Lift HE Pressure                        Lift Cylinder Extension            Tilt Cylinder Extension
+ Lift RE Pressure
+
+       └────────────────────────────────────────────┬────────────────────────────────────────────┘
+                                                    ▼
+                                      LpsSaLiftCylVelTransferFunc()
+                                                    │
+                                                    ▼
+                                          Lift Cylinder Velocity
+
+                                                    ▼
+
+                                      LpsSaTiltCylVelTransferFunc()
+                                                    │
+                                                    ▼
+                                          Tilt Cylinder Velocity
+
+                                                    ▼
+
+                                            Linkage Tables
+                                    (LpsSaLinkageTables.cpp)
+                                                    │
+                                                    │ Input:
+                                                    │ Lift Extension
+                                                    │ Tilt Extension
+                                                    ▼
+                                          Kinematic Conversion
+
+                                                    │
+                                                    ├── Lift Angle
+                                                    ├── Tilt Angle
+                                                    ├── Bucket Angle
+                                                    └── Cyl Extensions
+
+                                                    ▼
+
+                                          LPS WEIGH LIBRARY
+                                         (External Library)
+
+                                                    │
+       ┌─────────────────────────────┬──────────────┼──────────────────┬─────────────────────┐
+       ▼                             ▼              ▼                  ▼                     ▼
+LpsGetLiftCylPres()       LpsGetRawInstWt()  GetDumpStateStatus()  LpsWeighGetDigState()  LpsWeighGetBestAvailableBktWt()
+
+       │                             │              │                  │                     │
+       ▼                             ▼              ▼                  ▼                     ▼
+
+ Difference Pressure        Raw Weight       Dump Status       Dig Status       Best Bucket Weight
+                                                                                 Payload Method
+                                                                                 Weigh Decision Flag
+
+                                                    ▼
+
+                                               UpdateEvents()
+
+                                                    │
+       ┌───────────────────────────┬──────────────────────────────┬─────────────────────────────┐
+       ▼                           ▼                              ▼
+LpsWeighGetTooHeavyToZero()   LpsWeighGetAutoZeroUpdate()   LpsWeighOverloadWarningActive()
+
+       ▼                           ▼                              ▼
+
+Payload Warning          Zero Required Event           Overload Event
+
+                                                    ▼
+
+                                         Diagnostics / Autonomy
+                                               Conditions
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                               CALIBRATION PATH
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+      Service Tool
+           │
+           │ LpsCalCmdReqstChannel
+           ▼
+
+LpsSaWeighCalReqstCallback()
+           │
+           ▼
+   calibrationUpdate()
+           │
+           ├────────────────────────────────────────────────────────────────────────────┐
+           │                                                                            │
+           ▼                                                                            ▼
+
+SA_EMPTY_BUCKET_CAL_ID                                              LpsCalEmptyCalMain()
+
+SA_FULL_BUCKET_CAL_ID                                               LpsCalFullCalMain()
+
+SA_LIFT_LINKAGE_CAL_ID                                              LpsSaLiftLinkageSensorCalibration()
+                                                                     │
+                                                                     ├─ FULL_RAISE
+                                                                     ├─ FULL_RACK
+                                                                     ├─ FULL_LOWER
+                                                                     ├─ VALIDATE
+                                                                     └─ Save NVM
+
+SA_TILT_LINKAGE_CAL_ID                                              LpsSaTiltLinkageSensorCalibration()
+                                                                     │
+                                                                     ├─ FULL_RACK
+                                                                     ├─ FULL_LOWER
+                                                                     ├─ FULL_RAISE
+                                                                     ├─ FULL_DUMP
+                                                                     ├─ VALIDATE
+                                                                     └─ Save NVM
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                               NVM TASK
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+task_1x()     [Infinite RTOS Loop]
+
+while(TRUE)
+   │
+   ├─ app_nvm_file_write()
+   │      Input : Machine Config
+   │
+   ├─ app_nvm_zero_weight_file_write()
+   │      Input : Zero Weight
+   │
+   ├─ app_nvm_calibration_file_write()
+   │      Input : Payload Calibration
+   │
+   ├─ app_nvm_lift_cal_file_write()
+   │      Input : Lift Calibration
+   │
+   ├─ app_nvm_tilt_cal_file_write()
+   │      Input : Tilt Calibration
+   │
+   └─ nvm_file_update()
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                              EXTERNAL INPUTS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+PWM Input App ───────► PwmIn->get() ─────► PWM_Buffer_t
+
+Job Manager ─────────► LpsJobMgrTxRead()
+                         │
+                         ├─ PassCount
+                         ├─ StoreCount
+                         ├─ DumpState
+                         └─ StandbyState
+
+DataLink App ────────► LpsSaBmiCdlRead()
+                         │
+                         └─ Hydraulic Oil Temperature
+
+Machine App ─────────► LpsSaMachineRead()
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                              OUTPUTS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+LpsSaWeighingScsTx()
+   │
+   ├─ Best Bucket Weight
+   ├─ Raw Weight
+   ├─ Dig State
+   ├─ Dump State
+   ├─ Payload Method
+   ├─ Calibration Status
+   ├─ Lift Extension
+   ├─ Lift Velocity
+   └─ Weigh Indicator
+
+LpsSaWeighScsDebugTx()
+   │
+   ├─ PWM Raw
+   ├─ Pressures
+   ├─ Angles
+   ├─ Extensions
+   └─ Weight Debug
+
+LpsCalCmdRespChannel
+   │
+   ├─ Step
+   ├─ Error
+   ├─ Warning
+   └─ Calibration Response
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+┌────────────────────────────────────────────────────────────────────────────┐
+│                            SAME ECU                                       │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+     EXTERNAL APPLICATIONS / SERVICES
+══════════════════════════════════════════════════════════════════════════════
+
+ ┌────────────────┐
+ │ PWM Input App  │
+ └───────┬────────┘
+         │ PWM_Buffer_t
+         │ Width[]
+         │ Period[]
+         ▼
+
+ ┌────────────────┐
+ │ Job Manager    │
+ └───────┬────────┘
+         │ PassCount
+         │ StoreCount
+         │ DumpState
+         ▼
+
+ ┌────────────────┐
+ │ DataLink / CDL │
+ └───────┬────────┘
+         │ Hydraulic Oil Temp
+         ▼
+
+ ┌────────────────┐
+ │ Machine App    │
+ └───────┬────────┘
+         │ Machine Config
+         ▼
+
+ ┌────────────────┐
+ │ Service Tool   │
+ │ Calibration UI │
+ └───────┬────────┘
+         │ Calibration Commands
+         ▼
+
+
+══════════════════════════════════════════════════════════════════════════════
+                     WEIGHAPP BOUNDARY
+══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           WeighApp                                        │
+│                                                                           │
+│  initialize()                                                             │
+│  executive()                                                              │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ COMMUNICATION LAYER                                                       │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsSaWeighingScsRx()                                                      │
+│ LpsJobMgrTxRead()                                                         │
+│ LpsSaBmiCdlRead()                                                         │
+│ LpsSaMachineRead()                                                        │
+│ LpsSaWeighCalReqstCallback()                                               │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ SENSOR PROCESSING LAYER                                                   │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsSaUpdt()                                                               │
+│                                                                           │
+│ Reads PWM_Buffer_t                                                        │
+│                                                                           │
+│ Lift Position PWM                                                         │
+│ Tilt Position PWM                                                         │
+│ Head End Pressure PWM                                                     │
+│ Rod End Pressure PWM                                                      │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ TRANSFER FUNCTION LAYER                                                   │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsSaHydPresTransferFunc()                                                │
+│ LpsSaLiftCylExtTransferFunc()                                             │
+│ LpsSaTiltCylExtTransferFunc()                                             │
+│ LpsSaLiftCylVelTransferFunc()                                             │
+│ LpsSaTiltCylVelTransferFunc()                                             │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     │ ENGINEERING VALUES
+                                     │
+                                     ├─ Lift Pressure
+                                     ├─ Rod Pressure
+                                     ├─ Lift Extension
+                                     ├─ Tilt Extension
+                                     ├─ Lift Velocity
+                                     └─ Tilt Velocity
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ KINEMATICS LAYER                                                          │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsSaLinkageTables                                                        │
+│ LpsSaLoadKinamaticsTbl()                                                  │
+│                                                                           │
+│ Converts:                                                                 │
+│   Extension -> Angles                                                     │
+│   Angles -> Geometry                                                      │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     │
+                                     ├─ Lift Angle
+                                     ├─ Tilt Angle
+                                     ├─ Bucket Angle
+                                     └─ Bucket Geometry
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ PAYLOAD ENGINE ADAPTER                                                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsSaUpdateWeighingLib()                                                  │
+│                                                                           │
+│ Packages all inputs                                                       │
+│ Sends data to LPS Weigh Library                                           │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+══════════════════════════════════════════════════════════════════════════════
+                       EXTERNAL LIBRARY BOUNDARY
+══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LPS WEIGH LIBRARY                                                         │
+│ (NOT PART OF WEIGHAPP)                                                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ LpsGetRawInstWt()                                                         │
+│ LpsWeighGetBestAvailableBktWt()                                           │
+│ LpsWeighGetDigState()                                                     │
+│ GetDumpStateStatus()                                                      │
+│ LpsWeighGetWeighRangeIndicator()                                          │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════════════
+
+
+                                     │
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ WEIGHAPP RESULT PROCESSING                                                │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ Payload Weight                                                            │
+│ Dig State                                                                 │
+│ Dump State                                                                │
+│ Weigh Indicator                                                           │
+│ Calculation Method                                                        │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                                     │
+                      ┌──────────────┴──────────────┐
+                      ▼                             ▼
+
+┌────────────────────────────┐      ┌──────────────────────────────┐
+│ DIAGNOSTICS               │      │ CALIBRATION MANAGER          │
+├────────────────────────────┤      ├──────────────────────────────┤
+│                            │      │                              │
+│ UpdateEvents()             │      │ calibrationUpdate()          │
+│                            │      │                              │
+│ Voltage Checks             │      │ Empty Bucket Cal             │
+│ Frequency Checks           │      │ Full Bucket Cal              │
+│ Overload Detection         │      │ Lift Link Cal               │
+│ Auto Zero Status           │      │ Tilt Link Cal               │
+│ Payload Alerts             │      │                              │
+│                            │      │                              │
+└────────────────────────────┘      └──────────────────────────────┘
+                                            │
+                                            ▼
+
+══════════════════════════════════════════════════════════════════════════════
+                    EXTERNAL LIBRARY BOUNDARY
+══════════════════════════════════════════════════════════════════════════════
+
+              LPS CALIBRATION LIBRARY
+                     (External)
+
+══════════════════════════════════════════════════════════════════════════════
+
+
+                                     │
+                                     ▼
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ NVM INTERFACE                                                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│ Machine Configuration                                                     │
+│ Zero Weight                                                               │
+│ Payload Calibration                                                       │
+│ Lift Calibration                                                          │
+│ Tilt Calibration                                                          │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+
+══════════════════════════════════════════════════════════════════════════════
+                       RTOS BOUNDARY
+══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ task_1x()                                                                 │
+│                                                                           │
+│ app_nvm_file_write()                                                      │
+│ app_nvm_calibration_file_write()                                          │
+│ app_nvm_lift_cal_file_write()                                             │
+│ app_nvm_tilt_cal_file_write()                                             │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+
+══════════════════════════════════════════════════════════════════════════════
+                               PUBLISHERS
+══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LpsSaWeighingScsTx()                                                      │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Best Bucket Weight                                                        │
+│ Raw Weight                                                                │
+│ Dig State                                                                 │
+│ Dump State                                                                │
+│ Lift Extension                                                            │
+│ Lift Velocity                                                             │
+│ Calibration Status                                                        │
+└───────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LpsSaWeighScsDebugTx()                                                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Raw PWM                                                                   │
+│ Raw Pressure                                                              │
+│ Angles                                                                    │
+│ Extensions                                                                │
+│ Payload Debug                                                             │
+└───────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+
+
+
+
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                   WEIGHAPP COMPLETE WORKFLOW                                       ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+ ECU POWER ON
+      │
+      ▼
+┌─────────────────────┐
+│ app_startup_init()  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ app_nvm_file_init() │
+└──────────┬──────────┘
+           │
+           │ Load
+           │
+           ├── Machine Config NVM
+           ├── Zero Weight NVM
+           ├── Payload Cal NVM
+           ├── Lift Cal NVM
+           └── Tilt Cal NVM
+           │
+           ▼
+
+┌────────────────────────────┐
+│ WeighApp::initialize()     │
+└─────────────┬──────────────┘
+              │
+              ├── LpsSaInitWeighTbl()
+              │
+              ├── NvmInitialize()
+              │
+              ├── LpsSaLoadCalibrationTbl()
+              │
+              ├── LpsSaLoadKinamaticsTbl()
+              │
+              ├── CalLibInit()
+              │
+              └── LpsInit()
+              │
+              ▼
+
+══════════════════════════════════════════════════════════════════════════════════════
+                           CONTINUOUS APPLICATION EXECUTION
+══════════════════════════════════════════════════════════════════════════════════════
+
+              ┌─────────────────────────────┐
+              │       executive()           │
+              └─────────────┬───────────────┘
+                            │
+                            ▼
+
+                  ┌────────────────────┐
+                  │ Read ECU Inputs    │
+                  └─────────┬──────────┘
+                            │
+                            │
+        ┌───────────────────┼────────────────────┬────────────────────┐
+        │                   │                    │                    │
+        ▼                   ▼                    ▼                    ▼
+
+ PWM Input App       Job Manager         DataLink/CDL          Service Tool
+      │                   │                    │                    │
+      │ PWM_Buffer_t      │ PassCount         │ HydTemp            │ Cal Cmd
+      │ Width[]           │ DumpState         │                    │
+      │ Period[]          │ StoreCount        │                    │
+      ▼                   ▼                    ▼                    ▼
+
+══════════════════════════════════════════════════════════════════════════════════════
+                              INPUT PROCESSING
+══════════════════════════════════════════════════════════════════════════════════════
+
+                      ┌────────────────────┐
+                      │    LpsSaUpdt()     │
+                      └─────────┬──────────┘
+                                │
+                                ▼
+
+                 ┌──────────────────────────────┐
+                 │ Sensor Transfer Functions    │
+                 └──────────────┬───────────────┘
+                                │
+                                │ PWM_Buffer_t
+                                ▼
+
+             ┌─────────────────────────────────────────┐
+             │ LpsSaHydPresTransferFunc()             │
+             └─────────────────────────────────────────┘
+                                │
+                                ▼
+                      Head-End Pressure
+                      Rod-End Pressure
+
+             ┌─────────────────────────────────────────┐
+             │ LpsSaLiftCylExtTransferFunc()          │
+             └─────────────────────────────────────────┘
+                                │
+                                ▼
+                      Lift Extension
+
+             ┌─────────────────────────────────────────┐
+             │ LpsSaTiltCylExtTransferFunc()          │
+             └─────────────────────────────────────────┘
+                                │
+                                ▼
+                      Tilt Extension
+
+             ┌─────────────────────────────────────────┐
+             │ Velocity Calculations                  │
+             └─────────────────────────────────────────┘
+                                │
+                                ▼
+                    Lift Velocity
+                    Tilt Velocity
+
+══════════════════════════════════════════════════════════════════════════════════════
+                              KINEMATICS WORKFLOW
+══════════════════════════════════════════════════════════════════════════════════════
+
+                                │
+                                ▼
+
+                  ┌────────────────────────┐
+                  │ Linkage Tables         │
+                  │ (Machine Geometry)     │
+                  └───────────┬────────────┘
+                              │
+                              │ Input
+                              │
+                              ├── Lift Extension
+                              ├── Tilt Extension
+                              │
+                              ▼
+
+                      Machine Geometry
+
+                              │
+                              ├── Lift Angle
+                              ├── Tilt Angle
+                              ├── Bucket Angle
+                              └── Bucket Position
+
+══════════════════════════════════════════════════════════════════════════════════════
+                              PAYLOAD CALCULATION
+══════════════════════════════════════════════════════════════════════════════════════
+
+                              │
+                              ▼
+
+                 ┌─────────────────────────────┐
+                 │ LpsSaUpdateWeighingLib()    │
+                 └─────────────┬───────────────┘
+                               │
+                               ▼
+
+══════════════════════════════════════════════════════
+        EXTERNAL LPS WEIGH LIBRARY
+══════════════════════════════════════════════════════
+
+                               │
+                               ├── Pressure
+                               ├── Velocity
+                               ├── Bucket Geometry
+                               ├── Oil Temperature
+                               └── Calibration Data
+
+                               ▼
+
+                      Payload Results
+
+                               │
+                               ├── Raw Weight
+                               ├── Best Bucket Weight
+                               ├── Dig State
+                               ├── Dump State
+                               ├── Weigh Indicator
+                               └── Calculation Method
+
+══════════════════════════════════════════════════════════════════════════════════════
+                                EVENT PROCESSING
+══════════════════════════════════════════════════════════════════════════════════════
+
+                               │
+                               ▼
+
+                    ┌───────────────────┐
+                    │ UpdateEvents()    │
+                    └─────────┬─────────┘
+                              │
+                              ├── Overload Detection
+                              ├── Auto Zero Check
+                              ├── Too Heavy To Zero
+                              ├── Payload Warnings
+                              ├── Sensor Diagnostics
+                              └── Autonomy Conditions
+
+══════════════════════════════════════════════════════════════════════════════════════
+                               CALIBRATION WORKFLOW
+══════════════════════════════════════════════════════════════════════════════════════
+
+                              │
+                              ▼
+
+                LpsSaWeighCalReqstCallback()
+
+                              │
+                              ▼
+
+                    calibrationUpdate()
+
+                              │
+      ┌───────────────────────┼───────────────────────────┐
+      │                       │                           │
+      ▼                       ▼                           ▼
+
+ Empty Bucket Cal      Full Bucket Cal          Linkage Calibration
+
+ LpsCalEmptyCalMain()  LpsCalFullCalMain()      ├─ Lift Linkage Cal
+                                                │    Full Raise
+                                                │    Full Rack
+                                                │    Full Lower
+                                                │
+                                                └─ Tilt Linkage Cal
+                                                     Full Rack
+                                                     Full Lower
+                                                     Full Raise
+                                                     Full Dump
+
+                              │
+                              ▼
+
+                     Calibration Results
+
+══════════════════════════════════════════════════════════════════════════════════════
+                                  NVM WORKFLOW
+══════════════════════════════════════════════════════════════════════════════════════
+
+                              │
+                              ▼
+
+                        Set Write Flags
+
+                              │
+                              ▼
+
+                    RTOS task_1x() Loop
+
+                              │
+      ┌───────────────────────┼────────────────────────┐
+      │                       │                        │
+      ▼                       ▼                        ▼
+
+ Machine Config        Payload Cal            Lift/Tilt Cal
+ Write                 Write                  Write
+
+                              │
+                              ▼
+
+                       nvm_file_update()
+
+══════════════════════════════════════════════════════════════════════════════════════
+                                    OUTPUTS
+══════════════════════════════════════════════════════════════════════════════════════
+
+                              │
+                              ▼
+
+                   LpsSaWeighingScsTx()
+
+                              │
+                              ├── Best Bucket Weight
+                              ├── Raw Weight
+                              ├── Dig State
+                              ├── Dump State
+                              ├── Lift Extension
+                              ├── Lift Velocity
+                              ├── Calibration Status
+                              └── Weigh Indicator
+
+                              ▼
+
+                  Other ECU Applications
+                         Display
+                         Service Tool
+                         Payload Consumers
