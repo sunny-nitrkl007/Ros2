@@ -1,0 +1,667 @@
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                  ECU STARTUP                                                              │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                       │
+                                                       ▼
+                                            app_startup_init()
+                                                       │
+                                                       ▼
+                                              app_nvm_file_init()
+                                                       │
+                          ┌────────────────────────────┴─────────────────────────────┐
+                          ▼                                                           ▼
+          app_nvm_jobmgr_machine_spec_config_file_init()          app_nvm_jobmgr_live_values_file_init()
+          │                                                        │
+          ├── TargetWeight                                         ├── PassCount
+          ├── TipOffMode (truck / pile / manual)                   ├── TruckWeight
+          └── HornStoreState                                       ├── BestBktWt
+                                                                   ├── LifetimeTruckLoadCount
+                                                                   └── LifetimeTotalPayload
+
+                                                       │
+                                                       ▼
+                                      LpsSaJobMgrApp::initialize()
+                                                       │
+            ┌──────────────────────┬──────────────────────────────┬──────────────────────────────┐
+            ▼                      ▼                              ▼                              ▼
+      getTaskConfig()       commInitialize()               NvmInitialize()           LpsSaJobMgrPtInit()
+      │                                                    │                         │
+      ├── cycleRate_hz: 10                                 └── Wait for NVM          └── LpsPtInit(
+      ├── DefTargetWeight                                      read flags                  LpsPtInputs_t,
+      ├── DefTipOffTriggerType                                                              LpsPtOutputs_t)
+      └── Config params
+
+                                                       │
+                                                       ▼
+                                               InterfaceDb::fetch()   [Acquire all SCS channel pointers]
+                                                       │
+            ┌───────────────┬───────────────────┬──────┴───────────┬────────────────┬──────────────┐
+            ▼               ▼                   ▼                  ▼                ▼              ▼
+     JobMgrTxOut      JobMgrReqstIn       JobMgrRespOut     WeighCmdOut       WeighRespIn    WeighTxIn
+            │               │
+     ┌──────┘        ┌──────┘
+     ▼               ▼
+  (to UI)        (from UI)
+
+            ┌───────────────┬───────────────────┐
+            ▼               ▼                   ▼
+     SwitchInputIn    OutputChannelOut    AisJhm2TxIn    ShmClockIn    JobMgrDebugOut
+     (from HW)        (to HW: Horn)      (from DataSrv)  (from OS)     (to debug)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                                CONTINUOUS RUNTIME
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                         LpsSaJobMgrApp::executive()   [10 Hz / 100 ms]
+                                                       │
+      ┌──────────────────┬────────────────────────┬─────────────────────┬──────────────────┬──────────────────┐
+      ▼                  ▼                         ▼                     ▼                  ▼                  ▼
+ Phase 1: Rx       Phase 2: Process          Phase 3: Cmd           Phase 4:           Phase 5:           Phase 6: Tx
+ (All Inputs)       (Business Logic)          (WeighApp)           (TipOff/Horn)     (Store/SimpleCal)   (All Outputs)
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 1:  LpsSaJobMgrScsRx()   [READ ALL INPUTS]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrScsRx()
+            │
+            ├── LpsSaJobMgrScsSHMRead()
+            │       └── ShmClockInputScs->get()
+            │               ├── TimezoneOffset
+            │               └── DSTOffset
+            │
+            ├── LpsSaWeighScsTxParamRead()
+            │       └── LpsSaWeighScsTxIn->get(rxParam)
+            │               ├── DigStat                  [bucket in dig zone]
+            │               ├── CalStat                  [calibration state code]
+            │               ├── DumpStat                 [bucket dump detected]
+            │               ├── BestBktWtInTonnes        [best available bucket weight]
+            │               ├── ZeroNotifyStat           [zero required notification]
+            │               ├── PayloadCalcMeth          [payload calculation method]
+            │               ├── Indicator                [weigh indicator value]
+            │               └── SimpleCalAdjustment      [simple cal correction factor]
+            │
+            ├── LpsSaJobMgrScsChkForReqst()
+            │       ├── SwitchInputScs->get()            [Physical store button STG4: OPEN/CLOSED/UNKNOWN]
+            │       └── LpsSaJobMgrScsReqstIn->get(reqIn)
+            │               ├── ZeroReqst
+            │               ├── MinusOneReqst
+            │               ├── ClearReqst
+            │               ├── StoreReqst
+            │               ├── StandByActReqst
+            │               ├── StandByDeactReqst
+            │               ├── TruckTipOffReqst
+            │               ├── PileTipOffReqst
+            │               ├── ManualTipOffActReqst
+            │               ├── ManualTipOffDeactReqst
+            │               ├── ReweighReqst
+            │               ├── TargetWeightReqst
+            │               ├── TipOffTrigger
+            │               ├── TipOffState
+            │               ├── LifetimeTotalsReqst
+            │               └── HornStoreStateReqst
+            │
+            └── AisJhmDataServerTxRead()
+                    └── AisJhm2TxInputScs->get()        [Purge stale simple cal truck data from data server]
+                            ├── TruckWeight
+                            └── Timestamp
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 2:  LpsSaJobMgrPtUpdate()   [PASS TRACKER BUSINESS LOGIC — lps_pass_tracker library]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrPtUpdate()
+            │
+            └── weigh_mode(LpsPtInputs_t)  →  LpsPtOutputs_t
+                    │
+                    │  LpsPtInputs_t:
+                    ├── DigStat             (from WeighApp)
+                    ├── DumpStat            (from WeighApp)
+                    ├── BestBktWt           (from WeighApp)
+                    ├── CalStat             (from WeighApp)
+                    ├── ZeroNotifyStat      (from WeighApp)
+                    ├── Indicator           (from WeighApp)
+                    ├── StoreRequest        (from UI or physical button)
+                    ├── ZeroRequest         (from UI)
+                    ├── MinusOneRequest     (from UI)
+                    ├── ClearRequest        (from UI)
+                    ├── TargetWeight        (from NVM or UI override)
+                    ├── StandbyState        (current)
+                    └── TipOffState         (truck/pile/manual/none)
+                    │
+                    │  LpsPtOutputs_t:
+                    ├── PassCount           →  incremented on each confirmed store
+                    ├── TruckWeight         →  accumulated truck total
+                    ├── DispBestBktWt       →  display-ready bucket weight
+                    ├── store_flag          →  triggers NVM write + lifetime update
+                    ├── clear_flag          →  resets pass count
+                    ├── unlatch_flag        →  signals WeighApp to reset BestBktWt
+                    ├── tipoff_state        →  resolved tip-off mode
+                    └── standby_state       →  current standby
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 3:  LpsSaJobMgrSendCmdToWeighApp()   [COMMAND WEIGHAPP]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrSendCmdToWeighApp()
+            │
+            └── LpsSaWeighScsCmdOut->publish(cmd)
+                    │  Conditions:
+                    ├── ZeroReqst              if Zero button pressed
+                    ├── BestBktRstReqst        if unlatch_flag set (after store)
+                    ├── CaptCylExtRef          if dump detected — capture cylinder reference
+                    └── ClearReweighWarnReqst  if clear/reweigh requested
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 4:  TipOff + Horn   [STATE MACHINE + OUTPUT]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrHandleTipOffBtnStates()
+            │
+            └── Resolve active tip-off mode from UI requests and current state
+
+      LpsSaJobMgrScsChkHornAction()
+            │
+            └── OutputChannelOut->publish()   [Horn relay → PORT_SINK_3]
+                    │
+                    Conditions:
+                    ├── HornStoreEnable == true
+                    └── PassCount < 50 (short-honk feedback on store)
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 5:  Store + Simple Cal   [PERSISTENCE + CALIBRATION DATA]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrProcessStoreRequest()   [only when store_flag set]
+            │
+            ├── Increment LifetimeTruckLoadCount
+            ├── Accumulate LifetimeTotalPayload
+            ├── Set NVM write flags (live values: PassCount, TruckWeight, Lifetime totals)
+            └── LpsSaJobMgrAddSimpleCalTruckData()
+                    └── Push TruckWeight + Timestamp onto SimpleCalData deque
+                        (queue published to UI for manual calibration reference)
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+PHASE 6:  LpsSaJobMgrScsTx()   [PUBLISH ALL OUTPUTS]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      LpsSaJobMgrScsTx()
+            │
+            ├── LpsSaJobMgrScsTxOut->publish(txOut)
+            │       ├── PassCount
+            │       ├── TargetWeight
+            │       ├── TruckWeight
+            │       ├── DispBestBktWt
+            │       ├── TipOffState
+            │       ├── ManualTipOffState
+            │       ├── StandbyState
+            │       ├── LifetimeTruckLoadCount
+            │       ├── LifetimeTotalPayload
+            │       ├── HornStoreState
+            │       ├── ClearMinusOneEnableStat
+            │       ├── OperationMode
+            │       └── SimpleCalData          [deque of truck weights + timestamps]
+            │
+            ├── LpsSaJobMgrScsRespOut->publish(respOut)
+            │       └── Response code for last UI request
+            │
+            └── LpsSaJobMgrDebugChannelOut->publish(dbgOut)
+                    └── Internal state snapshot for diagnostics
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                               REQUEST HANDLING
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+      Incoming Request                      JobMgr Action                         WeighApp Command
+      ─────────────────────────────────     ────────────────────────────────      ─────────────────────────────
+      ZeroReqst                        →   Forward to WeighApp               →   ZeroReqst
+      MinusOneReqst                    →   Decrement PassCount (local)            (none)
+      ClearReqst                       →   Reset PassCount + TruckWeight     →   ClearReweighWarnReqst
+      StoreReqst (UI or STG4 button)   →   Trigger store_flag path               (none, handled by pt library)
+      StandByActReqst                  →   Set standby_state = ACTIVE             (none)
+      StandByDeactReqst                →   Set standby_state = INACTIVE           (none)
+      TruckTipOffReqst                 →   Set tipoff_state = TRUCK               (none)
+      PileTipOffReqst                  →   Set tipoff_state = PILE                (none)
+      ManualTipOffActReqst             →   Set manual_tipoff = ACTIVE             (none)
+      ManualTipOffDeactReqst           →   Set manual_tipoff = INACTIVE           (none)
+      ReweighReqst                     →   Reset best bucket state           →   ClearReweighWarnReqst
+      TargetWeightReqst                →   Update TargetWeight + NVM flag         (none)
+      LifetimeTotalsReqst              →   Reset lifetime totals + NVM flag       (none)
+      HornStoreStateReqst              →   Toggle HornStoreEnable + NVM flag      (none)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                               NVM TASK
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+task_1x()     [Separate RTOS Infinite Loop — runs independently of executive()]
+
+while(TRUE)
+   │
+   ├─ app_nvm_jobmgr_machine_spec_config_file_write()
+   │      Input : Machine config (TargetWeight, TipOffMode, HornStoreState)
+   │      Trigger: write flag set by request handler
+   │
+   ├─ app_nvm_jobmgr_live_values_file_write()
+   │      Input : Live values (PassCount, TruckWeight, LifetimeTotals, BestBktWt)
+   │      Trigger: write flag set after each store or clear
+   │
+   └─ nvm_file_update()
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                              EXTERNAL INPUTS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+UI / Display ────────► LpsSaJobMgrReqstIn->get()
+                         │
+                         ├─ ZeroReqst
+                         ├─ MinusOneReqst
+                         ├─ ClearReqst
+                         ├─ StoreReqst
+                         ├─ StandByActReqst / DeactReqst
+                         ├─ TruckTipOffReqst / PileTipOffReqst
+                         ├─ ManualTipOffActReqst / DeactReqst
+                         ├─ ReweighReqst
+                         ├─ TargetWeightReqst
+                         ├─ LifetimeTotalsReqst
+                         └─ HornStoreStateReqst
+
+WeighApp ────────────► LpsSaWeighTxIn->get()
+                         │
+                         ├─ DigStat
+                         ├─ CalStat
+                         ├─ DumpStat
+                         ├─ BestBktWtInTonnes
+                         ├─ ZeroNotifyStat
+                         ├─ PayloadCalcMeth
+                         ├─ Indicator
+                         └─ SimpleCalAdjustment
+
+WeighApp ────────────► LpsSaWeighRespIn->get()
+                         └─ Response code for last WeighApp command
+
+Hardware ────────────► SwitchInputScs->get()
+                         └─ STG4 state (OPEN / CLOSED / UNKNOWN)
+                              CLOSED = physical store button pressed
+
+Data Server ─────────► AisJhm2TxIn->get()
+                         ├─ TruckWeight
+                         └─ Timestamp   (for simple calibration tracking)
+
+System Clock ────────► ShmClockIn->get()
+                         ├─ TimezoneOffset
+                         └─ DSTOffset
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+                                              OUTPUTS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+LpsSaJobMgrScsTx()  ──►  UI Display
+   │
+   ├─ PassCount
+   ├─ TruckWeight (accumulated)
+   ├─ DispBestBktWt
+   ├─ TargetWeight
+   ├─ TipOffState
+   ├─ ManualTipOffState
+   ├─ StandbyState
+   ├─ LifetimeTruckLoadCount
+   ├─ LifetimeTotalPayload
+   ├─ HornStoreState
+   ├─ ClearMinusOneEnableStat
+   ├─ OperationMode
+   └─ SimpleCalData (deque)
+
+LpsSaJobMgrScsRespOut  ──►  UI Display
+   └─ Response code (ACK / NAK / status per request)
+
+LpsSaWeighScsCmdOut  ──►  WeighApp
+   ├─ ZeroReqst
+   ├─ BestBktRstReqst
+   ├─ CaptCylExtRef
+   └─ ClearReweighWarnReqst
+
+OutputChannelOut  ──►  Hardware (PORT_SINK_3)
+   └─ Horn relay command
+
+LpsSaJobMgrDebugOut  ──►  Diagnostics / Service Tool
+   └─ Full internal state snapshot
+
+
+
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                  JOBMGR COMPLETE WORKFLOW                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+ ECU POWER ON
+      │
+      ▼
+┌─────────────────────┐
+│ app_startup_init()  │
+└──────────┬──────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ app_nvm_file_init()  │
+└──────────┬───────────┘
+           │
+           │ Load from NVM
+           ├── Machine Config  (TargetWeight, TipOffMode, HornStoreState)
+           └── Live Values     (PassCount, TruckWeight, LifetimeTotals, BestBktWt)
+           │
+           ▼
+
+┌─────────────────────────────┐
+│ JobMgrApp::initialize()     │
+└─────────────┬───────────────┘
+              │
+              ├── getTaskConfig()         Read .rb params (cycleRate=10Hz, defaults)
+              ├── commInitialize()        Start OEL middleware
+              ├── NvmInitialize()         Wait for NVM read completion
+              ├── LpsSaJobMgrPtInit()     Init pass tracker library
+              └── InterfaceDb::fetch()    Bind all 10 SCS channels
+              │
+              ▼
+
+══════════════════════════════════════════════════════════════════════════════════
+                           CONTINUOUS APPLICATION EXECUTION
+══════════════════════════════════════════════════════════════════════════════════
+
+              ┌─────────────────────────────┐
+              │       executive()           │   ◄─── 10 Hz (100 ms cycle)
+              └─────────────┬───────────────┘
+                            │
+                            ▼
+
+══════════════════════════════════════════════════════════════════════════════════
+                         1. READ INPUTS  [LpsSaJobMgrScsRx()]
+══════════════════════════════════════════════════════════════════════════════════
+
+        ┌───────────────────────┬─────────────────────────┬──────────────────────┐
+        │                       │                         │                      │
+        ▼                       ▼                         ▼                      ▼
+
+    UI/Display             WeighApp Tx              Physical Switch       Data Server
+        │                       │                         │                      │
+   UI Requests            DigStat                    STG4 State           TruckWeight
+   (13 types)             CalStat                    (store button)       + Timestamp
+                          DumpStat
+                          BestBktWt
+                          ZeroNotifyStat
+                          PayloadCalcMeth
+                          Indicator
+                          SimpleCalAdj
+
+        └───────────────────────┴─────────────────────────┴──────────────────────┘
+                                           │
+                                           ▼
+
+══════════════════════════════════════════════════════════════════════════════════
+                    2. BUSINESS LOGIC  [LpsSaJobMgrPtUpdate()]
+══════════════════════════════════════════════════════════════════════════════════
+
+                                 ┌──────────────────┐
+                                 │  weigh_mode()    │
+                                 └────────┬─────────┘
+                                          │
+                                          │  Inputs from Rx phase
+                                          │
+                                          ▼
+
+══════════════════════════════
+   EXTERNAL LIBRARY BOUNDARY
+   lps_pass_tracker
+══════════════════════════════
+
+                                          │
+                                          ▼
+
+                                   Pass State Machine
+                                          │
+                         ┌────────────────┼──────────────────────┐
+                         ▼                ▼                       ▼
+
+                     PassCount      TruckWeight            store_flag
+                     (incremented   (accumulated            (triggers
+                     on store)      per cycle)              NVM write)
+                         │
+                         ├── unlatch_flag  →  signal WeighApp: BestBktRst
+                         ├── clear_flag    →  reset pass count
+                         └── tipoff_state  →  resolved mode
+
+══════════════════════════════════════════════════════════════════════════════════
+               3. COMMAND WEIGHAPP  [LpsSaJobMgrSendCmdToWeighApp()]
+══════════════════════════════════════════════════════════════════════════════════
+
+                                          │
+                                          ▼
+
+                               LpsSaWeighScsCmdOut->publish()
+
+                                          │
+              ┌───────────────────────────┼──────────────────────┐
+              ▼                           ▼                       ▼
+
+          ZeroReqst                 BestBktRstReqst         CaptCylExtRef
+          (if zero btn)             (if unlatch_flag)       (if dump detected)
+                                          │
+                                          ▼
+                                  ClearReweighWarnReqst
+                                  (if clear/reweigh)
+
+══════════════════════════════════════════════════════════════════════════════════
+              4. TIPOFF + HORN  [HandleTipOff + ChkHornAction]
+══════════════════════════════════════════════════════════════════════════════════
+
+                                          │
+                                          ▼
+
+                       LpsSaJobMgrHandleTipOffBtnStates()
+                       (resolve truck / pile / manual state)
+                                          │
+                                          ▼
+
+                          HornStoreEnable + PassCount < 50?
+                                    │
+                                   YES
+                                    │
+                                    ▼
+                      OutputChannelOut->publish()  [Horn: PORT_SINK_3]
+
+══════════════════════════════════════════════════════════════════════════════════
+              5. STORE + SIMPLE CAL  [ProcessStoreRequest]
+══════════════════════════════════════════════════════════════════════════════════
+
+                                          │
+                                   store_flag set?
+                                          │
+                                         YES
+                                          │
+                                          ▼
+
+                         LpsSaJobMgrProcessStoreRequest()
+                                          │
+                    ┌─────────────────────┼──────────────────────┐
+                    ▼                     ▼                       ▼
+
+             Increment             Accumulate               Set NVM
+             Lifetime              Lifetime                 Write Flags
+             LoadCount             TotalPayload
+                                          │
+                                          ▼
+                         LpsSaJobMgrAddSimpleCalTruckData()
+                         (push to SimpleCalData deque)
+
+══════════════════════════════════════════════════════════════════════════════════
+              6. PUBLISH OUTPUTS  [LpsSaJobMgrScsTx()]
+══════════════════════════════════════════════════════════════════════════════════
+
+                                          │
+                                          ▼
+
+                      LpsSaJobMgrScsTxOut->publish()   [to UI]
+                      LpsSaJobMgrScsRespOut->publish()  [to UI: last response]
+                      LpsSaJobMgrDebugOut->publish()    [to diagnostics]
+
+══════════════════════════════════════════════════════════════════════════════════
+                              NVM WORKFLOW [task_1x()]
+══════════════════════════════════════════════════════════════════════════════════
+
+                    (parallel RTOS task — independent of executive loop)
+
+                              RTOS task_1x() Loop
+
+                                          │
+                     ┌────────────────────┼──────────────────────┐
+                     ▼                    ▼                       ▼
+
+             Machine Config         Live Values             nvm_file_update()
+             Write                  Write
+             (TargetWeight,         (PassCount,
+             TipOffMode,            TruckWeight,
+             HornStoreState)        LifetimeTotals)
+
+══════════════════════════════════════════════════════════════════════════════════
+                                     CLEANUP
+══════════════════════════════════════════════════════════════════════════════════
+
+                         JobMgrApp::cleanup()   [on ECU shutdown]
+                                    │
+                                    ├── Check Machine MSN (serial number)
+                                    ├── Final NVM flush (if MSN mismatch → reset NVM)
+                                    └── commCleanup()
+
+══════════════════════════════════════════════════════════════════════════════════
+                    CHANNEL BOUNDARY SUMMARY
+══════════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────┐         ┌──────────────────────────────────┐         ┌─────────────────────┐
+│   UI / Display   │         │       LpsSaJobMgrApp             │         │    LpsSaWeighApp    │
+│                  │         │                                  │         │                     │
+│ Requests ───────►│─────────►  LpsSaJobMgrReqstChannelInput    │         │                     │
+│                  │         │  LpsSaJobMgrRespChannelOutput  ──►│──────►  │                     │
+│ ◄───── Tx ───────│◄─────────  LpsSaJobMgrTxChannelOutput      │         │                     │
+└──────────────────┘         │                                  │         │                     │
+                             │  LpsSaWeighReqstChannelOutput  ──►│─────────►  LpsSaWeighReqstChannelInput
+                             │  LpsSaWeighTxChannelInput  ◄──────│◄─────────  LpsSaWeighTxChannelOutput
+                             │  LpsSaWeighRespChannelInput  ◄─────│◄─────────  LpsSaWeighRespChannelOutput
+┌──────────────────┐         │                                  │         └─────────────────────┘
+│   Hardware       │         │  SwitchInputScsInput        ◄────│◄──── STG4 (store button)
+│   PORT_SINK_3    │◄────────│─  OutputChannelOutput            │
+└──────────────────┘         │                                  │
+┌──────────────────┐         │  AisJhm2TxChannelInput     ◄────│◄──── Data Server
+│   Data Server    │         │  ShmClockInput             ◄────│◄──── System Clock
+└──────────────────┘         │                                  │
+                             │  LpsSaJobMgrDebugChannelOutput ──►│──────► Diagnostics / Service Tool
+                             └──────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════════════════
+               lps_pass_tracker LIBRARY BOUNDARY
+══════════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ JobMgr Application Layer                                                      │
+│                                                                               │
+│   LpsSaJobMgrPtUpdate()                                                       │
+│   LpsSaJobMgrPtInit()                                                         │
+│                                                                               │
+└───────────────────────────────────┬───────────────────────────────────────────┘
+                                    │
+                                    │ LpsPtInputs_t
+                                    ▼
+
+══════════════════════════════════════════════════════
+         EXTERNAL LIBRARY BOUNDARY
+         lps_pass_tracker
+══════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ lps_pass_tracker                                                              │
+│ (NOT PART OF JOBMGR)                                                          │
+│                                                                               │
+│   LpsPtInit()                                                                 │
+│   LpsPtUpdate()                                                               │
+│   weigh_mode()                                                                │
+│                                                                               │
+│   State machine: IDLE → DIG → WEIGH → DUMP → STORE                           │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+                                    │ LpsPtOutputs_t
+                                    ▼
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ JobMgr Result Processing                                                      │
+│                                                                               │
+│   PassCount                                                                   │
+│   TruckWeight                                                                 │
+│   DispBestBktWt                                                               │
+│   store_flag                                                                  │
+│   unlatch_flag                                                                │
+│   clear_flag                                                                  │
+│   tipoff_state / standby_state                                                │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════════════════
+                             PUBLISHERS
+══════════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ LpsSaJobMgrScsTxOut  (to UI/Display)                                          │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ PassCount                                                                     │
+│ TruckWeight                                                                   │
+│ DispBestBktWt (display-ready bucket weight)                                   │
+│ TargetWeight                                                                  │
+│ TipOffState (truck / pile / none)                                             │
+│ ManualTipOffState                                                             │
+│ StandbyState                                                                  │
+│ LifetimeTruckLoadCount                                                        │
+│ LifetimeTotalPayload                                                          │
+│ HornStoreState (enabled / disabled)                                           │
+│ ClearMinusOneEnableStat                                                       │
+│ OperationMode                                                                 │
+│ SimpleCalData (deque: TruckWeight + Timestamp per store)                      │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ LpsSaJobMgrRespOut  (to UI/Display)                                           │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Response code for last accepted or rejected UI request                        │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ LpsSaWeighScsCmdOut  (to WeighApp)                                            │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ ZeroReqst                                                                     │
+│ BestBktRstReqst                                                               │
+│ CaptCylExtRef                                                                 │
+│ ClearReweighWarnReqst                                                         │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ OutputChannelOut  (to Hardware)                                                │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Horn relay command → PORT_SINK_3                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ LpsSaJobMgrDebugOut  (to Service Tool / Diagnostics)                          │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Full internal state snapshot                                                  │
+│ Pass tracker internal values                                                  │
+│ NVM write flag states                                                         │
+└───────────────────────────────────────────────────────────────────────────────┘
