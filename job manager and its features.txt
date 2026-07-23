@@ -1,0 +1,77 @@
+LpsSaJobMgrApp — 21 features, detailed
+1. Pass-tracking engine integration — feeds dig/dump/calibration state from WeighApp into the external lps_pass_tracker library every cycle, then applies its add/remove/clear/store decisions to the active load. This is the core event loop — almost every other feature reacts to its output.
+LpsSaJobMgrProcess.cpp:35-324 (LpsSaJobMgrPtUpdate), LpsSaJobMgrInit.cpp:91-114
+
+2. Load/ticket record closing & publishing — on store, strips zero-pass subtotals, stamps store reason, publishes LpsSaLoadRecordChannel.
+LpsSaJobMgrProcess.cpp:142-227, LpsSaJobMgrTasks.h:200-221
+
+3. Weigh-operator command relay — Zero/Clear/−1/Reweigh from UI drive the pass-tracker state machine and relay derived commands (RESET_BEST_BUCKET_WEIGHT, CAPTURE_CYLINDER_EXTENSION_REFERENCE, CLEAR_REWEIGH_WARNING) to WeighApp.
+LpsSaJobMgrScs.cpp:239-259,386-392,1151-1171,1179-1209
+
+4. Payload store/ticket creation (manual + auto) — triggered by a physical STG4 switch, a CAN datalink PID, the STORE command, or auto-store after a configurable pass count.
+LpsSaJobMgrScs.cpp:54-95,260-285,400-413,779-795
+
+5. Legal-For-Trade (LFT) ticket compliance — gates store on accuracy/memory-full when licensed, tags tickets trade/not-for-trade, supports per-task LFT-disable override, auto-clears load when scale becomes newly sealed.
+LpsSaJobMgrApp.h:217-239, LpsSaJobMgrScs.cpp:462-467,709-716,860-865
+
+6. Standby mode control — explicit activate/deactivate plus automatic entry when UI reports verification mode.
+LpsSaJobMgrScs.cpp:135-147,308-328
+
+7. Tip-off trigger/mode configuration — Auto/Manual/Disabled trigger type, Pile/Truck mode, machine-level JSON override to force-disable.
+LpsSaJobMgrScs.cpp:329-338,365-385, LpsSaJobMgrApp.cpp:356-400
+
+8. Manual tip-off control — operator enter/exit independent of the automatic trigger.
+LpsSaJobMgrScs.cpp:339-357
+
+9. Tip-off assist (autonomy) integration — tracks activation via CAN datalink PID, surfaces active/disarm reason via CDL event IDs 63038-63046/63078, counts activations.
+LpsSaJobMgrScs.cpp:663-718,796-816
+
+10. Manual payload add (SEA "Pro"-gated) — operator manually adds a pass via UI or dedicated CAN PID, only when licensed and enabled.
+LpsSaJobMgrScs.cpp:358-364,428-434,817-833
+
+11. Multi-task (concurrent load) management — up to 9 independently tracked in-progress loads, with select/next/previous navigation.
+LpsSaJobMgrScs.cpp:435-454,468-479,533-556, LpsSaJobMgrTasks.h:49-83,235-260
+
+12. Split/Batch/Mix/Blend load modes — SINGLE/SPLIT/BATCH/MIX/BLEND_LOADS/BLEND_WEIGHT with full subtotal insert/edit/delete/select/next and target-weight redistribution.
+LpsSaJobMgrScs.cpp:158-163,286-300,455-461,480-532, LpsSaLoadRecordChannel.h:162-248,419-735
+
+13. Truck ID & target-weight assignment — write/auto-populate truck ID, name, per-truck/total target weight.
+LpsSaJobMgrScs.cpp:188-205,301-307,421-427
+
+14. Material ID & density tracking — write/auto-populate material ID, name, density per load/subtotal.
+LpsSaJobMgrScs.cpp:170-187,414-420
+
+15. Truck/material list enable toggles — independently enable/disable whether truck & material lists are offered/retained on tickets.
+LpsSaJobMgrScs.cpp:557-568
+
+16. Custom tag metadata — 4 independently enable-able, named key/value tags per load/ticket.
+LpsSaJobMgrScs.cpp:206-229,569-596
+
+17. Horn-on-store notification — sounds output-pin horn on non-auto store, if SEA Pro installed.
+LpsSaJobMgrScs.cpp:393-399,913-933
+
+18. Simple-cal truck-weight log — rolling (default 15) history of zeroed/adjusted truck weights per stored load, persisted to disk, erasable per-entry via data-server ack.
+LpsSaJobMgrSimpleCal.h/.cpp (whole file)
+
+19. Payload/subtotal JSON export — dumps current task's full subtotal breakdown (targets, weights, materials, tags) to JSON on request.
+LpsSaJobMgrScs.cpp:495-502, LpsSaLoadRecordChannel.h:828-868
+
+20. Tip-off-assist usage statistics — persistent activation counter exposed on debug channel.
+LpsSaJobMgrStats.h/.cpp
+
+21. SEA licensing gating — reads Level-1/Level-2/LFT license status and enables/disables manual-add, multi-task, tags, tip-off, LFT ticketing accordingly.
+LpsSaJobMgrApp.cpp:413-432, LpsSaJobMgrProcess.cpp:62-80, LpsSaJobMgrScs.cpp:1059-1094
+
+Migrate whole app at once, or feature-by-feature?
+Migrate it as one ROS2 node. Splitting JobMgr into per-feature ROS2 nodes is a bad idea here, for reasons visible directly in the coupling above:
+
+One shared mutable state struct drives everything. Features #2, #4, #5, #11, #12, #13, #14, #15, #16, #18, #19 all read/write the same in-process 
+currentTaskLoad/multi-task struct (LpsSaJobMgrTasks.h) within the same 100ms cycle. That's 11 of 21 features touching one shared object every tick.
+ Splitting them across process/node boundaries means replacing direct C++ member access with IPC (topics/services) for what is currently a single 
+ atomic in-memory update — that's a real redesign, not a lift-and-shift.
+#1 (pass-tracker integration) is the central event loop. Nearly every other feature is downstream of its output each cycle. It can't be peeled off 
+separately without becoming the de-facto "first phase" that everything else still blocks on — so isolating it buys you nothing.
+#21 (SEA licensing) is a cross-cutting gate, not a subsystem — it touches #7, #9, #10, #11, #16, #17. You can't migrate it independently; it has 
+to move with whatever it gates.
+lps_pass_tracker is an external C library statically compiled into the JobMgr binary (not linked as a shared lib — see the earlier SConscript finding),
+so it isn't a natural service boundary either.
