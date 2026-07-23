@@ -1,0 +1,22 @@
+Dig detection specifically: no, it can't be isolated
+Dig detection isn't a bolt-on module — it's one stage of a single synchronous pipeline that runs every 20ms inside LpsSaProcess.cpp:
+
+
+sensor read → weight transfer function → DigStat (dig detection)
+    → BestBktWt latching → reweigh-warning checks → overload warning → txOut
+Each stage consumes the previous stage's output in the same function call, same cycle, same process. Concretely:
+
+BestBktWt.PayloadCalcMeth/bktWtLatchedFlag (best-bucket-weight) directly reads dig state to decide when to latch a weight.
+The reweigh-warning logic (ACDInfoPopUp) checks post-dig stability.
+JobMgr's pass-tracker (feature #1 from the JobMgr list) consumes dig/dump events every cycle to decide add/remove/clear.
+Pulling dig detection out means either (a) still executing it in-process anyway, so nothing moved, or (b) shipping raw lift/tilt pressure+position 
+samples across a process boundary every 20ms just to compute one boolean/state and ship it back before the next stage needs it — adding DDS/UDP jitter 
+directly into a 20ms real-time loop that ultimately determines a trade-legal weight measurement. That's not a migration, that's a redesign of the 
+control loop.
+
+JobMgr's coupling is a shared mutable state problem (many features read/write one task struct within a 100ms tick). That's solvable in principle — you 
+could give one node ownership and make the rest clients — but it's still a redesign, so the practical answer was "migrate it whole."
+
+WeighApp's core-loop coupling is a real-time physics problem (each stage's output is the next stage's input, computed in microseconds, 50Hz, 
+and the numbers that come out are legally-regulated trade weights). You can't decouple that with better software architecture — the coupling is 
+inherent to what the computation is.

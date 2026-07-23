@@ -1,0 +1,63 @@
+1   LpsSaJobMgrTxChannelOutput	UI/DisplayApp (+ aisXcpServer snoop)
+2	LpsSaJobMgrReqstChannelInput	UI/DisplayApp, WorkOrderAssistApp, aisXcpServer
+3	LpsSaJobMgrRespChannelOutput	UI/DisplayApp
+4	LpsSaJobMgrDebugChannelOutput	aisXcpServer / diagnostic tooling
+5	LpsSaWeighReqstChannelOutput	WeighApp
+6	LpsSaWeighRespChannelInput	WeighApp
+7	LpsSaWeighTxChannelInput	WeighApp
+8	LoadRecordOutput (LpsSaLoadRecordChannelOutput)	LpsSaTotalsApp / WorkOrderAssistApp
+9	SwitchInputScsInput	SwitchInputScs app
+10	OutputChannelOutput	OutputApp (horn relay)
+11	AisJhm2TxChannelInput	AisJhm2 data server
+12	DisplayStateInput	UI/DisplayApp
+13	ShmClockInput	ACD/ShmClock service
+14	DataLinkDataInput	DataLink / other ECMs
+15	AutonomyConditionDiagnosticsTxChannelInput	SEA licensing broadcaster
+16	EventDiagnosticDataInput	Other ECM's event/diagnostic server
+
+
+
+#	Channel	Live call site
+1	LpsSaJobMgrTxChannelOutput	LpsSaJobMgrScsTxOut->publish() — Scs.cpp:1132
+2	LpsSaJobMgrReqstChannelInput	LpsSaJobMgrScsReqstIn->get() — Scs.cpp:154
+3	LpsSaJobMgrRespChannelOutput	LpsSaJobMgrRespChannelOutput_->publish() — Scs.cpp:630
+4	LpsSaJobMgrDebugChannelOutput	LpsSaJobMgrScsDebugOut->publish() — App.cpp:463
+5	LpsSaWeighReqstChannelOutput	via weighAppInf_.sendRequest() — Scs.cpp:1168
+6	LpsSaWeighRespChannelInput	via weighAppInf_.waitForTxData()/start() — App.cpp:278
+7	LpsSaWeighTxChannelInput	via weighAppInf_.waitForTxData(rxParam) — Scs.cpp:849
+8	LoadRecordOutput	loadRecordOutputChannel_->publish() — Process.cpp:224
+9	SwitchInputScsInput	LpsSaSwitchInput->get() — Scs.cpp:59
+10	OutputChannelOutput	LpsSaOutputChannelOut->publish() — Scs.cpp:930
+11	AisJhm2TxChannelInput	AisJhm2TxInputScs->get() — Scs.cpp:650
+12	DisplayStateInput	displayStateInput_->get() — Scs.cpp:138
+13	ShmClockInput	ShmClockInputScs->get() — Scs.cpp:730
+14	DataLinkDataInput	dataLinkDataInput_->get() — Scs.cpp:771
+15	AutonomyConditionDiagnosticsTxChannelInput	autonomyConditionDiagnosticsTxInputChannel_->get() — App.cpp:415
+16	EventDiagnosticDataInput	eddtInputChannel_->get() — Scs.cpp:688
+
+
+Bridge Publishers (bridge → SCS, sourced from JobMgrNode's ROS2 outputs)
+The bridge subscribes to a ROS2 topic/service from JobMgrNode, then writes into SCS exactly as JobMgr used to.
+
+SCS channel	Bridge relays from	SCS-side consumer(s)
+LpsSaJobMgrTxChannelOutput	ROS2 /job_mgr/tx	UI/DisplayApp, aisXcpServer (snoop)
+LpsSaJobMgrRespChannelOutput	ROS2 command-response	UI/DisplayApp
+LpsSaJobMgrDebugChannelOutput	ROS2 debug topic	aisXcpServer / diagnostic tooling
+LpsSaWeighReqstChannelOutput	ROS2 service call to WeighApp	WeighApp (stays SCS-native)
+LoadRecordOutput	ROS2 /job_mgr/load_record	LpsSaTotalsApp, WorkOrderAssistApp
+OutputChannelOutput	ROS2 horn-trigger topic	OutputApp (physical horn relay)
+Bridge Subscribers (SCS → bridge → JobMgrNode's ROS2 inputs)
+The bridge subscribes to SCS, republishes onto a ROS2 topic/service for JobMgrNode.
+
+SCS channel	SCS-side source	Bridge relays to
+LpsSaJobMgrReqstChannelInput	UI/DisplayApp, WorkOrderAssistApp, aisXcpServer	ROS2 command topic/service
+LpsSaWeighRespChannelInput	WeighApp	ROS2 service response
+LpsSaWeighTxChannelInput	WeighApp	ROS2 topic
+SwitchInputScsInput	SwitchInputScs app	ROS2 topic
+AisJhm2TxChannelInput	AisJhm2 data server	ROS2 topic
+DisplayStateInput	UI/DisplayApp	ROS2 topic
+ShmClockInput	ACD/ShmClock service	ROS2 topic
+DataLinkDataInput	DataLink / other ECMs	ROS2 topic
+AutonomyConditionDiagnosticsTxChannelInput	SEA licensing broadcaster	ROS2 topic
+EventDiagnosticDataInput	Other ECM's event/diagnostic server	ROS2 topic
+Total: 6 publishers + 10 subscribers = 16 SCS registrations the bridge owns.
