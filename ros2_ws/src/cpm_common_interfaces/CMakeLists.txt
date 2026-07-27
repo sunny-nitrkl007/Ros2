@@ -17,6 +17,19 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LpsSaJobMgrReqstChannel.msg"
   "msg/LpsSaWeighReqstChannel.msg"
   "msg/LpsSaWeighRespChannel.msg"
+  "msg/FloatIO.msg"
+  "msg/LiftPosition.msg"
+  "msg/TiltPosition.msg"
+  "msg/Payload.msg"
+  "msg/LftSealStatus.msg"
+  "msg/WeighRange.msg"
+  "msg/ProdMeasureSensorStatus.msg"
+  "msg/LinkSensorCalLim.msg"
+  "msg/WeighPidData.msg"
+  "msg/AcdInfoPopUp.msg"
+  "msg/AcdDiagPopUp.msg"
+  "msg/AcdEventPopUp.msg"
+  "msg/LpsSaWeighTxChannel.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
