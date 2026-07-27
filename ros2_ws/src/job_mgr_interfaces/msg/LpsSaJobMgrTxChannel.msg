@@ -1,25 +1,22 @@
-# Wire equivalent of LpsSaJobMgrTxChannelStorage (published as
-# LpsSaJobMgrTxChannelOutput, live call site LpsSaJobMgrScs.cpp:1132).
-# Source: CPM-Loader-ais/prod/common/interfaces/LpsSaJobMgrTxChannel/LpsSaJobMgrTxChannel.h
-#
-# All enum values below are copied verbatim from that header (and, where the
-# header itself references LpsPtPublic.h constants, from that real file too)
-# -- fully verified, nothing invented. The one exception is truck_weight_accuracy
-# / total_weight_accuracy, which use WeighBktWtAccuracy.msg -- see that file's
-# header for why those specific values are provisional.
-#
+
 # `timePoint` (std::chrono::steady_clock::time_point in the original struct)
 # is dropped: verified via repo-wide grep that no consumer anywhere reads it
 # back, only the publisher's own constructor/serialize() touch it.
 
+# WeighBktWtAccuracy, TipOffTriggerType, TipOffState, StandbyState now live in
+# cpm_common_interfaces (moved out of this package): each is used directly by
+# WeighApp's own code too, not just via a JobMgr channel struct -- see each
+# type's own file header in cpm_common_interfaces/msg/ for the specific
+# evidence that justified the move.
+
 uint8 task_number
 uint16 pass_count
 float32 truck_weight
-WeighBktWtAccuracy truck_weight_accuracy
+cpm_common_interfaces/WeighBktWtAccuracy truck_weight_accuracy
 float32 truck_start_weight
 float32 remaining_weight
 float32 total_weight
-WeighBktWtAccuracy total_weight_accuracy
+cpm_common_interfaces/WeighBktWtAccuracy total_weight_accuracy
 uint32 subtotal_count
 string ticket_id
 
@@ -47,21 +44,21 @@ bool tag4_enabled
 string custom_list_name4
 string tag4
 
-# LpsSaJobMgrManualTipOffState_t (LpsSaJobMgrTxChannel.h:32-38) -- values verified
+# LpsSaJobMgrManualTipOffState_t (LpsSaJobMgrTxChannel.h:32-38) 
 uint8 MAN_TIP_OFF_AVAILABLE=0
 uint8 MAN_TIP_OFF_UNAVAILABLE=1
 uint8 MAN_TIP_OFF_ACTIVE=2
 uint8 MAN_TIP_OFF_INACTIVE=3
 uint8 manual_tip_off_state
 
-TipOffTriggerType tip_off_trigger_type
+cpm_common_interfaces/TipOffTriggerType tip_off_trigger_type
 
 # Shared by tip_off_state and tip_off_state_cfg below (same C++ type used for
 # both fields in the original LpsSaJobMgrTxChannelStorage).
-TipOffState tip_off_state
-TipOffState tip_off_state_cfg
+cpm_common_interfaces/TipOffState tip_off_state
+cpm_common_interfaces/TipOffState tip_off_state_cfg
 
-# LpsSaJobMgrOperationMode_t (LpsSaJobMgrTxChannel.h:40-48) -- values verified,
+# LpsSaJobMgrOperationMode_t (LpsSaJobMgrTxChannel.h:40-48) ,
 # note >255 so uint16 not uint8
 uint16 OP_MODE_UNCALIBRATED=838
 uint16 OP_MODE_WEIGH=9
@@ -69,12 +66,9 @@ uint16 OP_MODE_STANDBY=175
 uint16 OP_MODE_EXCESS=846
 uint16 operation_mode
 
-# LpsSaJobMgrStandbyState_t (LpsSaJobMgrTxChannel.h:50-54) -- values verified
-uint8 STANDBY_ACTIVATED=0
-uint8 STANDBY_DEACTIVATED=1
-uint8 standby_state
+cpm_common_interfaces/StandbyState standby_state
 
-# LpsSaJobMgrClearMinusOneEnableStat_t (LpsSaJobMgrTxChannel.h:56-60) -- values verified
+# LpsSaJobMgrClearMinusOneEnableStat_t (LpsSaJobMgrTxChannel.h:56-60) 
 uint8 CLEAR_BTN_ENABLED=0
 uint8 MINUS_ONE_BTN_ENABLED=1
 uint8 clear_minus_one_enable_stat
@@ -85,7 +79,7 @@ SimpleCalData[] simple_cal_data
 uint32 store_count
 bool store_rejected
 
-# ReqPloadCtrlSysStat_t (LpsSaJobMgrTxChannel.h:82-91) -- values verified, uint16
+# ReqPloadCtrlSysStat_t (LpsSaJobMgrTxChannel.h:82-91) , uint16
 uint16 CTRL_STAT_NONE=58
 uint16 CTRL_STAT_CLEAR=551
 uint16 CTRL_STAT_REWEIGH=763
@@ -95,7 +89,7 @@ uint16 CTRL_STAT_TIPOFFTOGGLE=1438
 uint16 CTRL_STAT_MINUS_ONE=1584
 uint16 req_pload_ctrl_sys_stat
 
-# StorePloadHornStat_t (LpsSaJobMgrTxChannel.h:102-106) -- values verified, uint16
+# StorePloadHornStat_t (LpsSaJobMgrTxChannel.h:102-106) , uint16
 uint16 HORN_SOUND=794
 uint16 HORN_NOT_SOUND=795
 uint16 horn_store_state

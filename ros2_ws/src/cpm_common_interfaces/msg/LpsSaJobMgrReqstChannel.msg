@@ -9,6 +9,10 @@
 # in LpsSaWeighApp). Both publish onto this same message type.
 #
 # `timePoint` dropped -- same reasoning as LpsSaJobMgrTxChannel.msg.
+#
+# Lives in cpm_common_interfaces (not job_mgr_interfaces) precisely because
+# of the hybrid-publisher fact above: WeighApp needs to construct this exact
+# message type to publish on it directly.
 
 string app_name
 uint32 app_request_id

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>cpm_common_interfaces</name>
+  <version>0.0.1</version>
+  <description>
+    Message types shared by 2+ apps in the JobMgr/WeighApp ROS2/DDS
+    migration -- either because two apps talk directly over the same DDS
+    topic (the 4 JobMgr&lt;-&gt;WeighApp direct channels, Development-Plan.txt
+    Step 6.1), or because a real SCS enum/struct is used directly by more
+    than one app's own code, not just via a channel binding (confirmed by
+    grep before anything was moved here -- see each .msg's header comment
+    for the specific evidence).
+    Both job_mgr_interfaces and weigh_app_interfaces depend on this package;
+    it depends on neither, to keep the dependency direction one-way.
+  </description>
+  <maintainer email="aawara.sunny@gmail.com">Sunny</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
