@@ -1,0 +1,53 @@
+# Wire equivalent of LpsSaJobMgrReqstChannelStorage::Command.
+# Source: LpsSaJobMgrReqstChannel.h:90-129 -- values verified, plain
+# sequential enum class, 0..37 in declaration order, no explicit values in
+# source.
+#
+# NOT the same enum as LpsSaJobMgrReqst's own `command` field -- that's the
+# separate, smaller LpsSaJobMgrReqstCommand (11 values), inlined directly in
+# LpsSaJobMgrReqst.msg since it hasn't been seen reused elsewhere.
+#
+# Shared by LpsSaJobMgrReqstChannel.msg (command) and LpsSaJobMgrRespChannel.msg
+# (command, via LpsSaJobMgrReqstChannel::Command in LpsSaJobMgrRespChannel.h:21)
+# -- do not duplicate locally.
+
+uint8 NONE=0
+uint8 ZERO=1
+uint8 MINUS_ONE=2
+uint8 CLEAR=3
+uint8 STORE=4
+uint8 REWEIGH=5
+uint8 MANUAL_ADD=6
+uint8 STANDBY_ACTIVATE=7
+uint8 STANDBY_DEACTIVATE=8
+uint8 TIPOFF_MODE_TOGGLE=9
+uint8 MANUAL_TIPOFF_ACTIVATE=10
+uint8 MANUAL_TIPOFF_DEACTIVATE=11
+uint8 WRITE_TIPOFF_TRIGGER_TYPE=12
+uint8 WRITE_TIPOFF_MODE=13
+uint8 WRITE_HORN_ON_STORE_ENABLED=14
+uint8 WRITE_AUTO_STORE_PASS_COUNT=15
+uint8 WRITE_AUTO_TRUCK_ID_ENABLED=16
+uint8 WRITE_AUTO_MATERIAL_ID_ENABLED=17
+uint8 WRITE_MANUAL_ADD_ENABLED=18
+uint8 WRITE_MULTI_TASK_ENABLED=19
+uint8 WRITE_MULTI_TASK_COUNT=20
+uint8 WRITE_SPLIT_MODE_ENABLED=21
+uint8 SELECT_TASK=22
+uint8 SELECT_NEXT_TASK=23
+uint8 SELECT_PREVIOUS_TASK=24
+uint8 WRITE_TRUCK_LIST_ENABLED=25
+uint8 WRITE_MATERIAL_LIST_ENABLED=26
+uint8 WRITE_TAG1_ENABLED=27
+uint8 WRITE_TAG2_ENABLED=28
+uint8 WRITE_TAG3_ENABLED=29
+uint8 WRITE_TAG4_ENABLED=30
+uint8 WRITE_PAYLOAD_NEXT_SUBTOTAL=31
+uint8 WRITE_LFT_DISABLED=32
+uint8 WRITE_TARGET_TYPE=33
+uint8 WRITE_TOTAL_TARGET_WEIGHT=34
+uint8 SELECT_SUBTOTAL=35
+uint8 PAYLOAD_DETAILS_FILE_REQUEST=36
+uint8 WRITE_SUBTOTAL_INFO=37
+
+uint8 value
