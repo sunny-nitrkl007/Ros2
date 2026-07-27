@@ -1,0 +1,100 @@
+#!/usr/bin/python
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the testTask application.
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+Import( 'testEnv' )
+myEnv = testEnv.Clone();
+
+targetAppVariant = myEnv.get('TARGET_APP_VARIANT', None)
+
+# Please people, stop creating so many warnings!
+#myEnv.Append(CCFLAGS = ['-Werror', '-Wno-unused-function', '-Wno-unused-variable'])
+
+# Add the root of this repository to the search path
+myEnv.Append(CPPPATH = ['#'])
+
+# Include the super-project directory so that we can find lps_common
+# source files.
+Repository(myEnv[ 'SSP_DIR' ])
+
+myEnv.Append(CPPPATH = [
+    '#/lps_weighing/include',
+    '#/lps_cal/include',
+    '#/lps_common/include',
+    '#/lps_app_common/include',
+    '#/lps_weighing/src',
+    '#/lps_cal/src',
+    '#/lps_cal/src/imu',
+    '#/lps_cal/src/imu/_sharedutils',
+    '#/eta-ais/prod/platformCommon/content/tgt_gcc_5.1.0_a6n2/lib_a4/hmpl/include',
+    '#/libsl/include_PostR2014a',
+    '#/libsl/include',
+    '#/sss/include',
+    '#/TES-common-ais/prod/common/chrono',
+])
+
+# Include the super-project directory so that we can find
+# toa_wl_00_x86_64-b and toa_wl_inf source files.
+Repository(myEnv['SSP_DIR'] + '/tipoff_assist')
+
+# Add tipoff assist paths
+myEnv.Append(CPPPATH = [
+    '#/toa_wl00_inf/include',
+    '#/toa_wl00_x86_64-b/include/',
+    '#/toa_wl00_x86_64-b/src/',
+    '#/toa_wl00/c_src/',
+])
+
+sourceFiles = \
+    Glob('*.cpp') + \
+    Glob('src_app/*.c') + \
+    Glob('src_nvm/*.c') + \
+    Glob('#/lps_weighing/src/*.c') + \
+    Glob('#/lps_cal/src/*.c') + \
+    Glob('#/lps_cal/src/imu/*.c') + \
+    Glob('#/lps_cal/src/imu/_sharedutils/*.c') + \
+    Glob('#/lps_common/src/LpsCommonLookUpTblUtility.c') + \
+    Glob('#/lps_common/src/LpsCommonWeight.c') + \
+    Glob('#/lps_common/src/cpm_filter.c') + \
+    Glob('#/toa_wl00_x86_64-b/src/*.c') + \
+    Glob('#/toa_wl00/c_src/*.c') + \
+    Glob('#/toa_wl00_inf/src/toa_wl00_model_if.c')
+            
+if targetAppVariant is not None:
+    sourceFiles += Glob(targetAppVariant + '/*.cpp')
+
+LpsSaWeighApp = myEnv.Program(
+        target = 'LpsSaWeighApp',
+        source = sourceFiles,
+        LIBS = [ 'ais_task',
+                 'commTask',
+                 'ais_config',
+                 'ais_log',
+                 'nvm',
+                 'hal_canv3',
+                 'hal_boot',
+#                 'hal_util',
+#                 'hal_error',
+                 'dbg_log',
+                 'oel_u',
+                 'oel_rtos_posix',
+                 'oel_rtos',
+                 'ksw',
+                 'socketCanBase',
+                 'sl_cal',
+                 'version',
+        ]
+    )
+
+myEnv.InstallBinary( LpsSaWeighApp )
+
+myEnv.Alias("LpsSaWeighApp", "#bin/LpsSaWeighApp")
