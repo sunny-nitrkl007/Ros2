@@ -1,7 +1,19 @@
 
-# `timePoint` (std::chrono::steady_clock::time_point in the original struct)
-# is dropped: verified via repo-wide grep that no consumer anywhere reads it
-# back, only the publisher's own constructor/serialize() touch it.
+# CORRECTION: `timePoint` is NOT dead. Earlier claim of a repo-wide check was
+# inaccurate -- only apps/LpsSaJobMgrApp was actually searched. Real usage
+# found in prod/common/interfaces/LpsSaJobMgrReqstChannel/LpsSaJobMgrRequestHelper.hpp
+# (used by AisJhm2RequestProcessor, the UI backend): `txData_.timePoint` is
+# compared against `nextTxTimePoint_` to detect whether fresh Tx data has
+# arrived reflecting the most recent request (lines 172, 254, 273) -- a
+# live request/response freshness-correlation mechanism, not dead weight.
+#
+# Wire representation: int64 nanosecond count from std::chrono::steady_clock
+# (glibc backs this with CLOCK_MONOTONIC, safely comparable across processes
+# on the same machine, which is what today's SCS-based comparison already
+# relies on). This is NOT wall-clock time -- do not interpret as calendar
+# time, only compare against other time_point_ns values from this same
+# channel family.
+int64 time_point_ns
 
 # WeighBktWtAccuracy, TipOffTriggerType, TipOffState, StandbyState now live in
 # cpm_common_interfaces (moved out of this package): each is used directly by

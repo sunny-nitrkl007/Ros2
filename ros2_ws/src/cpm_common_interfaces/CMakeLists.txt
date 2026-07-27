@@ -10,9 +10,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TipOffState.msg"
   "msg/StandbyState.msg"
   "msg/JobMgrReqstChannelCommand.msg"
+  "msg/WeighReqstChannelCommand.msg"
+  "msg/FloatPair.msg"
   "msg/LpsSaJobMgrReqst.msg"
   "msg/LpsSaJobMgrSubtotalInfo.msg"
   "msg/LpsSaJobMgrReqstChannel.msg"
+  "msg/LpsSaWeighReqstChannel.msg"
+  "msg/LpsSaWeighRespChannel.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
