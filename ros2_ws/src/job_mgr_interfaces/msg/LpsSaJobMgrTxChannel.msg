@@ -54,21 +54,12 @@ uint8 MAN_TIP_OFF_ACTIVE=2
 uint8 MAN_TIP_OFF_INACTIVE=3
 uint8 manual_tip_off_state
 
-# LpsSaTipOffTriggerType_t (LpsSaJobMgrTxChannel.h:16-22, values from LpsPtPublic.h
-# TIP_OFF_TRIGGER_AUTO/MANUAL/DISABLED) -- values verified
-uint8 TIP_OFF_TRIGGER_AUTO=0
-uint8 TIP_OFF_TRIGGER_MANUAL=1
-uint8 TIP_OFF_TRIGGER_DISABLED=2
-uint8 tip_off_trigger_type
+TipOffTriggerType tip_off_trigger_type
 
-# LpsSaJobMgrTipOffState_t (LpsSaJobMgrTxChannel.h:24-30, values from LpsPtPublic.h
-# TIP_OFF_MODE_PILE/TRUCK) -- values verified. Shared by tip_off_state and
-# tip_off_state_cfg below (same C++ type used for both fields in the original).
-uint8 TIP_OFF_PILE_ENABLE=0
-uint8 TIP_OFF_TRUCK_ENABLE=1
-uint8 TIP_OFF_UNAVAILABLE=2
-uint8 tip_off_state
-uint8 tip_off_state_cfg
+# Shared by tip_off_state and tip_off_state_cfg below (same C++ type used for
+# both fields in the original LpsSaJobMgrTxChannelStorage).
+TipOffState tip_off_state
+TipOffState tip_off_state_cfg
 
 # LpsSaJobMgrOperationMode_t (LpsSaJobMgrTxChannel.h:40-48) -- values verified,
 # note >255 so uint16 not uint8

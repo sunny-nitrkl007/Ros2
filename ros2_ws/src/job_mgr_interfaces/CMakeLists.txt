@@ -8,7 +8,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WeighBktWtAccuracy.msg"
   "msg/DispBestBktWt.msg"
   "msg/SimpleCalData.msg"
+  "msg/TipOffTriggerType.msg"
+  "msg/TipOffState.msg"
   "msg/LpsSaJobMgrTxChannel.msg"
+  "msg/LpsSaJobMgrReqst.msg"
+  "msg/LpsSaJobMgrSubtotalInfo.msg"
+  "msg/LpsSaJobMgrReqstChannel.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
