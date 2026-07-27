@@ -1,0 +1,9 @@
+# Everything in this folder is ignored by default -- only the specific
+# files we're actively touching for the ROS2/DDS migration are tracked.
+# Everything else (the full ssp-CPM_Loader-ais checkout, etc.) stays on
+# disk exactly as-is, untouched by and invisible to git.
+/*
+
+!/CPM-Loader-ais/
+!/ROS2_Service_Discovery.zip
+!/.gitignore
