@@ -146,17 +146,37 @@ epoch nanoseconds/microseconds.
 
 ## Part 4 — When a struct genuinely can't be found
 
-Applies to 3 of 16 channels so far: `SwitchInputScsInput`,
-`OutputChannelOutput`, `DataLinkDataInput`. The rule: don't invent a
-plausible-looking struct from method-call evidence alone. A usage site like
-`obj.get_STG_value(STG4)` proves an accessor exists, not what the class
-stores internally. These stay undrafted, flagged, and skipped rather than
-published looking as verified as the other 13 -- separate in kind from
-fields where the struct IS known but one enum's numeric values are blocked
-(see `WeighBktWtAccuracy`/`FloatIO.stat`/etc.), which ARE drafted, as raw
-integers with no invented constants, because the shim casts the real C++
-enum value through at runtime regardless of whether the mapping is
-documented yet.
+Applies to 3 of 16 channels: `SwitchInputScsInput`, `OutputChannelOutput`,
+`DataLinkDataInput`. Confirmed via the most reliable method available -- the
+actual `#include` line JobMgr itself uses, not name-guessing:
+```cpp
+#include <interfaces/SwitchInputScs/InterfaceTypes.h>   // LpsSaJobMgrApp.h:36
+#include <interfaces/OutputChannel/InterfaceTypes.h>    // LpsSaJobMgrApp.h:37
+#include <interfaces/DataLinkData/InterfaceTypes.h>     // LpsSaJobMgrApp.h:46
+```
+None of `interfaces/SwitchInputScs/`, `interfaces/OutputChannel/`, or
+`interfaces/DataLinkData/` exist anywhere in this checkout (confirmed by
+directory search, not just file search -- the folders themselves are
+absent). This is the same class of gap as the missing submodules
+(`lps_weighing`, `lps_common`, `LpsPublic.h`), not a location problem to be
+solved by searching harder -- the content simply isn't in what's checked
+out.
+(Correction: `DataLinkDataInput` was earlier marked "uncertain match" against
+a similarly-named `CpmDataLinkData` struct under
+`eta-ais/.../legacy/common/interfaces/` -- that was wrong, a coincidental
+name collision with an unrelated legacy struct. The real include path above
+is what actually resolves the channel, confirmed after this session's
+deeper investigation of `eta-ais/prod/coretech/`.)
+
+The rule either way: don't invent a plausible-looking struct from
+method-call evidence alone. A usage site like `obj.get_STG_value(STG4)`
+proves an accessor exists, not what the class stores internally. These stay
+undrafted, flagged, and skipped rather than published looking as verified as
+the other 13 -- separate in kind from fields where the struct IS known but
+one enum's numeric values are blocked (see `WeighBktWtAccuracy`/
+`FloatIO.stat`/etc.), which ARE drafted, as raw integers with no invented
+constants, because the shim casts the real C++ enum value through at
+runtime regardless of whether the mapping is documented yet.
 
 ## Part 5 — Full 16-channel status
 
@@ -175,7 +195,7 @@ documented yet.
 | 11 | `AisJhm2TxChannelInput` | AisJhm2 data server | `AisJhm2TxChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/AisJhm2TxChannel/` | `AisJhm2TxChannel.msg` | Done |
 | 12 | `DisplayStateInput` | UI/DisplayApp | `LpsSaUIDisplayState` | `CPM-Loader-ais/prod/common/interfaces/LpsSaUI/` | `LpsSaUIDisplayState.msg` | Done -- `weight_units`/`weight_precision` raw-int |
 | 13 | `ShmClockInput` | ACD/ShmClock service | `ShmClockStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/ShmClock/` | `ShmClockInput.msg` | Done |
-| 14 | `DataLinkDataInput` | DataLink / other ECMs | `DataLinkDataStorage` (uncertain match) | `eta-ais/.../legacy/common/interfaces/CpmDataLinkData/` (legacy) | -- | **Blocked** -- complex map-based struct, legacy folder |
+| 14 | `DataLinkDataInput` | DataLink / other ECMs | unknown | `interfaces/DataLinkData/` (real include path, confirmed via `LpsSaJobMgrApp.h:46`) -- folder does not exist in this checkout | -- | **Blocked** |
 | 15 | `AutonomyConditionDiagnosticsTxChannelInput` | SEA licensing broadcaster | `AutonomyConditionDiagnosticsTxInterfaceStorage` | `CPM-Loader-ais/prod/common/interfaces/AutonomyConditionDiagnostics/` | `AutonomyConditionDiagnosticsTxChannel.msg` | Done |
 | 16 | `EventDiagnosticDataInput` | Other ECM's event/diagnostic server | `EventDiagnosticDataStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/EventDiagnosticData/` | `EventDiagnosticData.msg` | Done |
 
