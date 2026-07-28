@@ -14,7 +14,7 @@
     Both job_mgr_interfaces and weigh_app_interfaces depend on this package;
     it depends on neither, to keep the dependency direction one-way.
   </description>
-  <maintainer email="aawara.sunny@gmail.com">Sunny</maintainer>
+  <maintainer email="sunnyk1@kpit.com">Sunny</maintainer>
   <license>Proprietary</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

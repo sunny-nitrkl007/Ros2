@@ -1,4 +1,4 @@
-# Channel -> .msg mapping (13 of 16 JobMgr channels done, 3 blocked)
+# Channel -> .msg mapping (16 of 16 JobMgr channels done -- 3 via usage-scoped partial reconstruction, see Part 4)
 
 ## Part 1 — How to manually trace one channel, step by step
 
@@ -144,7 +144,7 @@ wrapping `struct timeval`) -- `LftSealStatus.seal_time_ns`,
 `Diagnostic.gps_time_sec_us` -- these ARE real calendar time, carried as
 epoch nanoseconds/microseconds.
 
-## Part 4 — When a struct genuinely can't be found
+## Part 4 — When a struct's real definition can't be found: reconstruct from usage, scoped to what's actually consumed
 
 Applies to 3 of 16 channels: `SwitchInputScsInput`, `OutputChannelOutput`,
 `DataLinkDataInput`. Confirmed via the most reliable method available -- the
@@ -168,15 +168,27 @@ name collision with an unrelated legacy struct. The real include path above
 is what actually resolves the channel, confirmed after this session's
 deeper investigation of `eta-ais/prod/coretech/`.)
 
-The rule either way: don't invent a plausible-looking struct from
-method-call evidence alone. A usage site like `obj.get_STG_value(STG4)`
-proves an accessor exists, not what the class stores internally. These stay
-undrafted, flagged, and skipped rather than published looking as verified as
-the other 13 -- separate in kind from fields where the struct IS known but
-one enum's numeric values are blocked (see `WeighBktWtAccuracy`/
-`FloatIO.stat`/etc.), which ARE drafted, as raw integers with no invented
-constants, because the shim casts the real C++ enum value through at
-runtime regardless of whether the mapping is documented yet.
+**Revised: these 3 ARE now drafted, via usage-scoped partial reconstruction --
+not left blocked.** A usage site like `obj.get_STG_value(STG4)` doesn't prove
+the class's full internal shape, but it IS real evidence of a real accessor
+that real code depends on -- that's not nothing. The distinction that
+matters is between reconstructing the FULL type (never done -- no total
+switch count for `SwitchInputScs`, no full `Port`/`State`/`ChangeDuration`
+enumerations for `OutputChannel`, no attempt to model `DataLinkParam`'s full
+generic multi-type system used elsewhere by `autonomyConditionDiagnostics`)
+versus reconstructing exactly the SLICE that JobMgr itself actually
+consumes, evidenced by every real call site found across the whole tree, not
+just JobMgr's own folder. `SwitchInputScsInput`/`OutputChannelOutput` had
+small, fully-observed usage (every call site is visible, nothing left out).
+`DataLinkDataInput` is different in scale -- a large generic PID system --
+so it's scoped explicitly to the 3 PIDs and 3 distinct value accessors
+(`GetLastGoodValue<uint8_t>()`, `GetLastValueEng()` returning a float,
+`GetLastGoodValue<uint16_t>()`) JobMgr itself reads, not the type's full
+capability. Enum numeric values remain genuinely unknown for all three (no
+literal ever appears, unlike `WeighBktWtAccuracy`'s indirect mirror-enum
+evidence) -- carried as raw ints/bools, same treatment as the `LpsPublic.h`
+fields in `LpsSaWeighTxChannel.msg`. See each `.msg` file's own header for
+its full citation trail.
 
 ## Part 5 — Full 16-channel status
 
@@ -190,12 +202,12 @@ runtime regardless of whether the mapping is documented yet.
 | 6 | `LpsSaWeighRespChannelInput` | WeighApp | `LpsSaWeighRespChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/LpsSaWeighRespChannel/` | `LpsSaWeighRespChannel.msg` (`cpm_common_interfaces`, direct DDS) | Done |
 | 7 | `LpsSaWeighTxChannelInput` | WeighApp | `LpsSaWeighTxChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/LpsSaWeighTxChannel/` | `LpsSaWeighTxChannel.msg` (`cpm_common_interfaces`, direct DDS) | Done -- 6 fields raw-int (`LpsPublic.h` missing) |
 | 8 | `LoadRecordOutput` | LpsSaTotalsApp / WorkOrderAssistApp | `LpsSaLoadRecordChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/LpsSaLoadRecordChannel/` | `LpsSaLoadRecordChannel.msg` | Done -- `weight_units` raw-int (`LpsCommonWeight.h` missing) |
-| 9 | `SwitchInputScsInput` | SwitchInputScs app | unknown | not found anywhere in checkout | -- | **Blocked** |
-| 10 | `OutputChannelOutput` | OutputApp (horn relay) | unknown | not found anywhere in checkout | -- | **Blocked** |
+| 9 | `SwitchInputScsInput` | SwitchInputScs app, hornOnStoreTest, autonomyConditionDiagnostics | unknown (struct not in checkout) | `interfaces/SwitchInputScs/` -- folder does not exist | `SwitchInputScs.msg` | Done -- usage-scoped partial reconstruction, see Part 4 |
+| 10 | `OutputChannelOutput` | OutputApp (horn relay), hornOnStoreTest (snoop) | unknown (struct not in checkout) | `interfaces/OutputChannel/` -- folder does not exist | `OutputChannel.msg` + `OutputCmd.msg` | Done -- usage-scoped partial reconstruction, see Part 4 |
 | 11 | `AisJhm2TxChannelInput` | AisJhm2 data server | `AisJhm2TxChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/AisJhm2TxChannel/` | `AisJhm2TxChannel.msg` | Done |
 | 12 | `DisplayStateInput` | UI/DisplayApp | `LpsSaUIDisplayState` | `CPM-Loader-ais/prod/common/interfaces/LpsSaUI/` | `LpsSaUIDisplayState.msg` | Done -- `weight_units`/`weight_precision` raw-int |
 | 13 | `ShmClockInput` | ACD/ShmClock service | `ShmClockStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/ShmClock/` | `ShmClockInput.msg` | Done |
-| 14 | `DataLinkDataInput` | DataLink / other ECMs | unknown | `interfaces/DataLinkData/` (real include path, confirmed via `LpsSaJobMgrApp.h:46`) -- folder does not exist in this checkout | -- | **Blocked** |
+| 14 | `DataLinkDataInput` | DataLink / other ECMs, autonomyConditionDiagnostics (much larger consumer, not fully scoped -- see Part 4) | unknown (struct not in checkout) | `interfaces/DataLinkData/` -- folder does not exist | `DataLinkData.msg` + `DataLinkParam.msg` | Done -- scoped to JobMgr's own 3 PIDs only, see Part 4 |
 | 15 | `AutonomyConditionDiagnosticsTxChannelInput` | SEA licensing broadcaster | `AutonomyConditionDiagnosticsTxInterfaceStorage` | `CPM-Loader-ais/prod/common/interfaces/AutonomyConditionDiagnostics/` | `AutonomyConditionDiagnosticsTxChannel.msg` | Done |
 | 16 | `EventDiagnosticDataInput` | Other ECM's event/diagnostic server | `EventDiagnosticDataStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/EventDiagnosticData/` | `EventDiagnosticData.msg` | Done |
 
