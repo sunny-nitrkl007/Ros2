@@ -11,6 +11,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LpsSaJobMgrTxChannel.msg"
   "msg/LpsSaJobMgrRespChannel.msg"
   "msg/LpsSaJobMgrDebugChannel.msg"
+  "msg/LoadRecordTimeStamp.msg"
+  "msg/LoadRecordPass.msg"
+  "msg/LoadRecordSubtotal.msg"
+  "msg/LpsSaLoadRecordChannel.msg"
   DEPENDENCIES cpm_common_interfaces
 )
 
