@@ -15,6 +15,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LoadRecordPass.msg"
   "msg/LoadRecordSubtotal.msg"
   "msg/LpsSaLoadRecordChannel.msg"
+  "msg/SimpleCalDataT.msg"
+  "msg/TipoffWeightAdjustData.msg"
+  "msg/AisJhm2TxChannel.msg"
+  "msg/LpsSaUIDisplaySettings.msg"
+  "msg/LpsSaUIDisplayState.msg"
   DEPENDENCIES cpm_common_interfaces
 )
 
