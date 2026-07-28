@@ -20,6 +20,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AisJhm2TxChannel.msg"
   "msg/LpsSaUIDisplaySettings.msg"
   "msg/LpsSaUIDisplayState.msg"
+  "msg/ShmClockInput.msg"
+  "msg/SEA.msg"
+  "msg/AutonomyConditionDiagnosticsTxChannel.msg"
+  "msg/J1939Name.msg"
+  "msg/Diagnostic.msg"
+  "msg/EventDiagnosticData.msg"
   DEPENDENCIES cpm_common_interfaces
 )
 
