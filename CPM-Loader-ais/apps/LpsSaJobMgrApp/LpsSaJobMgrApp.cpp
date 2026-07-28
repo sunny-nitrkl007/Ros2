@@ -69,6 +69,7 @@ RETURN VALUE:
 *******************************************************************************/
 LpsSaJobMgrApp::LpsSaJobMgrApp(const std::string& taskName):
     Task(taskName), LpsJobMgrJobTrackerInfoTbl(),
+    rosNode_(nullptr), executor_(),
     LpsSaJobMgrScsTxOut(nullptr), LpsSaJobMgrScsReqstIn(nullptr), LpsSaJobMgrScsDebugOut(nullptr), LpsSaJobMgrRespChannelOutput_(nullptr), weighAppTxDataReceived_(false), weighAppInf_(),
     LpsSaSwitchInput(nullptr), LpsSaOutputChannelOut(nullptr), AisJhm2TxInputScs(nullptr), displayStateInput_(nullptr),
     ShmClockInputScs(nullptr), dataLinkDataInput_(nullptr), loadRecordOutputChannel_(nullptr),
@@ -190,24 +191,34 @@ bool LpsSaJobMgrApp::initialize( )
     tzInfo_.offset = 0;
     tzInfo_.index = -1;
 
-    /* Initialsing SCS interface*/
-    LpsSaJobMgrScsTxOut  = dynamic_cast<LpsSaJobMgrTxChannelOutput*>( InterfaceDb::fetch("LpsSaJobMgrTxChannelOutput") );
-    LpsSaJobMgrScsReqstIn  = dynamic_cast<LpsSaJobMgrReqstChannelInput*>( InterfaceDb::fetch("LpsSaJobMgrReqstChannelInput") );
-    LpsSaJobMgrScsDebugOut = dynamic_cast<LpsSaJobMgrDebugChannelOutput*>( InterfaceDb::fetch("LpsSaJobMgrDebugChannelOutput") );
-    LpsSaJobMgrRespChannelOutput_ = dynamic_cast<LpsSaJobMgrRespChannelOutput*>(InterfaceDb::fetch("LpsSaJobMgrRespChannelOutput"));
-    LpsSaSwitchInput = dynamic_cast<SwitchInputScsInput*>( InterfaceDb::fetch("SwitchInputScsInput") );
-    LpsSaOutputChannelOut = dynamic_cast<OutputChannelOutput*>( InterfaceDb::fetch("OutputChannelOutput") );
-    AisJhm2TxInputScs  = dynamic_cast<AisJhm2TxChannelInput*>( InterfaceDb::fetch("AisJhm2TxChannelInput") );
+    /* ROS2/DDS shim construction (Development-Plan.txt Step 4.1) --
+       replaces InterfaceDb::bind/fetch. One shared node for the whole app;
+       every shim below just creates its own publisher/subscription on it.
+       Topic names are the original SCS channel name in snake_case, minus
+       the redundant Input/Output suffix (direction is already implied by
+       which shim type is used). */
+    rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
+    executor_.add_node(rosNode_);
 
-    if (!task::InterfaceDb::bind("DisplayStateInput", displayStateInput_)) {
+    LpsSaJobMgrScsTxOut  = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
+    LpsSaJobMgrScsReqstIn  = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
+    LpsSaJobMgrScsDebugOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>(rosNode_, "lps_sa_job_mgr_debug_channel");
+    LpsSaJobMgrRespChannelOutput_ = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>(rosNode_, "lps_sa_job_mgr_resp_channel");
+    LpsSaSwitchInput = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>(rosNode_, "switch_input_scs");
+    LpsSaOutputChannelOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>(rosNode_, "output_channel");
+    AisJhm2TxInputScs  = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+
+    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayState>(rosNode_, "display_state");
+    if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         everythingOk = false;
     }
 
-    ShmClockInputScs = dynamic_cast<ShmClockInput*>( InterfaceDb::fetch("ShmClockInput") );
-    autonomyConditionDiagnosticsTxInputChannel_ = dynamic_cast<AutonomyConditionDiagnosticsTxInterfaceInputChannel*>( InterfaceDb::fetch("AutonomyConditionDiagnosticsTxChannelInput") );
+    ShmClockInputScs = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    autonomyConditionDiagnosticsTxInputChannel_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
 
-    if (!task::InterfaceDb::bind("DataLinkDataInput", dataLinkDataInput_)) {
+    dataLinkDataInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>(rosNode_, "data_link_data");
+    if (!dataLinkDataInput_) {
         AIS_LOG_ERROR("DataLinkDataInput Interface not configured.");
         everythingOk = false;
     }
@@ -284,13 +295,14 @@ bool LpsSaJobMgrApp::initialize( )
     }
 
     // Get the load record output channel
-    loadRecordOutputChannel_ = dynamic_cast<LpsSaLoadRecordChannelOutputChannel*>(InterfaceDb::fetch("LoadRecordOutput"));
+    loadRecordOutputChannel_ = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>(rosNode_, "load_record");
     if (nullptr == loadRecordOutputChannel_) {
         AIS_LOG_ERROR("\n Load record output channel not configured.");
         everythingOk = false;
     }
 
-    if (!task::InterfaceDb::bind("EventDiagnosticDataInput", eddtInputChannel_)) {
+    eddtInputChannel_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>(rosNode_, "event_diagnostic_data");
+    if (!eddtInputChannel_) {
         AIS_LOG_ERROR("\n EventDiagnosticDataInput channel not configured.");
         everythingOk = false;
     }
@@ -411,18 +423,23 @@ bool LpsSaJobMgrApp::executive( )
 {
     getLogger().log_debug( "Executing JobManager Task" );
 
+    // Drain pending DDS messages into every shim's queue for this cycle.
+    // Must run before any shim's get() below -- same thread, synchronous,
+    // no mutex needed (Development-Plan.txt "RESOLVED DECISIONS" #3).
+    executor_.spin_some();
+
     if (nullptr != autonomyConditionDiagnosticsTxInputChannel_) {
-        AutonomyConditionDiagnosticsTxInterface txData;
+        job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
         while (autonomyConditionDiagnosticsTxInputChannel_->get(txData)) {
-            for (const auto & element : txData.seaList) {
+            for (const auto & element : txData.sea_list) {
                 if (element.reason_code == LPS_SEA_REASON_CODE_149) {
-                    SEALevel1EssentialsInstalled_ = txData.checkSEAEnableStatus(element.status);
+                    SEALevel1EssentialsInstalled_ = AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(element.status);
                 }
                 else if (element.reason_code == LPS_SEA_REASON_CODE_245) {
-                    SEALevel2ProInstalled_ = txData.checkSEAEnableStatus(element.status);
+                    SEALevel2ProInstalled_ = AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(element.status);
                 }
                 else if (element.reason_code == LPS_SEA_LFT_REASON_CODE_312) {
-                    SEALegalForTradeInstalled_ = txData.checkSEAEnableStatus(element.status);
+                    SEALegalForTradeInstalled_ = AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(element.status);
                     if (!SEALegalForTradeInstalled_) {
                         // reset LFT to always enabled
                         tasks_.allTasksResetLFTDisableState();
@@ -458,9 +475,9 @@ bool LpsSaJobMgrApp::executive( )
     }
 
     if (nullptr != LpsSaJobMgrScsDebugOut) {
-        LpsSaJobMgrDebugChannel txOut;
-        txOut.currentState = LpsSaJobMgrWmOutput.pt_current_state;
-        txOut.tipoffAssistActivationCount = stats_.tipoffAssistActivationCount;
+        job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel txOut;
+        txOut.current_state = LpsSaJobMgrWmOutput.pt_current_state;
+        txOut.tipoff_assist_activation_count = stats_.tipoffAssistActivationCount;
         LpsSaJobMgrScsDebugOut->publish(txOut);
     }
 
