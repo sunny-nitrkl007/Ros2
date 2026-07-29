@@ -241,7 +241,7 @@ private:
     void LpsSaJobMgrScsSHMRead(void);
     void LpsSaJobMgrScsDataLinkDataRead(void);
     void LpsSaJobMgrScsEddtRead();
-    bool sendReqstResponse(const LpsSaJobMgrReqstChannel& request, bool success);
+    bool sendReqstResponse(const cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel& request, bool success);
     ReqPloadCtrlSysStat_t GetActiveButtonStatus (void);
     void LpsSaJobMgrScsChkHornAction(void);
     bool LpsSaJobMgrHornOnStoreAction(void);

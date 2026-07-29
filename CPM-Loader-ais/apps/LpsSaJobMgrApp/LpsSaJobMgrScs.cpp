@@ -161,7 +161,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
         }
     }
 
-    LpsSaJobMgrReqstChannel reqIn;
+    cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel reqIn;
     bool loadRecordChanged = false;
     bool configChanged = false;
 
@@ -170,10 +170,10 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
         bool success = true;
 
         // Select target type first because this sets the context for the sub-requests.
-        if (LpsSaJobMgrReqstChannel::Command::WRITE_TARGET_TYPE == reqIn.command) {
-            tasks_.setTargetType(reqIn.data.targetType);
+        if (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TARGET_TYPE == reqIn.command.value) {
+            tasks_.setTargetType(reqIn.data_target_type);
             LpsSaJobMgrPtRestoreTruck(); // Make sure the information gets reflected in the pass tracker truck
-            AIS_LOG_NOTICE("Command::WRITE_TARGET_TYPE success: %d", reqIn.data.targetType);
+            AIS_LOG_NOTICE("Command::WRITE_TARGET_TYPE success: %d", reqIn.data_target_type);
             loadRecordChanged = true;
         }
 
@@ -182,63 +182,67 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
          */
         for (const auto& r : reqIn.requests) {
             switch (r.command) {
-            case (LpsSaJobMgrReqstCommand::WRITE_MATERIAL_ID): {
-                tasks_.getCurrentTaskLoad().setMaterialId(r.materialId());
+            // Original accessors (materialId(), materialName(), tagValue(), etc.)
+            // returned arg1-4 depending on command -- see LpsSaJobMgrReqst.msg
+            // header for the full mapping. Direct field access now, same
+            // underlying data.
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_MATERIAL_ID): {
+                tasks_.getCurrentTaskLoad().setMaterialId(r.arg3);
                 AIS_LOG_NOTICE("Load Change - materialId");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_MATERIAL_NAME): {
-                tasks_.getCurrentTaskLoad().setMaterialName(r.materialName());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_MATERIAL_NAME): {
+                tasks_.getCurrentTaskLoad().setMaterialName(r.arg1);
                 AIS_LOG_NOTICE("Load Change - materialName");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_MATERIAL_DENSITY): {
-                tasks_.getCurrentTaskLoad().setMaterialDensity(r.materialDensity());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_MATERIAL_DENSITY): {
+                tasks_.getCurrentTaskLoad().setMaterialDensity(r.arg2);
                 AIS_LOG_NOTICE("Load Change - materialDensity");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TRUCK_ID): {
-                tasks_.getCurrentTaskLoad().setTruckId(r.truckId());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TRUCK_ID): {
+                tasks_.getCurrentTaskLoad().setTruckId(r.arg3);
                 AIS_LOG_NOTICE("Load Change - truckId");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TRUCK_NAME): {
-                tasks_.getCurrentTaskLoad().setTruckName(r.truckName());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TRUCK_NAME): {
+                tasks_.getCurrentTaskLoad().setTruckName(r.arg1);
                 AIS_LOG_NOTICE("Load Change - truckName");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TRUCK_TARGET_WEIGHT): {
-                tasks_.getCurrentTaskLoad().setTotalTargetWeight(r.truckTargetWeight());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TRUCK_TARGET_WEIGHT): {
+                tasks_.getCurrentTaskLoad().setTotalTargetWeight(r.arg2);
                 AIS_LOG_NOTICE("Load Change - truckTargetWeight");
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TAG1): {
-                tasks_.getCurrentTaskLoad().setTag1(r.tagName(), r.tagValue());
-                AIS_LOG_NOTICE("WRITE_TAG1 = %s (%s)", r.tagValue().c_str(), r.tagName().c_str());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TAG1): {
+                tasks_.getCurrentTaskLoad().setTag1(r.arg4, r.arg1);
+                AIS_LOG_NOTICE("WRITE_TAG1 = %s (%s)", r.arg1.c_str(), r.arg4.c_str());
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TAG2): {
-                tasks_.getCurrentTaskLoad().setTag2(r.tagName(), r.tagValue());
-                AIS_LOG_NOTICE("WRITE_TAG2 = %s (%s)", r.tagValue().c_str(), r.tagName().c_str());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TAG2): {
+                tasks_.getCurrentTaskLoad().setTag2(r.arg4, r.arg1);
+                AIS_LOG_NOTICE("WRITE_TAG2 = %s (%s)", r.arg1.c_str(), r.arg4.c_str());
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TAG3): {
-                tasks_.getCurrentTaskLoad().setTag3(r.tagName(), r.tagValue());
-                AIS_LOG_NOTICE("WRITE_TAG3 = %s (%s)", r.tagValue().c_str(), r.tagName().c_str());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TAG3): {
+                tasks_.getCurrentTaskLoad().setTag3(r.arg4, r.arg1);
+                AIS_LOG_NOTICE("WRITE_TAG3 = %s (%s)", r.arg1.c_str(), r.arg4.c_str());
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
-            case (LpsSaJobMgrReqstCommand::WRITE_TAG4): {
-                tasks_.getCurrentTaskLoad().setTag4(r.tagName(), r.tagValue());
-                AIS_LOG_NOTICE("WRITE_TAG4 = %s (%s)", r.tagValue().c_str(), r.tagName().c_str());
+            case (job_mgr_interfaces::msg::LpsSaJobMgrReqst::WRITE_TAG4): {
+                tasks_.getCurrentTaskLoad().setTag4(r.arg4, r.arg1);
+                AIS_LOG_NOTICE("WRITE_TAG4 = %s (%s)", r.arg1.c_str(), r.arg4.c_str());
                 loadRecordChanged = true;
                 break; // out of switch-case
             }
@@ -250,29 +254,29 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
 
         bool breakOut = false;
 
-        switch (reqIn.command) {
-        case (LpsSaJobMgrReqstChannel::Command::ZERO): {
+        switch (reqIn.command.value) {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::ZERO): {
             /* Request received for Weighing App,set the request flag */
             LpsSaJobMgrWmInput.zero_request_status = TRUE;
             AIS_LOG_NOTICE("Command::ZERO");
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::MINUS_ONE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::MINUS_ONE): {
             /* Request received for Weighing App,set the request flag */
             LpsSaJobMgrWmInput.minus_one_request_status = TRUE;
             AIS_LOG_NOTICE("Command::MINUS_ONE");
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::CLEAR): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::CLEAR): {
             /* Request received for Weighing App,set the request flag */
             LpsSaJobMgrWmInput.clear_request_status = TRUE;
             AIS_LOG_NOTICE("Command::CLEAR");
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::STORE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::STORE): {
             bool storeRequest = true;
 
             if (LpsJobMgrJobTrackerInfoTbl.OperationMode == LPS_SA_JOB_MGR_STANDBY_MODE) {
@@ -298,7 +302,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_PAYLOAD_NEXT_SUBTOTAL): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_PAYLOAD_NEXT_SUBTOTAL): {
             /* set the request flag */
             LpsJobMgrJobTrackerInfoTbl.splitModeNextPayloadCmd = true;
 
@@ -309,18 +313,18 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TARGET_TYPE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TARGET_TYPE): {
             // This case is handled outside of the switch
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TOTAL_TARGET_WEIGHT): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TOTAL_TARGET_WEIGHT): {
 
-            tasks_.getCurrentTaskLoad().setTotalTargetWeight(reqIn.data.totalTargetWeight);
-            AIS_LOG_NOTICE("Command::WRITE_TOTAL_TARGET_WEIGHT success: %f", reqIn.data.totalTargetWeight);
+            tasks_.getCurrentTaskLoad().setTotalTargetWeight(reqIn.data_total_target_weight);
+            AIS_LOG_NOTICE("Command::WRITE_TOTAL_TARGET_WEIGHT success: %f", reqIn.data_total_target_weight);
             loadRecordChanged = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::STANDBY_ACTIVATE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::STANDBY_ACTIVATE): {
             /* set the request flag */
             // ONLY DO THIS IF...
             if (LpsJobMgrJobTrackerInfoTbl.OperationMode != LPS_SA_JOB_MGR_STANDBY_MODE) {
@@ -330,7 +334,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             }
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::STANDBY_DEACTIVATE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::STANDBY_DEACTIVATE): {
             /* set the request flag */
             // ONLY DO THIS IF...
             if ((LpsJobMgrJobTrackerInfoTbl.OperationMode == LPS_SA_JOB_MGR_STANDBY_MODE) &&
@@ -341,7 +345,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             }
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::TIPOFF_MODE_TOGGLE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::TIPOFF_MODE_TOGGLE): {
             /* only allow toggle if Tip Assist is not Active */
             if (!LpsJobMgrJobTrackerInfoTbl.TipoffAssistActive) {
                 /* set the request flag */
@@ -351,7 +355,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             AIS_LOG_NOTICE("Command::TIPOFF_MODE_TOGGLE");
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::MANUAL_TIPOFF_ACTIVATE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::MANUAL_TIPOFF_ACTIVATE): {
             /* set the request flag */
             LpsJobMgrJobTrackerInfoTbl.ManualTipOffState = LPS_SA_JOB_MGR_MAN_TIP_OFF_ACTIVE;
             LpsSaJobMgrWmInput.change_mode_excess = TRUE;
@@ -359,7 +363,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::MANUAL_TIPOFF_DEACTIVATE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::MANUAL_TIPOFF_DEACTIVATE): {
             /* only exit manual tipoff if Tip Assist is not Active */
             if (!LpsJobMgrJobTrackerInfoTbl.TipoffAssistActive) {
                 /* set the request flag */
@@ -370,121 +374,121 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             AIS_LOG_NOTICE("Command::MANUAL_TIPOFF_DEACTIVATE");
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::MANUAL_ADD): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::MANUAL_ADD): {
             /* Set the request flag */
             LpsSaJobMgrWmInput.manual_add_request = TRUE;
             AIS_LOG_NOTICE("Command::MANUAL_ADD");
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TIPOFF_TRIGGER_TYPE): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TIPOFF_TRIGGER_TYPE): {
             /* Writing  Tip-off Trigger Data to NVM */
-            config_.tipOffTriggerType = (uint8_t)reqIn.data.tipoffTriggerType;
+            config_.tipOffTriggerType = reqIn.data_tipoff_trigger_type.value;
             configChanged = true;
 
-            AIS_LOG_NOTICE("Command::WRITE_TIPOFF_TRIGGER_TYPE = %d", reqIn.data.tipoffTriggerType);
+            AIS_LOG_NOTICE("Command::WRITE_TIPOFF_TRIGGER_TYPE = %d", reqIn.data_tipoff_trigger_type.value);
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TIPOFF_MODE): {
-            LpsSaJobMgrWmInput.tip_off_mode = reqIn.data.tipoffMode;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TIPOFF_MODE): {
+            LpsSaJobMgrWmInput.tip_off_mode = reqIn.data_tipoff_mode.value;
             LpsSaJobMgrWmInput.tip_off_mode_request_status = TRUE;
 
             /* Writing Tipoff State to NVM */
-            config_.tipOffMode = (uint8_t)reqIn.data.tipoffMode;
+            config_.tipOffMode = reqIn.data_tipoff_mode.value;
             configChanged = true;
 
-            AIS_LOG_NOTICE("Command::WRITE_TIPOFF_MODE = %d", reqIn.data.tipoffMode);
+            AIS_LOG_NOTICE("Command::WRITE_TIPOFF_MODE = %d", reqIn.data_tipoff_mode.value);
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::REWEIGH): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::REWEIGH): {
             /* set the request flag */
             LpsSaJobMgrWmInput.reweigh_request_status = TRUE;
             AIS_LOG_NOTICE("Command::REWEIGH");
             breakOut = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_HORN_ON_STORE_ENABLED): {
-            config_.hornStoreEnable = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_HORN_ON_STORE_ENABLED): {
+            config_.hornStoreEnable = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_HORN_ON_STORE_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_HORN_ON_STORE_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_AUTO_STORE_PASS_COUNT): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_AUTO_STORE_PASS_COUNT): {
             // range check 1..999
-            if (reqIn.data.autoStorePassCount < LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MIN) {
-                reqIn.data.autoStorePassCount = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MIN;
+            if (reqIn.data_auto_store_pass_count < LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MIN) {
+                reqIn.data_auto_store_pass_count = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MIN;
             }
-            else if (reqIn.data.autoStorePassCount > LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX) {
-                reqIn.data.autoStorePassCount = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX;
+            else if (reqIn.data_auto_store_pass_count > LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX) {
+                reqIn.data_auto_store_pass_count = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX;
             }
-            config_.autoStorePassCount = reqIn.data.autoStorePassCount;
+            config_.autoStorePassCount = reqIn.data_auto_store_pass_count;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_AUTO_STORE_PASS_COUNT = %d", reqIn.data.autoStorePassCount);
+            AIS_LOG_NOTICE("Command::WRITE_AUTO_STORE_PASS_COUNT = %d", reqIn.data_auto_store_pass_count);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_AUTO_MATERIAL_ID_ENABLED): {
-            config_.autoMaterialIdEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_AUTO_MATERIAL_ID_ENABLED): {
+            config_.autoMaterialIdEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_AUTO_MATERIAL_ID_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_AUTO_MATERIAL_ID_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_AUTO_TRUCK_ID_ENABLED): {
-            config_.autoTruckIdEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_AUTO_TRUCK_ID_ENABLED): {
+            config_.autoTruckIdEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_AUTO_TRUCK_ID_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_AUTO_TRUCK_ID_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_MANUAL_ADD_ENABLED): {
-            config_.manualAddEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_MANUAL_ADD_ENABLED): {
+            config_.manualAddEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_MANUAL_ADD_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_MANUAL_ADD_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_MULTI_TASK_ENABLED): {
-            config_.multiTaskEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_MULTI_TASK_ENABLED): {
+            config_.multiTaskEnabled = reqIn.data_enabled;
             configChanged = true;
 
             // since multitask has changed, we will reset the LFT disable state
             tasks_.allTasksResetLFTDisableState();
             loadRecordChanged = true;
 
-            AIS_LOG_NOTICE("Command::WRITE_MULTI_TASK_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_MULTI_TASK_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_MULTI_TASK_COUNT): {
-            tasks_.setNumberOfTasks(reqIn.data.taskNumber);
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_MULTI_TASK_COUNT): {
+            tasks_.setNumberOfTasks(reqIn.data_task_number);
             loadRecordChanged = true;
 
-            AIS_LOG_NOTICE("Command::WRITE_MULTI_TASK_COUNT = %d", reqIn.data.taskNumber);
+            AIS_LOG_NOTICE("Command::WRITE_MULTI_TASK_COUNT = %d", reqIn.data_task_number);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_SPLIT_MODE_ENABLED): {
-            config_.splitModeEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_SPLIT_MODE_ENABLED): {
+            config_.splitModeEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_SPLIT_MODE_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_SPLIT_MODE_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_LFT_DISABLED): {
-            tasks_.currentTaskSetLFTDisable(reqIn.data.enabled);
-            AIS_LOG_NOTICE("Command::WRITE_LFT_DISABLED = %d", reqIn.data.enabled);
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_LFT_DISABLED): {
+            tasks_.currentTaskSetLFTDisable(reqIn.data_enabled);
+            AIS_LOG_NOTICE("Command::WRITE_LFT_DISABLED = %d", reqIn.data_enabled);
             loadRecordChanged = true;
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::SELECT_TASK): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::SELECT_TASK): {
             if (config_.multiTaskEnabled) {
-                tasks_.setTaskNumber(reqIn.data.taskNumber);
+                tasks_.setTaskNumber(reqIn.data_task_number);
                 LpsSaJobMgrPtRestoreTruck(); // Make sure the information gets reflected in the pass tracker truck
-                AIS_LOG_NOTICE("Command::SELECT_TASK = %d", reqIn.data.taskNumber);
+                AIS_LOG_NOTICE("Command::SELECT_TASK = %d", reqIn.data_task_number);
                 loadRecordChanged = true;
             }
             else {
@@ -492,22 +496,22 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             }
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::SELECT_SUBTOTAL): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::SELECT_SUBTOTAL): {
             /* set the request flag, if selected is different than current */
-            if (reqIn.data.subtotalIndex != tasks_.getCurrentTaskLoad().getCurrentSubtotalIndex()) {
+            if (reqIn.data_subtotal_index != tasks_.getCurrentTaskLoad().getCurrentSubtotalIndex()) {
                 LpsJobMgrJobTrackerInfoTbl.selectSubtotalCmd = true;
 
-                LpsJobMgrJobTrackerInfoTbl.subtotalIndex = reqIn.data.subtotalIndex;
+                LpsJobMgrJobTrackerInfoTbl.subtotalIndex = reqIn.data_subtotal_index;
 
                 //for lps_tracker, make it look like a store so the subtotal is closed
                 LpsSaJobMgrWmInput.store_request_status = TRUE;
 
-                AIS_LOG_NOTICE("Command::SELECT_SUBTOTAL = %d", reqIn.data.subtotalIndex);
+                AIS_LOG_NOTICE("Command::SELECT_SUBTOTAL = %d", reqIn.data_subtotal_index);
                 loadRecordChanged = true;
             }
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::PAYLOAD_DETAILS_FILE_REQUEST): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::PAYLOAD_DETAILS_FILE_REQUEST): {
             tes_common_ais::OFlocker ofl;
             ofl.open(PAYLOAD_DETAIL_JSON_FILENAME);
             tasks_.getCurrentTaskLoad().payloadDetailsToJson(ofl.ofstream());
@@ -515,17 +519,21 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             AIS_LOG_NOTICE("Command::PAYLOAD_DETAILS_FILE_REQUEST");
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_SUBTOTAL_INFO): {
-            auto command = reqIn.data.subtotalInfo.command;
-            auto newStepNumber = reqIn.data.subtotalInfo.newStepNumber;
-            auto currentStepNumber = reqIn.data.subtotalInfo.currentStepNumber;
-            auto targetWeight = reqIn.data.subtotalInfo.targetWeight;
-            auto targetPasses = reqIn.data.subtotalInfo.targetPasses;
-            auto targetProportion = reqIn.data.subtotalInfo.targetProportion;
-            auto materialName = reqIn.data.subtotalInfo.materialName;
-            auto materialId = reqIn.data.subtotalInfo.materialId;
-            auto materialDensity = reqIn.data.subtotalInfo.materialDensity;
-            auto iconType = reqIn.data.subtotalInfo.iconType;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_SUBTOTAL_INFO): {
+            // subtotal_command, not "command" -- LpsSaJobMgrSubtotalInfo.msg
+            // renamed this field specifically to avoid confusion with the
+            // channel's own top-level Command enum (different type entirely,
+            // this one is a plain string).
+            auto command = reqIn.data_subtotal_info.subtotal_command;
+            auto newStepNumber = reqIn.data_subtotal_info.new_step_number;
+            auto currentStepNumber = reqIn.data_subtotal_info.current_step_number;
+            auto targetWeight = reqIn.data_subtotal_info.target_weight;
+            auto targetPasses = reqIn.data_subtotal_info.target_passes;
+            auto targetProportion = reqIn.data_subtotal_info.target_proportion;
+            auto materialName = reqIn.data_subtotal_info.material_name;
+            auto materialId = reqIn.data_subtotal_info.material_id;
+            auto materialDensity = reqIn.data_subtotal_info.material_density;
+            auto iconType = reqIn.data_subtotal_info.icon_type;
 
             if (command == "INSERT") {
                 tasks_.getCurrentTaskLoad().insertSubtotal(newStepNumber, targetWeight, targetPasses, targetProportion, materialName, materialId, materialDensity, iconType);
@@ -545,7 +553,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             loadRecordChanged = true;
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::SELECT_NEXT_TASK): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::SELECT_NEXT_TASK): {
             if (config_.multiTaskEnabled) {
                 tasks_.setTaskNumberNext();
                 LpsSaJobMgrPtRestoreTruck(); // Make sure the information gets reflected in the pass tracker truck
@@ -557,7 +565,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             }
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::SELECT_PREVIOUS_TASK): {
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::SELECT_PREVIOUS_TASK): {
             if (config_.multiTaskEnabled) {
                 tasks_.setTaskNumberPrevious();
                 LpsSaJobMgrPtRestoreTruck(); // Make sure the information gets reflected in the pass tracker truck
@@ -569,47 +577,47 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
             }
             break; // out of switch-case
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TRUCK_LIST_ENABLED): {
-            config_.truckListEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TRUCK_LIST_ENABLED): {
+            config_.truckListEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_TRUCK_LIST_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_TRUCK_LIST_ENABLED = %d", reqIn.data_enabled);
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_MATERIAL_LIST_ENABLED): {
-            config_.materialListEnabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_MATERIAL_LIST_ENABLED): {
+            config_.materialListEnabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_MATERIAL_LIST_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_MATERIAL_LIST_ENABLED = %d", reqIn.data_enabled);
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TAG1_ENABLED): {
-            config_.tag1Enabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TAG1_ENABLED): {
+            config_.tag1Enabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_TAG1_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_TAG1_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TAG2_ENABLED): {
-            config_.tag2Enabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TAG2_ENABLED): {
+            config_.tag2Enabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_TAG2_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_TAG2_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TAG3_ENABLED): {
-            config_.tag3Enabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TAG3_ENABLED): {
+            config_.tag3Enabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_TAG3_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_TAG3_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::WRITE_TAG4_ENABLED): {
-            config_.tag4Enabled = reqIn.data.enabled;
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::WRITE_TAG4_ENABLED): {
+            config_.tag4Enabled = reqIn.data_enabled;
             configChanged = true;
-            AIS_LOG_NOTICE("Command::WRITE_TAG4_ENABLED = %d", reqIn.data.enabled);
+            AIS_LOG_NOTICE("Command::WRITE_TAG4_ENABLED = %d", reqIn.data_enabled);
             // no need to break out of the while loop for a simple config parameter update
             break;
         }
-        case (LpsSaJobMgrReqstChannel::Command::NONE):
+        case (cpm_common_interfaces::msg::JobMgrReqstChannelCommand::NONE):
         default: {
             break;
         }
@@ -633,22 +641,24 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
 }
 
 /* Send the response to JobMgr Helper */
-bool LpsSaJobMgrApp::sendReqstResponse(const LpsSaJobMgrReqstChannel& request, bool success) {
+bool LpsSaJobMgrApp::sendReqstResponse(const cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel& request, bool success) {
     // Build the response
-    LpsSaJobMgrRespChannel response; // Default timepoint is now
-    response.appName = request.appName;
-    response.appRequestId = request.appRequestId;
-    response.command = request.command;
+    job_mgr_interfaces::msg::LpsSaJobMgrRespChannel response;
+    response.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    response.app_name = request.app_name;
+    response.app_request_id = request.app_request_id;
+    response.command = request.command; // same nested message type both sides, whole-struct copy is correct
     response.success = success;
 
     if (LpsSaJobMgrRespChannelOutput_) {   /* Publish Response */
         if (LpsSaJobMgrRespChannelOutput_->publish(response)) {
-            AIS_LOG_INFO("Published response, command=%d, success=%d", request.command, success);
+            AIS_LOG_INFO("Published response, command=%d, success=%d", request.command.value, success);
             return true;
         }
     }
 
-    AIS_LOG_ERROR("Failed to publish response, command=%d, success=%d", request.command, success);
+    AIS_LOG_ERROR("Failed to publish response, command=%d, success=%d", request.command.value, success);
     return false;
 }
 
