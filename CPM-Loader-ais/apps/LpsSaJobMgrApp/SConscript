@@ -1,0 +1,45 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the testTask application.
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+Import( 'testEnv' )
+myEnv = testEnv.Clone();
+
+# Please people, stop creating so many warnings!
+myEnv.Append(CCFLAGS = ['-Werror', '-Wno-unused-function'])
+
+# Include the super-project directory so that we can find lps_pass_tracker
+# source files.
+Repository('#/..')
+
+myEnv.Append(CPPPATH = [
+    myEnv[ 'SSP_DIR' ] + '/lps_common/include',
+    myEnv[ 'SSP_DIR' ] + '/lps_app_common/include',
+    myEnv[ 'SSP_DIR' ] + '/lps_pass_tracker/include'
+])
+
+sourceFiles = \
+    Glob('*.cpp') + \
+    Glob(myEnv[ 'SSP_DIR' ] + '/lps_pass_tracker/src/*.c')
+
+LpsSaJobMgrApp = myEnv.Program( 
+        target = 'LpsSaJobMgrApp',
+        source = sourceFiles,
+        LIBS = [ 'ais_task',
+                 'ais_config',
+                 'ais_log'
+         ]
+    )
+
+myEnv.InstallBinary( LpsSaJobMgrApp )
+myEnv.Alias("JobMgrApp", "#bin/LpsSaJobMgrApp")
+
+
