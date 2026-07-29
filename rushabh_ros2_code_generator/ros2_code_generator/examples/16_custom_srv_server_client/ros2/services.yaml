@@ -1,4 +1,0 @@
-services:
-  - name: set_mode
-    service_name: /robot1/set_mode
-    service_type: rsg_v1_custom_srv_server_client/srv/SetMode

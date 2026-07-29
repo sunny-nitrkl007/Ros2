@@ -1,5 +1,0 @@
-execution:
-  default:
-    executor: single_threaded
-    number_of_threads: 1
-  node_overrides: {}

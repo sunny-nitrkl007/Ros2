@@ -1,8 +1,0 @@
-{% for node in nodes %}
-{{ node.name }}:
-  ros__parameters:
-    use_sim_time: {{ 'true' if app.use_sim_time else 'false' }}
-{% for p in node.parameters %}
-    {{ p.name }}: {{ p.default | tojson }}
-{% endfor %}
-{% endfor %}

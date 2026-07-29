@@ -1,9 +1,0 @@
-node_a:
-  ros__parameters:
-    use_sim_time: false
-node_b:
-  ros__parameters:
-    use_sim_time: false
-node_c:
-  ros__parameters:
-    use_sim_time: false
