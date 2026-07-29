@@ -27,7 +27,16 @@ DESCRIPTION:
 ** -- #Define, Struct's, Typedef's, Enum's --
 *******************************************************************************/
 #define STG4 3                        //STG4 is index 3 in the array of STG_values.
-#define HORN_PORT_NUMBER   OutputChannel::Port::OUTPUT_SINK_3    //OUTPUT_APP_PORT_SINK3_PIN29_GPIO88
+// !!! UNVERIFIED PLACEHOLDER -- DO NOT HARDWARE-TEST UNTIL FIXED !!!
+// The real numeric value of OutputChannel::Port::OUTPUT_SINK_3 is not
+// found ANYWHERE in this checkout -- this #define was its only occurrence
+// in the whole tree (confirmed by repo-wide grep). This drives a real
+// GPIO pin (see original comment: PIN29_GPIO88), so the value below is
+// deliberately an obviously-fake sentinel, not a guess dressed up as real.
+// Confirm the true value against interfaces/OutputChannel/OutputChannel.h
+// once that folder is sourced (it does not exist in this checkout either
+// -- see Challenges-And-Decisions.txt 3.3), then replace 0xFF here.
+#define HORN_PORT_NUMBER   0xFF    //OUTPUT_APP_PORT_SINK3_PIN29_GPIO88 -- UNVERIFIED, see comment above
 
 #define PAYLOAD_DETAIL_JSON_FILENAME (R"(/tmp/appdata/CPM/LpsSaJobMgrApp/PayloadDetails.json)")
 
@@ -52,12 +61,17 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
     }
 
     { // Check for store request
-        SwitchInputScs STG_Input;
+        // SwitchInputScs.msg is a scoped reconstruction (real struct not in
+        // this checkout -- see Challenges-And-Decisions.txt 3.3): the real
+        // get_STG_value(STG4)==STG::CLOSED test collapses to a single
+        // `closed` field, since that's the only comparison any consumer in
+        // the whole tree ever makes against index STG4.
+        job_mgr_interfaces::msg::SwitchInputScs STG_Input;
         bool storeRequest = false;
 
         /* The store button has higher priority compared to LPS Job Mgr request. */
         while (LpsSaSwitchInput->get(STG_Input)) {
-            if (STG_Input.get_STG_value(STG4) == STG::CLOSED) {
+            if (STG_Input.closed) {
                 storeRequest = true;
             }
         }
@@ -918,14 +932,25 @@ RETURN VALUE:boolean
 *******************************************************************************/
 bool LpsSaJobMgrApp::LpsSaJobMgrHornOnStoreAction()
 {
-    OutputChannel outputChannel;
-    OutputChannel::OutputCmd command;
-    command.OutputPort = HORN_PORT_NUMBER;
-    command.InitialState = OutputChannel::State::PORT_ON;
-    command.StateChangeDuration = OutputChannel::ChangeDuration::NO_FLASH;
-    command.TotalDuration = 2;
-    command.FinalState = OutputChannel::State::PORT_OFF;
-    outputChannel.AddOutputAppCmd(command);
+    // !!! UNVERIFIED PLACEHOLDERS -- DO NOT HARDWARE-TEST UNTIL FIXED !!!
+    // OutputChannel::State::PORT_ON/PORT_OFF and
+    // OutputChannel::ChangeDuration::NO_FLASH have no numeric value anywhere
+    // in this checkout either (same class of gap as HORN_PORT_NUMBER above,
+    // see Challenges-And-Decisions.txt 3.3). Sentinels below are
+    // deliberately obviously-fake, not guesses -- confirm against
+    // interfaces/OutputChannel/OutputChannel.h once sourced.
+    constexpr uint8_t PORT_ON_UNVERIFIED  = 0xF0;
+    constexpr uint8_t PORT_OFF_UNVERIFIED = 0xF1;
+    constexpr uint8_t NO_FLASH_UNVERIFIED = 0xF2;
+
+    job_mgr_interfaces::msg::OutputChannel outputChannel;
+    job_mgr_interfaces::msg::OutputCmd command;
+    command.output_port = HORN_PORT_NUMBER;
+    command.initial_state = PORT_ON_UNVERIFIED;
+    command.state_change_duration = NO_FLASH_UNVERIFIED;
+    command.total_duration = 2;
+    command.final_state = PORT_OFF_UNVERIFIED;
+    outputChannel.commands.push_back(command);
     if (nullptr != LpsSaOutputChannelOut) {
         return LpsSaOutputChannelOut->publish(outputChannel);
     }
@@ -941,40 +966,51 @@ RETURN VALUE:boolean
 boolean LpsSaJobMgrApp::LpsSaJobMgrScsTx()
 {
     bool scsCmdRet=false;
-    LpsSaJobMgrTxChannel txOut;
+    job_mgr_interfaces::msg::LpsSaJobMgrTxChannel txOut;
+    // Original AIS Datum type set this in its constructor. The new message
+    // type is plain data with no constructor side effects, so it's set
+    // explicitly here instead, preserving the original "stamped at
+    // construction" behavior.
+    txOut.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
     /* frame SCS channel data to UI*/
     if (LpsSaJobMgrScsTxOut) {
 
         { // Update current task load information
             const LpsSaLoadRecordChannelStorage& loadRecord = tasks_.getCurrentTaskLoad();
             const LpsSaLoadRecordSubtotal& subtotal = loadRecord.getCurrentSubtotal();
-            txOut.taskNumber = tasks_.getCurrentTaskNumber();
-            txOut.materialId = subtotal.materialId;
-            txOut.materialName = subtotal.materialName;
-            txOut.materialDensity = subtotal.materialDensity;
-            txOut.truckId = subtotal.truckId;
-            txOut.truckName = subtotal.truckName;
-            txOut.truckTargetWeight = subtotal.truckTargetWeightTonnes;
+            txOut.task_number = tasks_.getCurrentTaskNumber();
+            txOut.material_id = subtotal.materialId;
+            txOut.material_name = subtotal.materialName;
+            txOut.material_density = subtotal.materialDensity;
+            txOut.truck_id = subtotal.truckId;
+            txOut.truck_name = subtotal.truckName;
+            txOut.truck_target_weight = subtotal.truckTargetWeightTonnes;
 
             if (0.0f != subtotal.truckTargetWeightTonnes) {
-                txOut.remainingWeight = subtotal.truckTargetWeightTonnes - LpsSaJobMgrWmOutput.truck_weight;
+                txOut.remaining_weight = subtotal.truckTargetWeightTonnes - LpsSaJobMgrWmOutput.truck_weight;
             }
             else {
-                txOut.remainingWeight = 0.0f;
+                txOut.remaining_weight = 0.0f;
             }
 
             txOut.tag1 = subtotal.tag1;
             txOut.tag2 = subtotal.tag2;
             txOut.tag3 = subtotal.tag3;
             txOut.tag4 = subtotal.tag4;
-            txOut.customListName1 = subtotal.customListName1;
-            txOut.customListName2 = subtotal.customListName2;
-            txOut.customListName3 = subtotal.customListName3;
-            txOut.customListName4 = subtotal.customListName4;
+            txOut.custom_list_name1 = subtotal.customListName1;
+            txOut.custom_list_name2 = subtotal.customListName2;
+            txOut.custom_list_name3 = subtotal.customListName3;
+            txOut.custom_list_name4 = subtotal.customListName4;
 
-            txOut.passCount               = LpsSaJobMgrWmOutput.passcount;
-            txOut.TruckStartWeight        = LpsSaJobMgrWmOutput.truck_start_weight;
+            txOut.pass_count               = LpsSaJobMgrWmOutput.passcount;
+            txOut.truck_start_weight       = LpsSaJobMgrWmOutput.truck_start_weight;
 
+            // Local computation still uses the real, untouched AIS enum type --
+            // subtotal.weightTonnes()/loadRecord.weightTonnes() are business
+            // logic (LpsSaLoadRecordSubtotal.h), not edited for this migration.
+            // Converted into the new message's nested WeighBktWtAccuracy.value
+            // only at the point of assignment below.
             LpsWeighBktWtAccuracy_t subtotalWeightAccuracy;
             float subtotalWeight = subtotal.weightTonnes(subtotalWeightAccuracy);
 
@@ -1004,130 +1040,149 @@ boolean LpsSaJobMgrApp::LpsSaJobMgrScsTx()
                 }
             }
 
-            txOut.truckWeight = subtotalWeight;
-            txOut.truckWeightAccuracy = subtotalWeightAccuracy;
+            txOut.truck_weight = subtotalWeight;
+            txOut.truck_weight_accuracy.value = static_cast<uint8_t>(subtotalWeightAccuracy);
 
-            txOut.totalWeight = totalWeight;
-            txOut.totalWeightAccuracy = totalWeightAccuracy;
+            txOut.total_weight = totalWeight;
+            txOut.total_weight_accuracy.value = static_cast<uint8_t>(totalWeightAccuracy);
 
             totalWeightAccuracy_ = totalWeightAccuracy;
 
             // current load subtotal count
-            txOut.subtotalCount = loadRecord.subtotalCount();
+            txOut.subtotal_count = loadRecord.subtotalCount();
 
-            txOut.targetType = (uint8_t)loadRecord.targetType();
+            txOut.target_type = (uint8_t)loadRecord.targetType();
             if (loadRecord.targetType() == LpsSaLoadRecordTargetType::SINGLE) {
-                txOut.splitModeEnabled = false;
+                txOut.split_mode_enabled = false;
             }
             else {
-                txOut.splitModeEnabled = true;
+                txOut.split_mode_enabled = true;
             }
 
-            txOut.stepNumber = loadRecord.getCurrentSubtotalIndex();
+            txOut.step_number = loadRecord.getCurrentSubtotalIndex();
 
-            txOut.iconType = subtotal.iconType;
+            txOut.icon_type = subtotal.iconType;
 
-            txOut.targetPasses = subtotal.targetPasses;
+            txOut.target_passes = subtotal.targetPasses;
         }
 
-        txOut.OperationMode = LpsJobMgrJobTrackerInfoTbl.OperationMode;
+        txOut.operation_mode = static_cast<uint16_t>(LpsJobMgrJobTrackerInfoTbl.OperationMode);
 
-        txOut.ManualTipOffState       = LpsJobMgrJobTrackerInfoTbl.ManualTipOffState;
-        txOut.TipOffState             = LpsJobMgrJobTrackerInfoTbl.TipOffState;
+        txOut.manual_tip_off_state    = static_cast<uint8_t>(LpsJobMgrJobTrackerInfoTbl.ManualTipOffState);
+        txOut.tip_off_state.value     = static_cast<uint8_t>(LpsJobMgrJobTrackerInfoTbl.TipOffState);
 
         // Standby State
         if (LpsSaJobMgrWmOutput.standby_active) {
-            txOut.StandbyState = LPS_SA_JOB_MGR_STANDBY_ACTIVATED;
+            txOut.standby_state.value = cpm_common_interfaces::msg::StandbyState::ACTIVATED;
         }
         else {
-            txOut.StandbyState = LPS_SA_JOB_MGR_STANDBY_DEACTIVATED;
+            txOut.standby_state.value = cpm_common_interfaces::msg::StandbyState::DEACTIVATED;
         }
 
         // Clear or -1 Button is Showing?
         if (LpsSaJobMgrWmOutput.show_clear_not_minus_one) {
-            txOut.ClearMinusOneEnableStat = LPS_SA_JOB_MGR_CLEAR_BTN_ENABLED;
+            txOut.clear_minus_one_enable_stat = job_mgr_interfaces::msg::LpsSaJobMgrTxChannel::CLEAR_BTN_ENABLED;
         }
         else {
-            txOut.ClearMinusOneEnableStat = LPS_SA_JOB_MGR_MINUS_ONE_BTN_ENABLED;
+            txOut.clear_minus_one_enable_stat = job_mgr_interfaces::msg::LpsSaJobMgrTxChannel::MINUS_ONE_BTN_ENABLED;
         }
 
-        txOut.DispBestBktWt = LpsJobMgrJobTrackerInfoTbl.DispBestBktWt;
+        txOut.disp_best_bkt_wt.val = LpsJobMgrJobTrackerInfoTbl.DispBestBktWt.val;
+        txOut.disp_best_bkt_wt.is_ok = LpsJobMgrJobTrackerInfoTbl.DispBestBktWt.isOk;
 
-        txOut.TipOffTriggerType = (LpsSaTipOffTriggerType_t)config_.tipOffTriggerType;
-        txOut.TipOffStateCfg = (LpsSaJobMgrTipOffState_t)config_.tipOffMode;
+        txOut.tip_off_trigger_type.value = static_cast<uint8_t>((LpsSaTipOffTriggerType_t)config_.tipOffTriggerType);
+        txOut.tip_off_state_cfg.value = static_cast<uint8_t>((LpsSaJobMgrTipOffState_t)config_.tipOffMode);
 
         if (SEALegalForTradeInstalled_) {
-            txOut.AutoStorePassCount = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX;
+            txOut.auto_store_pass_count = LPSSAJOBMGRCNFG_AUTO_STORE_PASS_COUNT_MAX;
         }
         else {
-            txOut.AutoStorePassCount = config_.autoStorePassCount;
+            txOut.auto_store_pass_count = config_.autoStorePassCount;
         }
 
         /* SEA Level2 (Pro) interlock */
         if (SEALevel2ProInstalled_) {
-            txOut.AutoTruckIdEnabled = config_.autoTruckIdEnabled;
-            txOut.AutoMaterialIdEnabled = config_.autoMaterialIdEnabled;
-            txOut.manualAddEnabled = config_.manualAddEnabled;
-            txOut.multiTaskEnabled = config_.multiTaskEnabled;
-            txOut.multiTaskCount = tasks_.getNumberOfTasks();
-            txOut.truckListEnabled = config_.truckListEnabled;
-            txOut.materialListEnabled = config_.materialListEnabled;
-            txOut.tag1Enabled = config_.tag1Enabled;
-            txOut.tag2Enabled = config_.tag2Enabled;
-            txOut.tag3Enabled = config_.tag3Enabled;
-            txOut.tag4Enabled = config_.tag4Enabled;
+            txOut.auto_truck_id_enabled = config_.autoTruckIdEnabled;
+            txOut.auto_material_id_enabled = config_.autoMaterialIdEnabled;
+            txOut.manual_add_enabled = config_.manualAddEnabled;
+            txOut.multi_task_enabled = config_.multiTaskEnabled;
+            txOut.multi_task_count = tasks_.getNumberOfTasks();
+            txOut.truck_list_enabled = config_.truckListEnabled;
+            txOut.material_list_enabled = config_.materialListEnabled;
+            txOut.tag1_enabled = config_.tag1Enabled;
+            txOut.tag2_enabled = config_.tag2Enabled;
+            txOut.tag3_enabled = config_.tag3Enabled;
+            txOut.tag4_enabled = config_.tag4Enabled;
         }
         else {
             /* level2 (Pro) not installed, disable Pro features */
-            txOut.AutoTruckIdEnabled = false;
-            txOut.AutoMaterialIdEnabled = false;
-            txOut.manualAddEnabled = false;
-            txOut.multiTaskEnabled = false;
-            txOut.multiTaskCount = 0;
-            txOut.truckListEnabled = false;
-            txOut.materialListEnabled = false;
-            txOut.tag1Enabled = false;
-            txOut.tag2Enabled = false;
-            txOut.tag3Enabled = false;
-            txOut.tag4Enabled = false;
-            txOut.splitModeEnabled = false;
+            txOut.auto_truck_id_enabled = false;
+            txOut.auto_material_id_enabled = false;
+            txOut.manual_add_enabled = false;
+            txOut.multi_task_enabled = false;
+            txOut.multi_task_count = 0;
+            txOut.truck_list_enabled = false;
+            txOut.material_list_enabled = false;
+            txOut.tag1_enabled = false;
+            txOut.tag2_enabled = false;
+            txOut.tag3_enabled = false;
+            txOut.tag4_enabled = false;
+            txOut.split_mode_enabled = false;
         }
 
         if (LpsSaJobMgrWmOutput.tip_off_active) {
-            txOut.TipoffActive = true;
+            txOut.tipoff_active = true;
         }
         else {
-            txOut.TipoffActive = false;
+            txOut.tipoff_active = false;
         }
 
-        txOut.tipoffAssistActive = LpsJobMgrJobTrackerInfoTbl.TipoffAssistActive;
-        txOut.tipoffAssistActiveEid = LpsJobMgrJobTrackerInfoTbl.TipoffAssistActiveEid;
+        txOut.tipoff_assist_active = LpsJobMgrJobTrackerInfoTbl.TipoffAssistActive;
+        txOut.tipoff_assist_active_eid = LpsJobMgrJobTrackerInfoTbl.TipoffAssistActiveEid;
 
-        txOut.ReqPloadCtrlSysStat = LpsJobMgrJobTrackerInfoTbl.ReqPloadCtrlSysStat;
+        txOut.req_pload_ctrl_sys_stat = static_cast<uint16_t>(LpsJobMgrJobTrackerInfoTbl.ReqPloadCtrlSysStat);
 
-        simpleCal_.getSimpleCalData(txOut.simpleCalData);
+        // simpleCal_.getSimpleCalData() is untouched business logic
+        // (LpsSaJobMgrSimpleCal.h/.cpp) -- still fills the OLD deque<SimpleCalData_t>
+        // type. Converted element-by-element into the new message's array,
+        // since ROS2 arrays are std::vector, not std::deque, and the element
+        // type itself is different too.
+        {
+            std::deque<SimpleCalData_t> simpleCalDataOld;
+            simpleCal_.getSimpleCalData(simpleCalDataOld);
+            txOut.simple_cal_data.clear();
+            for (const auto& item : simpleCalDataOld) {
+                job_mgr_interfaces::msg::SimpleCalData newItem;
+                newItem.time_stamp = item.timeStamp;
+                newItem.truck_wt = item.truckWt;
+                newItem.zeroed_truck_wt = item.zeroedTruckWt;
+                txOut.simple_cal_data.push_back(newItem);
+            }
+        }
 
-        txOut.storeCount = LpsJobMgrJobTrackerInfoTbl.storePressCount;
+        txOut.store_count = LpsJobMgrJobTrackerInfoTbl.storePressCount;
 
         // Show the "Payload Store:Not Available" info pop-up until at least this time is met.
         if (storeRejectedExpireTime > std::chrono::steady_clock::now()) {
-            txOut.storeRejected = true;
+            txOut.store_rejected = true;
         }
         else {
-            txOut.storeRejected = false;
+            txOut.store_rejected = false;
         }
 
         if (LpsSaJobMgrWmOutput.manual_add_available) {
-            txOut.manualAddAvailable = true;
+            txOut.manual_add_available = true;
         }
         else {
-            txOut.manualAddAvailable = false;
+            txOut.manual_add_available = false;
         }
 
-        txOut.HornStoreState = config_.hornStoreEnable ? SOUND_HORN : NOT_SOUND_HORN;
+        txOut.horn_store_state = config_.hornStoreEnable
+            ? job_mgr_interfaces::msg::LpsSaJobMgrTxChannel::HORN_SOUND
+            : job_mgr_interfaces::msg::LpsSaJobMgrTxChannel::HORN_NOT_SOUND;
 
         // LFT disabled state for current task
-        txOut.lftDisabled = tasks_.currentTaskGetLFTDisable();
+        txOut.lft_disabled = tasks_.currentTaskGetLFTDisable();
 
         scsCmdRet=LpsSaJobMgrScsTxOut->publish( txOut );
     }
