@@ -671,10 +671,10 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaJobMgrApp::AisJhmDataServerTxRead()
 {
-    AisJhm2TxChannel AisJhm2TxIn;
+    job_mgr_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
     while (AisJhm2TxInputScs->get(AisJhm2TxIn)) {
-        if (AisJhm2TxIn.simplecal_data.newDataFlag) {
-            simpleCal_.eraseEntry(AisJhm2TxIn.simplecal_data.timeStamp);
+        if (AisJhm2TxIn.simplecal_data.new_data_flag) {
+            simpleCal_.eraseEntry(AisJhm2TxIn.simplecal_data.time_stamp);
         }
     }
 }
@@ -705,21 +705,19 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsEddtRead()
     };
 
     if (nullptr != eddtInputChannel_) {
-        EventDiagnosticData data;
+        job_mgr_interfaces::msg::EventDiagnosticData data;
 
         // Clear TipoffAssistActiveEid
-        LpsJobMgrJobTrackerInfoTbl.TipoffAssistActiveEid = 0;       
+        LpsJobMgrJobTrackerInfoTbl.TipoffAssistActiveEid = 0;
 
         while (eddtInputChannel_->get(data)) {
-            const auto* pDiags = data.getListOfEventDiagnostics();
-
-            if (nullptr == pDiags) {           
-                continue;
-            }
-
+            // getListOfEventDiagnostics() (EventDiagnosticData.h:129-131) is a
+            // trivial `return &m_activeDiagnostics;` -- active_diagnostics is a
+            // real vector member here, never null, so the pointer/null-check
+            // dance collapses away.
             bool memoryFull = false;
 
-            for (const auto& diag : *pDiags) {
+            for (const auto& diag : data.active_diagnostics) {
                 if (2 != diag.category) {
                     // only looking for events (not diagnostics)
                     continue;
@@ -727,7 +725,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsEddtRead()
 
                 if ((SCL_DCLI_FAULT_ACTIVE == diag.status) ||
                         (SCL_DCLI_FAULT_ACTIVE_AND_LOGGED == diag.status)) {
-                    uint_fast16_t eid = diag.getCID();
+                    uint_fast16_t eid = diag.cid; // getCID() (Diagnostic.h:162-165) is `return cid;`
                     if (toaEids.count(eid) > 0) {
                         LpsJobMgrJobTrackerInfoTbl.TipoffAssistActiveEid = eid;
                     }
@@ -751,11 +749,17 @@ RETURN VALUE:
 void LpsSaJobMgrApp::LpsSaJobMgrScsSHMRead( )
 {
     if (nullptr != ShmClockInputScs) {
-        ShmClock shmClock;
+        job_mgr_interfaces::msg::ShmClockInput shmClock;
         while (ShmClockInputScs->get(shmClock)) {
-            int32_t offset = shmClock.get_UTC_offset();
+            int32_t offset = shmClock.utc_offset_min;
             tzone_tx_comm_struct tzone;
-            if (tes_common_ais::get_tz_struct(tzone, shmClock)) {
+            // Real get_tz_struct(tzone_tx_comm_struct&, ShmClock&) (ais_chrono/tz.hpp:287)
+            // just extracts the raw 20-byte TZ blob via shmClock.get_TZ() and calls
+            // the lower-level byte-array overload (tz.hpp:259) -- called that
+            // overload directly instead, using the raw bytes already preserved
+            // verbatim in ShmClockInput.msg's tzone_info field. No old-typed
+            // ShmClock object needed at all.
+            if (tes_common_ais::get_tz_struct(shmClock.tzone_info.data(), shmClock.tzone_info.size(), tzone)) {
                 if ((tzInfo_.offset != offset) || (tzInfo_.index != tzone.tzone_id)) {
                     std::string tzStr = tes_common_ais::makeTZString(tzone);
                     if (tes_common_ais::setTZString(tzStr)) {
@@ -774,7 +778,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsSHMRead( )
                 AIS_LOG_ERROR("Could not get tzone_tx_comm_struct");
             }
 
-            serviceHourMeter_ = shmClock.get_SHM();
+            serviceHourMeter_ = shmClock.shm_sec;
         }
     }
 }
@@ -791,19 +795,24 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsDataLinkDataRead( )
 #define TIPOFF_ASSSIST_PID  0xD118CE
 #define MANUAL_ADD_PID     0xD11890
 
-    DataLinkData dlData;
+    // !!! UNVERIFIED PLACEHOLDER -- DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID
+    // has no numeric value anywhere in this checkout either (see
+    // DataLinkParam.msg header) -- same class of gap as HORN_PORT_NUMBER.
+    constexpr uint8_t DATA_LINK_PARAM_IDENTIFIER_PID_UNVERIFIED = 0xF3;
+
+    job_mgr_interfaces::msg::DataLinkData dlData;
 
     while (dataLinkDataInput_->get(dlData)) {
-        for (auto& dlParam : dlData.GetParams()) {
+        for (auto& dlParam : dlData.params) {
             // Skip this if no new data is received.
-            if (!dlParam.IsPIDDataReceived()) {
+            if (!dlParam.pid_data_received) {
                 continue;
             }
 
-            if (dlParam.GetParamIdentifierType() == DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID) {
-                if (dlParam.GetParamId() == STORE_BUTTON_PID) {
-                    if (0 == dlParam.GetLastValueDsi()) {
-                        uint8_t dlValue = dlParam.GetLastGoodValue<uint8_t>();
+            if (dlParam.identifier_type == DATA_LINK_PARAM_IDENTIFIER_PID_UNVERIFIED) {
+                if (dlParam.param_id == STORE_BUTTON_PID) {
+                    if (0 == dlParam.last_value_dsi) {
+                        uint8_t dlValue = dlParam.last_good_value_u8;
                         bool currentlyDepressed = (dlValue == 0x01) ? true : false;
 
                         if ((!LpsJobMgrJobTrackerInfoTbl.StorePIDPreviouslyDepressed) && currentlyDepressed) {
@@ -818,9 +827,9 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsDataLinkDataRead( )
                     	LpsJobMgrJobTrackerInfoTbl.StorePIDPreviouslyDepressed = false;
                     }
                 }
-                else if (dlParam.GetParamId() == TIPOFF_ASSSIST_PID) {
-                    if( 0 == dlParam.GetLastValueDsi()) {
-                        if (dlParam.GetLastValueEng() == 0x000E) {
+                else if (dlParam.param_id == TIPOFF_ASSSIST_PID) {
+                    if( 0 == dlParam.last_value_dsi) {
+                        if (dlParam.last_value_eng == 0x000E) {
                             /* Tipoff Assist is Active */
                             if (!LpsJobMgrJobTrackerInfoTbl.TipoffAssistPIDActive) {
                                 // Transitioning to TOA Active
@@ -832,16 +841,16 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsDataLinkDataRead( )
                             /* Tipoff Assist is not Active */
                             LpsJobMgrJobTrackerInfoTbl.TipoffAssistPIDActive = false;
                         }
-                        AIS_LOG_INFO("Rxed Data for PID 0x%X with Val =  %f   stat = %d ", dlParam.GetParamId(), dlParam.GetLastValueEng(), dlParam.GetLastValueDsi());
+                        AIS_LOG_INFO("Rxed Data for PID 0x%X with Val =  %f   stat = %d ", dlParam.param_id, dlParam.last_value_eng, dlParam.last_value_dsi);
                     }
                     else {
                         /* Tipoff Assist not Active, if DSI */
                         LpsJobMgrJobTrackerInfoTbl.TipoffAssistPIDActive = false;
                     }
                 }
-                else if (dlParam.GetParamId() == MANUAL_ADD_PID) {
-                	if (0 == dlParam.GetLastValueDsi()) {
-                	    uint16_t dlValue = dlParam.GetLastGoodValue<uint16_t>();
+                else if (dlParam.param_id == MANUAL_ADD_PID) {
+                	if (0 == dlParam.last_value_dsi) {
+                	    uint16_t dlValue = dlParam.last_good_value_u16;
                 	    bool currentlyDepressed = (dlValue == 0x001D) ? true : false;
 
                 	    if ((!LpsJobMgrJobTrackerInfoTbl.ManualAddPIDPreviouslyDepressed) && currentlyDepressed) {
