@@ -25,6 +25,105 @@ DESCRIPTION:
 ** -- Data Declarations --
 *******************************************************************************/
 
+namespace {
+
+// LoadRecordOutput (LpsSaLoadRecordChannel) is a Bridge-only channel with a
+// large real business-logic type (LpsSaLoadRecordChannelStorage) on the old
+// side -- per the communication-only decision, the business logic (subtotal
+// math, ticket id generation, etc.) stays entirely on the old type; only the
+// publish boundary itself needs a conversion. Same shape as the
+// simpleCal_.getSimpleCalData() container conversion (Challenges-And-
+// Decisions.txt 6.7), just applied one level deeper (nested subtotals/passes).
+
+job_mgr_interfaces::msg::LoadRecordTimeStamp ConvertLoadRecordTimeStamp(const LpsSaLoadRecordTimeStamp& oldTs)
+{
+    job_mgr_interfaces::msg::LoadRecordTimeStamp newTs;
+    newTs.utc_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        oldTs.utcTime.time_since_epoch()).count();
+    newTs.shm_time = oldTs.shmTime;
+    return newTs;
+}
+
+job_mgr_interfaces::msg::LoadRecordPass ConvertLoadRecordPass(const LpsSaLoadRecordPass& oldPass)
+{
+    job_mgr_interfaces::msg::LoadRecordPass newPass;
+    newPass.weight_tonnes = oldPass.weightTonnes;
+    newPass.calc_method = oldPass.calcMethod;
+    newPass.time = ConvertLoadRecordTimeStamp(oldPass.time);
+    return newPass;
+}
+
+job_mgr_interfaces::msg::LoadRecordSubtotal ConvertLoadRecordSubtotal(const LpsSaLoadRecordSubtotal& oldSub)
+{
+    job_mgr_interfaces::msg::LoadRecordSubtotal newSub;
+    newSub.start_time = ConvertLoadRecordTimeStamp(oldSub.startTime);
+    newSub.end_time = ConvertLoadRecordTimeStamp(oldSub.endTime);
+    newSub.truck_id = oldSub.truckId;
+    newSub.truck_name = oldSub.truckName;
+    newSub.truck_target_weight_tonnes = oldSub.truckTargetWeightTonnes;
+    newSub.target_proportion = oldSub.targetProportion;
+    newSub.target_passes = oldSub.targetPasses;
+    newSub.material_id = oldSub.materialId;
+    newSub.material_name = oldSub.materialName;
+    newSub.material_density = oldSub.materialDensity;
+    newSub.custom_list_name1 = oldSub.customListName1;
+    newSub.custom_list_name2 = oldSub.customListName2;
+    newSub.custom_list_name3 = oldSub.customListName3;
+    newSub.custom_list_name4 = oldSub.customListName4;
+    newSub.tag1 = oldSub.tag1;
+    newSub.tag2 = oldSub.tag2;
+    newSub.tag3 = oldSub.tag3;
+    newSub.tag4 = oldSub.tag4;
+    newSub.icon_type = oldSub.iconType;
+    newSub.zero_weight = oldSub.zeroWeight;
+    newSub.cal_adjust = oldSub.calAdjust;
+
+    for (const auto& oldPass : oldSub.passes()) {
+        newSub.passes.push_back(ConvertLoadRecordPass(oldPass));
+    }
+
+    LpsWeighBktWtAccuracy_t accuracy;
+    newSub.weight_tonnes = oldSub.weightTonnes(accuracy);
+    newSub.accuracy.value = static_cast<uint8_t>(accuracy);
+
+    return newSub;
+}
+
+job_mgr_interfaces::msg::LpsSaLoadRecordChannel ConvertLoadRecord(const LpsSaLoadRecordChannel& oldRecord)
+{
+    job_mgr_interfaces::msg::LpsSaLoadRecordChannel newRecord;
+
+    newRecord.store_action = static_cast<uint8_t>(oldRecord.storeAction());
+
+    // getSubtotalByIndex(1) returns the first (subtotal_) subtotal; indices
+    // 2..subtotalCount() are the rest (subtotals_) -- same indexing the real
+    // class itself uses (LpsSaLoadRecordChannel.h:440-448).
+    newRecord.subtotal = ConvertLoadRecordSubtotal(oldRecord.getSubtotalByIndex(1));
+    for (uint16_t idx = 2; idx <= oldRecord.subtotalCount(); idx++) {
+        newRecord.subtotals.push_back(ConvertLoadRecordSubtotal(oldRecord.getSubtotalByIndex(idx)));
+    }
+
+    newRecord.ticket_number = oldRecord.ticketNumber();
+    newRecord.ticket_id = oldRecord.ticketId();
+
+    newRecord.product_id = oldRecord.productId();
+    newRecord.equipment_id = oldRecord.equipmentId();
+    newRecord.weight_interval = oldRecord.weightInterval();
+    newRecord.weight_decimal_precision = oldRecord.weightDecimalPrecision();
+    newRecord.weight_units = static_cast<int32_t>(oldRecord.weightUnits());
+
+    newRecord.recipe_name = oldRecord.recipeName();
+    newRecord.target_type = static_cast<uint8_t>(oldRecord.targetType());
+
+    newRecord.total_target_weight = oldRecord.getTotalTargetWeight();
+    newRecord.current_subtotal_index = oldRecord.getCurrentSubtotalIndex();
+
+    newRecord.store_time = ConvertLoadRecordTimeStamp(oldRecord.storeTime);
+
+    return newRecord;
+}
+
+} // namespace
 
 /******************************************************************************
 FUNCTION NAME:LpsSaJobMgrPtUpdate
@@ -221,7 +320,7 @@ boolean LpsSaJobMgrApp::LpsSaJobMgrPtUpdate(void)
 
                     // Publish the load record
                     if (nullptr != loadRecordOutputChannel_) {
-                        loadRecordOutputChannel_->publish(loadRecord);
+                        loadRecordOutputChannel_->publish(ConvertLoadRecord(loadRecord));
                     }
                 }
             }
