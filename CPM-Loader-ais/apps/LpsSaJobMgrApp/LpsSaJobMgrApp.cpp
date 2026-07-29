@@ -208,7 +208,7 @@ bool LpsSaJobMgrApp::initialize( )
     LpsSaOutputChannelOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>(rosNode_, "output_channel");
     AisJhm2TxInputScs  = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
 
-    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayState>(rosNode_, "display_state");
+    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
     if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         everythingOk = false;

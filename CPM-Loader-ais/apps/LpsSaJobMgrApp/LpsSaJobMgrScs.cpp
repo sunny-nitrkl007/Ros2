@@ -148,10 +148,11 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
 
     // Read display state and go into standby if we are in verification mode.
     if (nullptr != displayStateInput_) {
-        LpsSaUIDisplayStateInterface displayState;
+        job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
         while (displayStateInput_->get(displayState)) {
-            const LpsSaUIDisplayState& state = displayState.state;
-            LpsJobMgrJobTrackerInfoTbl.inVerificationMode = state.isInVerificationMode();
+            // isInVerificationMode() (DisplayState.hpp:62) is a trivial
+            // accessor: `return inVerificationMode_;` -- direct field read.
+            LpsJobMgrJobTrackerInfoTbl.inVerificationMode = displayState.state.in_verification_mode;
             if (LpsJobMgrJobTrackerInfoTbl.inVerificationMode &&
                     (LpsJobMgrJobTrackerInfoTbl.OperationMode != LPS_SA_JOB_MGR_STANDBY_MODE)) {
                 LpsSaJobMgrWmInput.standby_request_status = TRUE;

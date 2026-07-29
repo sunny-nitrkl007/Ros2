@@ -66,6 +66,7 @@ DESCRIPTION:
 #include <job_mgr_interfaces/msg/output_channel.hpp>
 #include <job_mgr_interfaces/msg/ais_jhm2_tx_channel.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_ui_display_state.hpp>
+#include <job_mgr_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
 #include <job_mgr_interfaces/msg/shm_clock_input.hpp>
 #include <job_mgr_interfaces/msg/data_link_data.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_load_record_channel.hpp>
@@ -183,7 +184,10 @@ private:
 
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayState>* displayStateInput_;
+    // Type corrected during Step 4.2 -- see LpsSaUIDisplayStateInterface.msg
+    // header for why this needs the wrapper type, not LpsSaUIDisplayState
+    // directly.
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
 
