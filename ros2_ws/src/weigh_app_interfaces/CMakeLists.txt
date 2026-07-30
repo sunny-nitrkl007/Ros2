@@ -7,9 +7,20 @@ find_package(cpm_common_interfaces REQUIRED)
 find_package(job_mgr_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  # No .msg files yet -- see WEIGH_CHANNEL_MAPPING.md for the channel
-  # inventory and per-channel status. Files get added here as each
-  # channel is traced and drafted, same process as job_mgr_interfaces.
+  # PrinterCnfgInput (channel 1 of 15 -- see WEIGH_CHANNEL_MAPPING.md)
+  "msg/LpsSaTotalsPrinterCnfgTruckTicket.msg"
+  "msg/LpsSaTotalsPrinterCnfgTruckReport.msg"
+  "msg/LpsSaTotalsPrinterCnfgMaterialReport.msg"
+  "msg/LpsSaTotalsPrinterCnfg.msg"
+  "msg/LpsSaTotalsPrinterCnfgInterface.msg"
+  # SystemHardwareHealthInput (channel 2)
+  "msg/DiskSpaceRemainType.msg"
+  "msg/EthernetStatsType.msg"
+  "msg/ECMVersionInfoType.msg"
+  "msg/SystemHardwareHealthCoreUsage.msg"
+  "msg/SystemHardwareHealth.msg"
+  # SystemHardwareHealthRequestOutput (channel 15)
+  "msg/SystemHardwareHealthRequest.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 

@@ -56,23 +56,23 @@ Real `#include` path is cited directly from `LpsSaWeighApp.h` (lines
 19-54) -- step 2 of the JobMgr methodology, already done here so the next
 session can jump straight to step 3 (locate the real header).
 
-| # | Real SCS channel | Member | Direction | `#include` path (`LpsSaWeighApp.h`) | Notes |
-|---|---|---|---|---|---|
-| 1 | `PrinterCnfgInput` | `printerCnfgInput_` | Input | `interfaces/LpsSaTotals/PrinterCnfgInterfaceInputChannel.h` | |
-| 2 | `SystemHardwareHealthInput` | `SystemHardwareHealthInput_` | Input | `ais/interfaces/SystemHardwareHealth/InterfaceTypes.h` | |
-| 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | |
-| 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | Large -- ~650 lines of usage (`LpsSaWeighApp.cpp:1304-1954`), do NOT reuse job_mgr_interfaces' 3-PID-scoped version; needs its own usage-scoped reconstruction, same Part 4 fallback as JobMgr's but bigger |
-| 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | |
-| 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | |
-| 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | |
-| 8 | `PwmInputChannelsInput` | `PwmIn` | Input | `interfaces/PwmInputChannels/InterfaceTypes.h` | drains into local `inPwm_` |
-| 9 | `MachineInput` | `MachineIn` | Input | `interfaces/Machine/InterfaceTypes.h` | |
-| 10 | `DemoAppTxChannelInput` | `DemoAppTxIn` | Input | `interfaces/DemoAppTxChannel/InterfaceTypes.h` | drains into local `demoInputs_` |
-| 11 | `CalMgrCmdReqstInput` | `LpsCalCmdScsReqstIn` | Input | `interfaces/CalMgrCmdReqst/InterfaceTypes.h` | |
-| 12 | `CalMgrCmdRespOutput` | `LpsCalCmdScsRespOut` | Output | `interfaces/CalMgrCmdResp/InterfaceTypes.h` | |
-| 13 | `LpsSaNvmCalDataChannelOutput` | `LpsNvmDumpChanOut` | Output | `interfaces/LpsSaNvmCalDataChannel/InterfaceTypes.h` | |
-| 14 | `LpsSaNvmCalOnTheFlyDataChannelOutput` | `LpsNvmOnTheFlyDumpChanOut` | Output | `interfaces/LpsSaNvmCalOnTheFlyDataChannel/InterfaceTypes.h` | |
-| 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | different binding pattern -- `SCSOutData<T>` member + `initPublishInterface()`, not `InterfaceDb::bind()`; confirm the shim still fits before assuming it does |
+| # | Real SCS channel | Member | Direction | `#include` path (`LpsSaWeighApp.h`) | `.msg` | Status |
+|---|---|---|---|---|---|---|
+| 1 | `PrinterCnfgInput` | `printerCnfgInput_` | Input | `interfaces/LpsSaTotals/PrinterCnfgInterfaceInputChannel.h` | `LpsSaTotalsPrinterCnfgInterface.msg` + 4 nested | Done |
+| 2 | `SystemHardwareHealthInput` | `SystemHardwareHealthInput_` | Input | `ais/interfaces/SystemHardwareHealth/InterfaceTypes.h` | `SystemHardwareHealth.msg` + 4 nested | Done |
+| 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | | Not started |
+| 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | | Not started -- large, ~650 lines of usage (`LpsSaWeighApp.cpp:1304-1954`), do NOT reuse job_mgr_interfaces' 3-PID-scoped version; needs its own usage-scoped reconstruction, same Part 4 fallback as JobMgr's but bigger |
+| 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | | Not started |
+| 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | | Not started |
+| 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | | Not started |
+| 8 | `PwmInputChannelsInput` | `PwmIn` | Input | `interfaces/PwmInputChannels/InterfaceTypes.h` | | Not started -- drains into local `inPwm_` |
+| 9 | `MachineInput` | `MachineIn` | Input | `interfaces/Machine/InterfaceTypes.h` | | Not started |
+| 10 | `DemoAppTxChannelInput` | `DemoAppTxIn` | Input | `interfaces/DemoAppTxChannel/InterfaceTypes.h` | | Not started -- drains into local `demoInputs_` |
+| 11 | `CalMgrCmdReqstInput` | `LpsCalCmdScsReqstIn` | Input | `interfaces/CalMgrCmdReqst/InterfaceTypes.h` | | Not started |
+| 12 | `CalMgrCmdRespOutput` | `LpsCalCmdScsRespOut` | Output | `interfaces/CalMgrCmdResp/InterfaceTypes.h` | | Not started |
+| 13 | `LpsSaNvmCalDataChannelOutput` | `LpsNvmDumpChanOut` | Output | `interfaces/LpsSaNvmCalDataChannel/InterfaceTypes.h` | | Not started |
+| 14 | `LpsSaNvmCalOnTheFlyDataChannelOutput` | `LpsNvmOnTheFlyDumpChanOut` | Output | `interfaces/LpsSaNvmCalOnTheFlyDataChannel/InterfaceTypes.h` | | Not started |
+| 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5, see the `.msg` header |
 
 **Adv-only (16th, separate file):** `TipoffModelTestPointsOutput`, bound
 and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3) --
@@ -80,7 +80,6 @@ not yet located/traced.
 
 ## Status
 
-0 of 15 remaining channels traced/drafted yet. Package skeleton
-(`package.xml`, `CMakeLists.txt`, this mapping doc) created; no `.msg`
-files written yet. Next: trace channels 1-15 above in order, same
-Step 4-8 process as `job_mgr_interfaces/CHANNEL_MAPPING.md` Part 1.
+3 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
+15 SystemHardwareHealthRequestOutput -- 11 `.msg` files total). Next up:
+channel 3, `PartNumbersInput`.
