@@ -43,53 +43,65 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaWeighApp::LpsSaScsChkForReqst()
 {
-    LpsSaWeighReqstChannel request;
+    cpm_common_interfaces::msg::LpsSaWeighReqstChannel request;
 
     /* Retrieve SCS channel data */
     while (LpsSaWeighScsReqstIn->get(request)) {
-        switch (request.command) {
-        case (LpsSaWeighReqstChannel::Command::ZERO):
-        case (LpsSaWeighReqstChannel::Command::RESET_BEST_BUCKET_WEIGHT):
-        case (LpsSaWeighReqstChannel::Command::CAPTURE_CYLINDER_EXTENSION_REFERENCE):
-        case (LpsSaWeighReqstChannel::Command::CLEAR_REWEIGH_WARNING): {
-            // These commands are handled later.
-            request_ = request;
+        switch (request.command.value) {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::ZERO):
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RESET_BEST_BUCKET_WEIGHT):
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CAPTURE_CYLINDER_EXTENSION_REFERENCE):
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CLEAR_REWEIGH_WARNING): {
+            // These commands are handled later. request_ stays on its real
+            // old type (needs .reInit()), so convert field-by-field.
+            request_.command = static_cast<LpsSaWeighReqstChannel::Command>(request.command.value);
+            request_.appName = request.app_name;
+            request_.appRequestId = request.app_request_id;
+            request_.arg.b = request.arg_b;
+            request_.arg.f1 = request.arg_f1;
+            request_.arg.f2 = request.arg_f2;
+            request_.arg.s = request.arg_s;
+            request_.arg.u = request.arg_u;
+            request_.arg.map.clear();
+            for (const auto& fp : request.arg_map) {
+                request_.arg.map.emplace_back(fp.first, fp.second);
+            }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_WEIGH_RANGE): {
-            setWeighRange(request.arg.f1, request.arg.f2);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_WEIGH_RANGE): {
+            setWeighRange(request.arg_f1, request.arg_f2);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_BUCKET_PAYLOAD_TARGET_WEIGHT): {
-            cnfg_.bucketPayloadTargetWeight = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_BUCKET_PAYLOAD_TARGET_WEIGHT): {
+            cnfg_.bucketPayloadTargetWeight = request.arg_f1;
             cnfg_.setSaveNeeded();
             AIS_LOG_NOTICE("BucketPayloadTargetWeight = %f", cnfg_.bucketPayloadTargetWeight);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_OVERLOAD_WARNING_ENABLE): {
-            cnfg_.overloadWarningEnabled = request.arg.b;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_OVERLOAD_WARNING_ENABLE): {
+            cnfg_.overloadWarningEnabled = request.arg_b;
             cnfg_.setSaveNeeded();
             AIS_LOG_NOTICE("OverloadWarningEnabled = %d", cnfg_.overloadWarningEnabled);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_HYD_OIL_TEMP_ENABLE): {
-            LpsSaScsSendReqstResponse(request, setHydOilTempEnableStatus(request.arg.b));
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_HYD_OIL_TEMP_ENABLE): {
+            LpsSaScsSendReqstResponse(request, setHydOilTempEnableStatus(request.arg_b));
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_IMU_COMP_ENABLE): {
-            LpsSaScsSendReqstResponse(request, setIMUCompEnableStatus(request.arg.b));
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_IMU_COMP_ENABLE): {
+            LpsSaScsSendReqstResponse(request, setIMUCompEnableStatus(request.arg_b));
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_AUDIBLE_WEIGHT_ENABLE): {
-            LpsSaScsSendReqstResponse(request, setAudibleWeightEnableStatus(request.arg.b));
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_AUDIBLE_WEIGHT_ENABLE): {
+            LpsSaScsSendReqstResponse(request, setAudibleWeightEnableStatus(request.arg_b));
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_LFT_SEALED_FLASH_ENABLE): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_LFT_SEALED_FLASH_ENABLE): {
             if (payloadCalNvmTbl_.legalForTradeInstalled) {
-                LpsSaScsSendReqstResponse(request, setFlashEnableStatus(request.arg.b));
+                LpsSaScsSendReqstResponse(request, setFlashEnableStatus(request.arg_b));
             }
             else
             {
@@ -98,8 +110,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_CALIBRATION_WEIGHT): {
-            float calibrationWeight = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_CALIBRATION_WEIGHT): {
+            float calibrationWeight = request.arg_f1;
             AIS_LOG_NOTICE("Write calibration weight request received: %f", calibrationWeight);
 
             if (((payloadCalNvmTbl_.data.CalWeight != calibrationWeight) ||
@@ -143,58 +155,58 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_MACHINE_PITCH_CAL_OFFSET): {
-            setIMUPitchCalOffsetNVM(request.arg.f1);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_MACHINE_PITCH_CAL_OFFSET): {
+            setIMUPitchCalOffsetNVM(request.arg_f1);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_LFT_SEALED): {
-            sealTracker_.seal(request.arg.b);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_LFT_SEALED): {
+            sealTracker_.seal(request.arg_b);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_LIFT_POSITION_SENSOR_ID): {
-            sealTracker_.reportLiftPositionSensorId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_LIFT_POSITION_SENSOR_ID): {
+            sealTracker_.reportLiftPositionSensorId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_TILT_POSITION_SENSOR_ID): {
-            sealTracker_.reportTiltPositionSensorId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_TILT_POSITION_SENSOR_ID): {
+            sealTracker_.reportTiltPositionSensorId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_LIFT_HE_PRESSURE_SENSOR_ID): {
-            sealTracker_.reportLiftHeadEndPressureSensorId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_LIFT_HE_PRESSURE_SENSOR_ID): {
+            sealTracker_.reportLiftHeadEndPressureSensorId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_LIFT_RE_PRESSURE_SENSOR_ID): {
-            sealTracker_.reportLiftRodEndPressureSensorId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_LIFT_RE_PRESSURE_SENSOR_ID): {
+            sealTracker_.reportLiftRodEndPressureSensorId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_HYDRAULIC_OIL_TEMP_SENSOR_ID): {
-            sealTracker_.reportHydraulicOilTemperatureSensorId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_HYDRAULIC_OIL_TEMP_SENSOR_ID): {
+            sealTracker_.reportHydraulicOilTemperatureSensorId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_WORK_TOOL_ID): {
-            sealTracker_.reportWorkToolId(request.arg.s);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_WORK_TOOL_ID): {
+            sealTracker_.reportWorkToolId(request.arg_s);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_PAYLOAD_OUT_OF_CAL): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_PAYLOAD_OUT_OF_CAL): {
             // make payload out of cal when AU2020 and NOT Legal for Trade, since we use calibration from impl
             setPayloadNotCalibrated();
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::NOTIFY_TICKET_NUMBER_WRITE): {
-            sealTracker_.reportTicketNumberWrite(request.arg.u);
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::NOTIFY_TICKET_NUMBER_WRITE): {
+            sealTracker_.reportTicketNumberWrite(request.arg_u);
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_SERVICE_HISTORY): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_SERVICE_HISTORY): {
             const std::string filePath(makeTempPath("ServiceHistory.json"));
             if (sealTracker_.publish(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -206,7 +218,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_LIFT_SENSOR_CALIBRATION): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_LIFT_SENSOR_CALIBRATION): {
             const std::string filePath(makeTempPath("LiftSensorCalibration.json"));
             if (liftCalNvmTbl_.publish(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -218,7 +230,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_TILT_SENSOR_CALIBRATION): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_TILT_SENSOR_CALIBRATION): {
             const std::string filePath(makeTempPath("TiltSensorCalibration.json"));
             if (tiltCalNvmTbl_.publish(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -230,7 +242,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_WEIGH_CALIBRATION): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_WEIGH_CALIBRATION): {
             const std::string filePath(makeTempPath("WeighCalibration.json"));
             if (payloadCalNvmTbl_.publish(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -242,7 +254,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_WEIGH_CONFIGURATION): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_WEIGH_CONFIGURATION): {
             const std::string filePath(makeTempPath("WeighConfiguration.json"));
             if (cnfg_.publish(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -254,7 +266,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::PUBLISH_RECENT_WEIGH_RESULTS): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::PUBLISH_RECENT_WEIGH_RESULTS): {
             const std::string filePath(makeTempPath("RecentWeighResults.json"));
             if (publishRecentWeighResults(filePath)) {
                 LpsSaScsSendReqstResponse(request, true, filePath);
@@ -266,8 +278,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_REWEIGH_MAX_PITCH): {
-            float reweighMaxPitch = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_REWEIGH_MAX_PITCH): {
+            float reweighMaxPitch = request.arg_f1;
             AIS_LOG_NOTICE("reweighMaxPitch = %f", reweighMaxPitch);
             cnfg_.reweighMaxPitch = reweighMaxPitch;
             sealTracker_.reportGenericConfigurationChange("MaxPitch:" + std::to_string(reweighMaxPitch));
@@ -276,8 +288,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_REWEIGH_MIN_PITCH): {
-            float reweighMinPitch = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_REWEIGH_MIN_PITCH): {
+            float reweighMinPitch = request.arg_f1;
             AIS_LOG_NOTICE("reweighMinPitch = %f", reweighMinPitch);
             cnfg_.reweighMinPitch = reweighMinPitch;
             sealTracker_.reportGenericConfigurationChange("MinPitch:" + std::to_string(reweighMinPitch));
@@ -286,8 +298,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_REWEIGH_MAX_ABS_ROLL): {
-            float reweighMaxAbsRoll = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_REWEIGH_MAX_ABS_ROLL): {
+            float reweighMaxAbsRoll = request.arg_f1;
             AIS_LOG_NOTICE("reweighMaxAbsRoll = %f", reweighMaxAbsRoll);
             cnfg_.reweighMaxAbsRoll = reweighMaxAbsRoll;
             sealTracker_.reportGenericConfigurationChange("MaxRoll:" + std::to_string(reweighMaxAbsRoll));
@@ -296,8 +308,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_REWEIGH_MIN_LIFT_CYL_VEL): {
-            float reweighMinLiftCylVel = request.arg.f1;
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_REWEIGH_MIN_LIFT_CYL_VEL): {
+            float reweighMinLiftCylVel = request.arg_f1;
             AIS_LOG_NOTICE("reweighMinLiftCylVel = %f", reweighMinLiftCylVel);
             cnfg_.reweighMinLiftCylVel = reweighMinLiftCylVel;
             sealTracker_.reportGenericConfigurationChange("MinLiftVel:" + std::to_string(reweighMinLiftCylVel));
@@ -306,11 +318,17 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::WRITE_ADVANCED_CALIBRATION_ADJUSTMENT): {
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::WRITE_ADVANCED_CALIBRATION_ADJUSTMENT): {
             AIS_LOG_NOTICE("Write advanced calibration adjustment received.");
 
             // The advanced cal adjust table is tracked by the calCounter.
-            payloadCalNvmTbl_.setAdvCalAdjust(request.arg.map);
+            {
+                std::vector<std::pair<float, float>> argMapOld;
+                for (const auto& fp : request.arg_map) {
+                    argMapOld.emplace_back(fp.first, fp.second);
+                }
+                payloadCalNvmTbl_.setAdvCalAdjust(argMapOld);
+            }
 
             if (GetPayloadCalStatus()) {
                 ++payloadCalNvmTbl_.calCounter; // This is a new completed calibration.
@@ -339,8 +357,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             LpsSaScsSendReqstResponse(request, true);
             return;
         }
-        case (LpsSaWeighReqstChannel::Command::RUN_TEST): {
-            std::string fileName = boost::filesystem::path(request.arg.s).filename().string();
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RUN_TEST): {
+            std::string fileName = boost::filesystem::path(request.arg_s).filename().string();
             if (!fileName.empty()) {
                 auto pos = fileName.find_first_of('.');
                 if (0 != pos) { // Can't start with '.'
@@ -353,9 +371,9 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
             }
             break;
         }
-        case (LpsSaWeighReqstChannel::Command::RECORD_TEST): {
-            if (request.arg.u > 0) {
-                testFixture_.recordTestPlan(tempRoot_ / "test" / "record.csv", std::chrono::seconds(request.arg.u));
+        case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RECORD_TEST): {
+            if (request.arg_u > 0) {
+                testFixture_.recordTestPlan(tempRoot_ / "test" / "record.csv", std::chrono::seconds(request.arg_u));
             }
             break;
         }
@@ -392,9 +410,30 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorage& request, bool success, const std::string& arg1) {
     // Build the response
-    LpsSaWeighRespChannel response; // Default timepoint is now
-    response.appName = request.appName;
-    response.appRequestId = request.appRequestId;
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; // Default timepoint is now
+    response.app_name = request.appName;
+    response.app_request_id = request.appRequestId;
+    response.command.value = static_cast<uint8_t>(request.command);
+    response.success = success;
+    response.arg1 = arg1;
+
+    /* send response SCS channel */
+    if (LpsSaWeighScsRespOut) {
+        if (LpsSaWeighScsRespOut->publish(response)) {
+            AIS_LOG_INFO("Published response, command=%d, success=%d", response.command.value , success);
+            return true;
+        }
+    }
+
+    AIS_LOG_ERROR("Failed to publish response, command=%d, success=%d", response.command.value , success);
+    return false;
+}
+
+bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1) {
+    // Build the response
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; // Default timepoint is now
+    response.app_name = request.app_name;
+    response.app_request_id = request.app_request_id;
     response.command = request.command;
     response.success = success;
     response.arg1 = arg1;
@@ -402,12 +441,12 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorag
     /* send response SCS channel */
     if (LpsSaWeighScsRespOut) {
         if (LpsSaWeighScsRespOut->publish(response)) {
-            AIS_LOG_INFO("Published response, command=%d, success=%d", response.command , success);
+            AIS_LOG_INFO("Published response, command=%d, success=%d", response.command.value , success);
             return true;
         }
     }
 
-    AIS_LOG_ERROR("Failed to publish response, command=%d, success=%d", response.command , success);
+    AIS_LOG_ERROR("Failed to publish response, command=%d, success=%d", response.command.value , success);
     return false;
 }
 

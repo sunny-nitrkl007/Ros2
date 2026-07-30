@@ -456,6 +456,7 @@ private:
 
     bool LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command command, bool success);
     bool LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorage& request, bool success, const std::string& arg1 = "");
+    bool LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1 = "");
     void LpsSaScsChkForReqst();
     LpsSaInitErrorType_t LpsSaInit(void);
     LpsSaUpdtErrorType_t LpsSaUpdt(void);
