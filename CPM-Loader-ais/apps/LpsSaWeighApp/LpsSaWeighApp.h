@@ -66,6 +66,36 @@ DESCRIPTION:
 
  #include <stdlib.h>
 
+#include <rclcpp/rclcpp.hpp>
+#include <ros_shim/RosInputInterface.h>
+#include <ros_shim/RosOutputInterface.h>
+
+#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
+
+#include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
+#include <job_mgr_interfaces/msg/ais_jhm2_tx_channel.hpp>
+#include <job_mgr_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
+#include <job_mgr_interfaces/msg/shm_clock_input.hpp>
+#include <job_mgr_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
+
+#include <weigh_app_interfaces/msg/ready_to_flash_status.hpp>
+#include <weigh_app_interfaces/msg/pwm_input_channels.hpp>
+#include <weigh_app_interfaces/msg/demo_app_tx_channel.hpp>
+#include <weigh_app_interfaces/msg/lps_sa_weigh_init_debug_channel.hpp>
+#include <weigh_app_interfaces/msg/lps_sa_weigh_debug_channel.hpp>
+#include <weigh_app_interfaces/msg/cal_mgr_cmd_reqst.hpp>
+#include <weigh_app_interfaces/msg/cal_mgr_cmd_resp.hpp>
+#include <weigh_app_interfaces/msg/lps_sa_nvm_cal_data_channel.hpp>
+#include <weigh_app_interfaces/msg/lps_sa_nvm_cal_on_the_fly_data_channel.hpp>
+#include <weigh_app_interfaces/msg/data_link_data.hpp>
+#include <weigh_app_interfaces/msg/part_numbers.hpp>
+#include <weigh_app_interfaces/msg/system_hardware_health.hpp>
+#include <weigh_app_interfaces/msg/system_hardware_health_request.hpp>
+#include <weigh_app_interfaces/msg/lps_sa_totals_printer_cnfg_interface.hpp>
+#include <weigh_app_interfaces/msg/machine.hpp>
 
 #ifndef __LPS_COMMON_TYPE_DEF_H__
 #include <LpsCommonTypeDef.h>
@@ -370,34 +400,46 @@ private:
         int32_t index;
     } tzInfo_;
 
+    // demoInputs_ and inPwm_ stay on their real, old types (not shims):
+    // both are read directly, via plain field access, by unchanged
+    // business-logic files (sa/LpsSaProcessInputs.cpp,
+    // adv/LpsAdvProcessInputs.cpp) that are not part of this migration's
+    // file scope. Confirmed via a real case-sensitivity mismatch
+    // (old field `angle_ABC_demo` vs the generated message's
+    // `angle_abc_demo`) that converting demoInputs_ would silently break
+    // those files.
     DemoAppTxChannel demoInputs_;
-    LpsSaWeighReqstChannelInput* LpsSaWeighScsReqstIn;
-    LpsSaWeighRespChannelOutput* LpsSaWeighScsRespOut;
-    LpsSaWeighTxChannelOutput* LpsSaWeighScsTxOut;
-    LpsSaJobMgrReqstChannelOutput* LpsSaJobMgrScsReqstOut;
-    ReadyToFlashStatusOutput *ReadyToFlashStatusOutput;
-    PwmInputChannelsInput* PwmIn;
-    LpsSaJobMgrTxChannelInput* LpsSaJobMgrScsTxIn;
-    DemoAppTxChannelInput* DemoAppTxIn;
-    AisJhm2TxChannelInput* AisJhm2TxInputScs;
-    AutonomyConditionDiagnosticsTxInterfaceInputChannel* AutonomyConditionDiagnosticsTxInputChannel;
-    MachineInput* MachineIn;
-    LpsSaWeighInitDebugChannelOutput* LpsSaWeighScsInitDebugOut;
-    LpsSaWeighDebugChannelOutput* LpsSaWeighScsDebugOut;
-    CalMgrCmdReqstInput* LpsCalCmdScsReqstIn;
-    CalMgrCmdRespOutput* LpsCalCmdScsRespOut;
-    LpsSaNvmCalDataChannelOutput* LpsNvmDumpChanOut;
-    LpsSaNvmCalOnTheFlyDataChannelOutput* LpsNvmOnTheFlyDumpChanOut;
-    DataLinkDataInput* DataLinkDataInput_;
-    PartNumbersInput* PartNumbersInput_;
-    SystemHardwareHealthInput* SystemHardwareHealthInput_;
-    SCSOutData<SystemHardwareHealthRequest> SystemHardwareHealthRequestOutput_;
-    LpsSaUIDisplayStateInterfaceInputChannel* displayStateInput_;
+
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
+    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
+    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
+    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>* LpsSaJobMgrScsReqstOut;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>* ReadyToFlashStatusOutput;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>* PwmIn;
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>* LpsSaJobMgrScsTxIn;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>* DemoAppTxIn;
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* AutonomyConditionDiagnosticsTxInputChannel;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::Machine>* MachineIn;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>* LpsSaWeighScsInitDebugOut;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>* LpsSaWeighScsDebugOut;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>* LpsCalCmdScsReqstIn;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>* LpsCalCmdScsRespOut;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>* LpsNvmDumpChanOut;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>* LpsNvmOnTheFlyDumpChanOut;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>* DataLinkDataInput_;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>* PartNumbersInput_;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealth>* SystemHardwareHealthInput_;
+    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>* SystemHardwareHealthRequestOutput_;
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
     // For receiving the current printer configuration
-    LpsSaTotalsPrinterCnfgInterfaceInputChannel* printerCnfgInput_;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface>* printerCnfgInput_;
 
-    ShmClockInput* shmClockInput_;
+    ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>* shmClockInput_;
+
+    rclcpp::Node::SharedPtr rosNode_;
+    rclcpp::executors::SingleThreadedExecutor executor_;
 
     bool LinkageCalInProgress;
 

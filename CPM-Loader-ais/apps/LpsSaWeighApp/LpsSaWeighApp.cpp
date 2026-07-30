@@ -137,10 +137,12 @@ LpsSaWeighApp::LpsSaWeighApp( const std::string& taskName ):
     DataLinkDataInput_(nullptr),
     PartNumbersInput_(nullptr),
     SystemHardwareHealthInput_(nullptr),
-    SystemHardwareHealthRequestOutput_(),
+    SystemHardwareHealthRequestOutput_(nullptr),
     displayStateInput_(nullptr),
     printerCnfgInput_(nullptr),
     shmClockInput_(nullptr),
+    rosNode_(nullptr),
+    executor_(),
     LinkageCalInProgress(false),
     audibleTriggered_(LpsSaWeighTxChannel::TONE_NONE),
     audibleTriggerTimepoint_(),
@@ -496,69 +498,86 @@ bool LpsSaWeighApp::initialize( )
      * Initialising SCS Channels
      */
 
-    ConfigSection cs;
-    if ( !getTaskParser().getSection("ScsRxTimeouts", cs) )
-    {
-        AIS_LOG_FATAL( "Couldn't find ScsRxTimeouts Config Section in rb file" );
-	    return false;
-    }
+    /* ROS2/DDS shim construction replaces InterfaceDb::bind()/
+       SCSOutData::initPublishInterface(). One shared node for the whole
+       app; every shim below just creates its own publisher/subscription
+       on it. Topic names are the original SCS channel name in
+       snake_case, minus the redundant Input/Output suffix -- and, for
+       the channels shared directly with JobMgr (LpsSaJobMgrReqstChannel,
+       LpsSaJobMgrTxChannel, AisJhm2TxChannel, AutonomyConditionDiagnostics
+       TxChannel, ShmClockInput), the exact same topic name JobMgr itself
+       uses, since these are the same live DDS topic on both sides. */
+    rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
+    executor_.add_node(rosNode_);
 
-    if (!SystemHardwareHealthRequestOutput_.initPublishInterface("SystemHardwareHealthRequestOutput", cs))
+    SystemHardwareHealthRequestOutput_ = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>(rosNode_, "system_hardware_health_request");
+    if (!SystemHardwareHealthRequestOutput_)
     {
         return false;
     }
-    
-    if (!task::InterfaceDb::bind("DisplayStateInput", displayStateInput_)) {
+
+    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
+    if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("PrinterCnfgInput", printerCnfgInput_)) {
+    printerCnfgInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface>(rosNode_, "printer_cnfg");
+    if (!printerCnfgInput_) {
         AIS_LOG_ERROR("No PrinterCnfgInput input channel defined.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("SystemHardwareHealthInput", SystemHardwareHealthInput_)) {
+    SystemHardwareHealthInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealth>(rosNode_, "system_hardware_health");
+    if (!SystemHardwareHealthInput_) {
         AIS_LOG_ERROR("No SystemHardwareHealthInput channel defined.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("PartNumbersInput", PartNumbersInput_)) {
+    PartNumbersInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>(rosNode_, "part_numbers");
+    if (!PartNumbersInput_) {
         AIS_LOG_ERROR("No Part Numbers input channel defined.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("DataLinkDataInput", DataLinkDataInput_)) {
+    DataLinkDataInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>(rosNode_, "weigh_app_data_link_data");
+    if (!DataLinkDataInput_) {
         AIS_LOG_ERROR("DataLinkDataInput interface not defined");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaJobMgrReqstChannelOutput", LpsSaJobMgrScsReqstOut)) {
+    LpsSaJobMgrScsReqstOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
+    if (!LpsSaJobMgrScsReqstOut) {
         AIS_LOG_ERROR("LpsSaJobMgrReqstChannelOutput interface not defined");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("ReadyToFlashStatusOutput", ReadyToFlashStatusOutput))
+    ReadyToFlashStatusOutput = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>(rosNode_, "ready_to_flash_status");
+    if (!ReadyToFlashStatusOutput)
     {
         return false;
     }
 
-    if (!task::InterfaceDb::bind("AutonomyConditionDiagnosticsTxChannelInput", AutonomyConditionDiagnosticsTxInputChannel)) {
+    AutonomyConditionDiagnosticsTxInputChannel = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
+    if (!AutonomyConditionDiagnosticsTxInputChannel) {
         AIS_LOG_ERROR("AutonomyConditionDiagnosticsTxChannelInput interface not defined");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaWeighTxChannelOutput", LpsSaWeighScsTxOut)) {
+    LpsSaWeighScsTxOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+    if (!LpsSaWeighScsTxOut) {
          AIS_LOG_ERROR("Interface LpsSaWeighTxChannelOutput not configured.");
          return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaWeighRespChannelOutput", LpsSaWeighScsRespOut)) {
+    LpsSaWeighScsRespOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+    if (!LpsSaWeighScsRespOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighRespChannelOutput not configured.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaWeighInitDebugChannelOutput", LpsSaWeighScsInitDebugOut)) {
+    LpsSaWeighScsInitDebugOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>(rosNode_, "lps_sa_weigh_init_debug_channel");
+    if (!LpsSaWeighScsInitDebugOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighInitDebugChannelOutput not configured.");
         return false;
     }
@@ -566,43 +585,51 @@ bool LpsSaWeighApp::initialize( )
         LpsSaWeighScsInitDebugTx();
     }
 
-    if (!task::InterfaceDb::bind("LpsSaWeighDebugChannelOutput", LpsSaWeighScsDebugOut)) {
+    LpsSaWeighScsDebugOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>(rosNode_, "lps_sa_weigh_debug_channel");
+    if (!LpsSaWeighScsDebugOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighDebugChannelOutput not configured.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaWeighReqstChannelInput", LpsSaWeighScsReqstIn)) {
+    LpsSaWeighScsReqstIn = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+    if (!LpsSaWeighScsReqstIn) {
         //LpsSaWeighScsReqstIn->addNewDataSlot(boost::bind(&LpsSaWeighApp::LpsSaWeighReqstRead, this ) );
         AIS_LOG_ERROR("Interface LpsSaWeighReqstChannelInput not configured.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("PwmInputChannelsInput", PwmIn)) {
+    PwmIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>(rosNode_, "pwm_input_channels");
+    if (!PwmIn) {
          AIS_LOG_ERROR("Interface PwmInputChannelsInput not configured.");
          return false;
     }
 
-    if (!task::InterfaceDb::bind("MachineInput", MachineIn)) {
+    MachineIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::Machine>(rosNode_, "machine");
+    if (!MachineIn) {
          AIS_LOG_ERROR("Interface MachineInput not configured.");
          return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaJobMgrTxChannelInput", LpsSaJobMgrScsTxIn)) {
+    LpsSaJobMgrScsTxIn = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
+    if (!LpsSaJobMgrScsTxIn) {
          AIS_LOG_ERROR("Interface LpsSaJobMgrTxChannelInput not configured.");
          return false;
     }
 
-    if (!task::InterfaceDb::bind("DemoAppTxChannelInput", DemoAppTxIn)) {
+    DemoAppTxIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>(rosNode_, "demo_app_tx_channel");
+    if (!DemoAppTxIn) {
         AIS_LOG_ERROR("DemoAppTxChannelInput interface not configured");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("AisJhm2TxChannelInput", AisJhm2TxInputScs)) {
+    AisJhm2TxInputScs = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+    if (!AisJhm2TxInputScs) {
         AIS_LOG_ERROR("Interface AisJhm2TxChannelInput not configured.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("CalMgrCmdReqstInput", LpsCalCmdScsReqstIn)) {
+    LpsCalCmdScsReqstIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>(rosNode_, "cal_mgr_cmd_reqst");
+    if (!LpsCalCmdScsReqstIn) {
         AIS_LOG_ERROR("Interface CalMgrCmdReqstInput not configured.");
         return false;
     }
@@ -610,21 +637,25 @@ bool LpsSaWeighApp::initialize( )
         LpsCalCmdScsReqstIn->addNewDataSlot(boost::bind(&LpsSaWeighApp::LpsSaWeighCalReqstCallback, this));
     }
 
-    if (!task::InterfaceDb::bind("CalMgrCmdRespOutput", LpsCalCmdScsRespOut)) {
+    LpsCalCmdScsRespOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>(rosNode_, "cal_mgr_cmd_resp");
+    if (!LpsCalCmdScsRespOut) {
         AIS_LOG_ERROR("Interface CalMgrCmdRespOutput not configured.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("ShmClockInput", shmClockInput_)) {
+    shmClockInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    if (!shmClockInput_) {
         AIS_LOG_ERROR("No ShmClockInput input channel defined.");
         return false;
     }
 
-    if (!task::InterfaceDb::bind("LpsSaNvmCalDataChannelOutput", LpsNvmDumpChanOut)) {
+    LpsNvmDumpChanOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>(rosNode_, "lps_sa_nvm_cal_data_channel");
+    if (!LpsNvmDumpChanOut) {
         AIS_LOG_ERROR("Interface LpsSaNvmCalDataChannelOutput not configured.");
     }
 
-    if (!task::InterfaceDb::bind("LpsSaNvmCalOnTheFlyDataChannelOutput", LpsNvmOnTheFlyDumpChanOut)) {
+    LpsNvmOnTheFlyDumpChanOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>(rosNode_, "lps_sa_nvm_cal_on_the_fly_data_channel");
+    if (!LpsNvmOnTheFlyDumpChanOut) {
         AIS_LOG_ERROR("Interface LpsSaNvmCalOnTheFlyDataChannelOutput not configured.");
     }
 
@@ -665,25 +696,25 @@ bool LpsSaWeighApp::executive( )
         If we did, we need to create new 
           appdata/CPM/debug/product_id.txt file */
     if (nullptr != PartNumbersInput_) {
-        PartNumbers partNumbers;
+        weigh_app_interfaces::msg::PartNumbers partNumbers;
 
         while (PartNumbersInput_->get(partNumbers)) {
-            /* We receive new ProductID */  
-            if (partNumbers.IsProductIdValid()) {
-                std::string productId = partNumbers.GetProductIdNum();
+            /* We receive new ProductID */
+            if (partNumbers.product_id_valid) {
+                std::string productId = partNumbers.product_id_num;
                 if (sealTracker_.reportProductId(productId)) {
                     // If it changed, write the product id log file
                     logWeighProductIdFile(productId);
                 }
             }
 
-            if (partNumbers.IsSwGroupPartNumSet()) {
-                std::string softwarePartNum = partNumbers.GetSwGroupPartNum();
+            if (partNumbers.sw_group_part_num_set) {
+                std::string softwarePartNum = partNumbers.sw_group_part_num;
                 sealTracker_.reportSoftwarePartNumber(softwarePartNum);
             }
 
-            if (partNumbers.IsEquipmentIdSet()) {
-                std::string equipmentId = partNumbers.GetEquipmentId();
+            if (partNumbers.equipment_id_set) {
+                std::string equipmentId = partNumbers.equipment_id;
                 sealTracker_.reportEquipmentId(equipmentId);
             }
         }
@@ -727,15 +758,15 @@ bool LpsSaWeighApp::executive( )
 
 void LpsSaWeighApp::flashEnablerUpdate() {
 
-    ReadyToFlashStatus m_readyToFlashStatus;
-    m_readyToFlashStatus.readyCode = APP_READY_CODE_OK_TO_FLASH;
-    m_readyToFlashStatus.hostName = getHostName();
-    m_readyToFlashStatus.taskName = getTaskName();
+    weigh_app_interfaces::msg::ReadyToFlashStatus m_readyToFlashStatus;
+    m_readyToFlashStatus.ready_code = weigh_app_interfaces::msg::ReadyToFlashStatus::APP_READY_CODE_OK_TO_FLASH;
+    m_readyToFlashStatus.host_name = getHostName();
+    m_readyToFlashStatus.task_name = getTaskName();
 
     // if lft is installed and sealed and flash is disabled, then disable flash
     if (payloadCalNvmTbl_.legalForTradeInstalled && sealTracker_.isSealed() &&
             !cnfg_.flashEnabled) {
-        m_readyToFlashStatus.readyCode = (rpa_application_ready_code_t)APP_READY_CODE_PAYLOAL_LEGAL_FOR_TRADE_IS_SEALED;
+        m_readyToFlashStatus.ready_code = weigh_app_interfaces::msg::ReadyToFlashStatus::APP_READY_CODE_PAYLOAL_LEGAL_FOR_TRADE_IS_SEALED;
     }
     else {
         // allow flash
@@ -910,25 +941,26 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaWeighApp::LpsSaWeighCalReqstCallback()
 {
-    CalMgrCmdReqst calMgrCmdReq;
+    weigh_app_interfaces::msg::CalMgrCmdReqst calMgrCmdReq;
 
     while (LpsCalCmdScsReqstIn->get(calMgrCmdReq)) {
-        if (calMgrCmdReq.CalibrationRequest.CalibrationReqstFlag) {
-            uint16_t calId = calMgrCmdReq.CalibrationRequest.Cal_id;
-            CAL_MGR_MC_E calCmd = calMgrCmdReq.CalibrationRequest.Calcmd;
+        if (calMgrCmdReq.calibration_request.calibration_reqst_flag) {
+            uint16_t calId = calMgrCmdReq.calibration_request.cal_id;
+            CAL_MGR_MC_E calCmd = static_cast<CAL_MGR_MC_E>(calMgrCmdReq.calibration_request.calcmd);
 
             AIS_LOG_DEBUG("CalibrationRequest - id %d, cmd %d", calId, calCmd);
 
-            CalMgrCmdResp calMgrCmdResp;
+            weigh_app_interfaces::msg::CalMgrCmdResp calMgrCmdResp;
             CAL_MGR_MR_E calResp = CAL_MGR_MR_FAIL;
 
-            LpsSaNvmCalOnTheFlyDataChannel calOtfData;
+            weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel calOtfData;
 
             { // This is protected with the calibration library mutex
                 std::lock_guard<std::mutex> lck(calLibMtx_);
 
                 // Update the cal_iterm
-                memcpy(cal_iterm, calMgrCmdReq.CalibrationRequest.CalIterm, sizeof(calMgrCmdReq.CalibrationRequest.CalIterm));
+                memcpy(cal_iterm, calMgrCmdReq.calibration_request.cal_iterm.data(),
+                        std::min(sizeof(cal_iterm), calMgrCmdReq.calibration_request.cal_iterm.size() * sizeof(uint32_t)));
 
                 // Update calibration
                 switch (calId) {
@@ -981,70 +1013,88 @@ void LpsSaWeighApp::LpsSaWeighCalReqstCallback()
                 }
 
                 // Build the response
-                calMgrCmdResp.CalibrationResp.RespCode = LPS_SA_CAL_SUCCESS;
-                calMgrCmdResp.CalibrationResp.CalResp = calResp;
-                calMgrCmdResp.CalibrationResp.error = LpsSaWeighInfoTbl.error;
-                calMgrCmdResp.CalibrationResp.stepNo = LpsSaWeighInfoTbl.stepNo;
-                calMgrCmdResp.CalibrationResp.warning = LpsSaWeighInfoTbl.warning;
-                calMgrCmdResp.CalibrationResp.EnableQualRead = LpsCalGetQualReadStatus();
+                calMgrCmdResp.calibration_resp.resp_code = static_cast<uint8_t>(LPS_SA_CAL_SUCCESS);
+                calMgrCmdResp.calibration_resp.cal_resp = static_cast<uint8_t>(calResp);
+                calMgrCmdResp.calibration_resp.error = LpsSaWeighInfoTbl.error;
+                calMgrCmdResp.calibration_resp.step_no = LpsSaWeighInfoTbl.stepNo;
+                calMgrCmdResp.calibration_resp.warning = LpsSaWeighInfoTbl.warning;
+                calMgrCmdResp.calibration_resp.enable_qual_read = LpsCalGetQualReadStatus();
 
                 // Build the cal OTF data
                 LpsCalStatus_t calStatusFlags;
                 LpsCalGetCalStatus(&calStatusFlags);
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.statusFlags.CalInProgress = calStatusFlags.CalInProgress;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.statusFlags.EmptyBktCalDone = calStatusFlags.EmptyBktCalDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.statusFlags.FullBktCalDone = calStatusFlags.FullBktCalDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.status_flags.cal_in_progress = calStatusFlags.CalInProgress;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.status_flags.empty_bkt_cal_done = calStatusFlags.EmptyBktCalDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.status_flags.full_bkt_cal_done = calStatusFlags.FullBktCalDone;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftHePres_Stat = weighUpdtTbl.LiftCylHePres.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftRePres_Stat = weighUpdtTbl.LiftCylRePres.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftCylLengthNorm_Stat = weighUpdtTbl.LiftCylLengthNorm.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.HydOilTemp_Stat = weighUpdtTbl.HydOilTemp.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftCylVel_Stat = weighUpdtTbl.LiftCylVel.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.TiltCylLengthNorm_Stat = weighUpdtTbl.TiltCylLengthNorm.Stat;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.BktAngle_Stat = weighUpdtTbl.BktAngle.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_he_pres_stat = weighUpdtTbl.LiftCylHePres.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_re_pres_stat = weighUpdtTbl.LiftCylRePres.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_cyl_length_norm_stat = weighUpdtTbl.LiftCylLengthNorm.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.hyd_oil_temp_stat = weighUpdtTbl.HydOilTemp.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_cyl_vel_stat = weighUpdtTbl.LiftCylVel.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.tilt_cyl_length_norm_stat = weighUpdtTbl.TiltCylLengthNorm.Stat;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.bkt_angle_stat = weighUpdtTbl.BktAngle.Stat;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.HydOilTempMet = LpsCalWrkTbl.CurveFitInfo.HydOilTempMet;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.EnforceRaiseDetent = LpsCalWrkTbl.CurveFitInfo.EnforceRaiseDetent;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.EnforceLowerDetent = LpsCalWrkTbl.CurveFitInfo.EnforceLowerDetent;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.RaiseFastVelDone = LpsCalWrkTbl.CurveFitInfo.RaiseFastVelDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.RaiseSlowFitDone = LpsCalWrkTbl.CurveFitInfo.RaiseSlowFitDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.RaiseFastFitDone = LpsCalWrkTbl.CurveFitInfo.RaiseFastFitDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.LowerSlowFitDone = LpsCalWrkTbl.CurveFitInfo.LowerSlowFitDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.LowerSlowFitDone = LpsCalWrkTbl.CurveFitInfo.LowerSlowFitDone;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.InternalStep = LpsCalWrkTbl.CurveFitInfo.InternalStep;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.RaiseNumPoints = LpsCalWrkTbl.CurveFitInfo.LpsCalRaiseCurveFitData.TotalNumPoints;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.LowerNumPoints = LpsCalWrkTbl.CurveFitInfo.LpsCalLowerCurveFitData.TotalNumPoints;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.hyd_oil_temp_met = LpsCalWrkTbl.CurveFitInfo.HydOilTempMet;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.enforce_raise_detent = LpsCalWrkTbl.CurveFitInfo.EnforceRaiseDetent;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.enforce_lower_detent = LpsCalWrkTbl.CurveFitInfo.EnforceLowerDetent;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.raise_fast_vel_done = LpsCalWrkTbl.CurveFitInfo.RaiseFastVelDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.raise_slow_fit_done = LpsCalWrkTbl.CurveFitInfo.RaiseSlowFitDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.raise_fast_fit_done = LpsCalWrkTbl.CurveFitInfo.RaiseFastFitDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.lower_slow_fit_done = LpsCalWrkTbl.CurveFitInfo.LowerSlowFitDone;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.internal_step = LpsCalWrkTbl.CurveFitInfo.InternalStep;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.raise_num_points = LpsCalWrkTbl.CurveFitInfo.LpsCalRaiseCurveFitData.TotalNumPoints;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.lower_num_points = LpsCalWrkTbl.CurveFitInfo.LpsCalLowerCurveFitData.TotalNumPoints;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curveInfo.IMUCalResults = LpsCalWrkTbl.CurveFitInfo.LpsCalIMUResultsData;
+                { // LpsCalIMUResults_t -> weigh_app_interfaces::msg::LpsCalIMUResults, field-by-field (different types now)
+                    const LpsCalIMUResults_t& src = LpsCalWrkTbl.CurveFitInfo.LpsCalIMUResultsData;
+                    auto& dst = calOtfData.lps_sa_nvm_calibration_data_on_the_fly.curve_info.imu_cal_results;
+                    dst.full_slow_imu_offset_temp1 = src.FullSlowImuOffsetTemp1;
+                    dst.full_slow_imu_offset_temp2 = src.FullSlowImuOffsetTemp2;
+                    dst.full_slow_imu_offset_temp3 = src.FullSlowImuOffsetTemp3;
+                    dst.full_slow_lumped_weight_temp1 = src.FullSlowLumpedWeightTemp1;
+                    dst.full_slow_lumped_weight_temp2 = src.FullSlowLumpedWeightTemp2;
+                    dst.full_slow_lumped_weight_temp3 = src.FullSlowLumpedWeightTemp3;
+                    dst.empty_slow_imu_offset_temp1 = src.EmptySlowImuOffsetTemp1;
+                    dst.empty_slow_imu_offset_temp2 = src.EmptySlowImuOffsetTemp2;
+                    dst.empty_slow_imu_offset_temp3 = src.EmptySlowImuOffsetTemp3;
+                    dst.empty_slow_lumped_weight_temp1 = src.EmptySlowLumpedWeightTemp1;
+                    dst.empty_slow_lumped_weight_temp2 = src.EmptySlowLumpedWeightTemp2;
+                    dst.empty_slow_lumped_weight_temp3 = src.EmptySlowLumpedWeightTemp3;
+                    dst.full_slow_imu_offset_final = src.FullSlowImuOffsetFinal;
+                    dst.empty_slow_imu_offset_final = src.EmptySlowImuOffsetFinal;
+                    dst.full_slow_lumped_weight_final = src.FullSlowLumpedWeightFinal;
+                    dst.empty_slow_lumped_weight_final = src.EmptySlowLumpedWeightFinal;
+                }
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftLeverInfo_LeverInfoAvailable = LpsCalWrkTbl.Update.LiftLeverInfo.LeverInfoAvailable;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calUpdates.LiftLeverInfo_Faulted = LpsCalWrkTbl.Update.LiftLeverInfo.Faulted;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_lever_info_lever_info_available = LpsCalWrkTbl.Update.LiftLeverInfo.LeverInfoAvailable;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_updates.lift_lever_info_faulted = LpsCalWrkTbl.Update.LiftLeverInfo.Faulted;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LpsCalOvrState = LpsCalWrkTbl.Ov.LpsCalOvrState;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftBottomFlag = LpsCalWrkTbl.Ov.LiftBottomFlag;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftTopFlag = LpsCalWrkTbl.Ov.LiftTopFlag;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LpsCalAppInfCalOvrActive = LpsCalWrkTbl.Ov.LpsCalAppInfCalOvrActive;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LpsCalAppInfLowerCmdLmt = LpsCalWrkTbl.Ov.LpsCalAppInfLowerCmdLmt;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LpsCalAppInfRaiseCmdLmt = LpsCalWrkTbl.Ov.LpsCalAppInfRaiseCmdLmt;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lps_cal_ovr_state = LpsCalWrkTbl.Ov.LpsCalOvrState;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_bottom_flag = LpsCalWrkTbl.Ov.LiftBottomFlag;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_top_flag = LpsCalWrkTbl.Ov.LiftTopFlag;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lps_cal_app_inf_cal_ovr_active = LpsCalWrkTbl.Ov.LpsCalAppInfCalOvrActive;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lps_cal_app_inf_lower_cmd_lmt = LpsCalWrkTbl.Ov.LpsCalAppInfLowerCmdLmt;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lps_cal_app_inf_raise_cmd_lmt = LpsCalWrkTbl.Ov.LpsCalAppInfRaiseCmdLmt;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftFaulted = LpsSaWeighInfoTbl.LiftLeverInfo.Faulted;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftInCenter = LpsSaWeighInfoTbl.LiftLeverInfo.InCenter;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftInLowerDetent = LpsSaWeighInfoTbl.LiftLeverInfo.InLowerDetent;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftInRaiseDetent = LpsSaWeighInfoTbl.LiftLeverInfo.InRaiseDetent;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.LiftValveCmdPercent = LpsSaWeighInfoTbl.LiftLeverInfo.ValveCmdPercent;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_faulted = LpsSaWeighInfoTbl.LiftLeverInfo.Faulted;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_in_center = LpsSaWeighInfoTbl.LiftLeverInfo.InCenter;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_in_lower_detent = LpsSaWeighInfoTbl.LiftLeverInfo.InLowerDetent;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_in_raise_detent = LpsSaWeighInfoTbl.LiftLeverInfo.InRaiseDetent;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.lift_valve_cmd_percent = LpsSaWeighInfoTbl.LiftLeverInfo.ValveCmdPercent;
 
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.CalOvrAcknowledge = LpsCalWrkTbl.Update.CalOvrAcknowledge;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.cal_ovr_acknowledge = LpsCalWrkTbl.Update.CalOvrAcknowledge;
 
                 /* tilt overrides */
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.CalTiltOverrideComplete = LpsCalWrkTbl.Info.CalTiltOverrideComplete;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.CalTiltOverrideFail = LpsCalWrkTbl.Info.CalTiltOverrideFail;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.CountOfSamples = LpsCalWrkTbl.Ov.LpsCalTiltOv.CountOfSamples;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.DesiredTiltExtmm = LpsCalWrkTbl.Ov.LpsCalTiltOv.DesiredTiltExtmm;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.LpsCalTiltOvrStartRequest = LpsCalWrkTbl.Ov.LpsCalTiltOv.LpsCalTiltOvrStartRequest;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.LpsCalTiltOvrState = LpsCalWrkTbl.Ov.LpsCalTiltOv.LpsCalTiltOvrState;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.TiltDumpCmdOvr = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltDumpCmdOvr;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.TiltNoiseMax = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltNoiseMax;
-                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.calOverrides.TiltOverrides.TiltNoiseMin = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltNoiseMin;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.cal_tilt_override_complete = LpsCalWrkTbl.Info.CalTiltOverrideComplete;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.cal_tilt_override_fail = LpsCalWrkTbl.Info.CalTiltOverrideFail;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.count_of_samples = LpsCalWrkTbl.Ov.LpsCalTiltOv.CountOfSamples;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.desired_tilt_extmm = LpsCalWrkTbl.Ov.LpsCalTiltOv.DesiredTiltExtmm;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.lps_cal_tilt_ovr_start_request = LpsCalWrkTbl.Ov.LpsCalTiltOv.LpsCalTiltOvrStartRequest;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.lps_cal_tilt_ovr_state = LpsCalWrkTbl.Ov.LpsCalTiltOv.LpsCalTiltOvrState;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.tilt_dump_cmd_ovr = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltDumpCmdOvr;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.tilt_noise_max = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltNoiseMax;
+                calOtfData.lps_sa_nvm_calibration_data_on_the_fly.cal_overrides.tilt_overrides.tilt_noise_min = LpsCalWrkTbl.Ov.LpsCalTiltOv.TiltNoiseMin;
 
             }
 

@@ -5,4 +5,4 @@
 bool calibration_reqst_flag
 uint16 cal_id
 uint8 calcmd
-uint8[] cal_iterm
+uint32[] cal_iterm
