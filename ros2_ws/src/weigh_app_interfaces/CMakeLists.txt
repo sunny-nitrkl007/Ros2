@@ -36,6 +36,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PwmInputChannels.msg"
   # MachineInput (channel 9)
   "msg/Machine.msg"
+  # DemoAppTxChannelInput (channel 10)
+  "msg/DemoAppTxChannel.msg"
+  # CalMgrCmdReqstInput (channel 11)
+  "msg/CalMgrCalibrationRequest.msg"
+  "msg/CalMgrCmdReqst.msg"
+  # CalMgrCmdRespOutput (channel 12)
+  "msg/CalMgrCalibrationResp.msg"
+  "msg/CalMgrCmdResp.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 
