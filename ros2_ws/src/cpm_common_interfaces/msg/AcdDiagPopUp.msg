@@ -1,7 +1,6 @@
-# Wire equivalent of ACDDiagPopUp::type (std::bitset<32>).
-# Source: LpsSaWeighTxChannel.h:90-128 -- bit positions fully verified
-# (locally defined, sequential from 8, not blocked).
-# Carried as uint32, each constant holds the bit INDEX, not a bitmask.
+################################################################################
+# ACDDiagPopUp::type
+################################################################################
 
 uint8 TILT_RE_FREQ_ABNORMAL=8
 uint8 TILT_RE_VOLTAGE_BELOW_NORMAL=9

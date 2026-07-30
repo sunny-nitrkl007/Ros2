@@ -1,15 +1,6 @@
-# Wire equivalent of LpsSaJobMgrReqstChannelStorage::Command.
-# Source: LpsSaJobMgrReqstChannel.h:90-129 -- values verified, plain
-# sequential enum class, 0..37 in declaration order, no explicit values in
-# source.
-#
-# NOT the same enum as LpsSaJobMgrReqst's own `command` field -- that's the
-# separate, smaller LpsSaJobMgrReqstCommand (11 values), inlined directly in
-# LpsSaJobMgrReqst.msg since it hasn't been seen reused elsewhere.
-#
-# Shared by LpsSaJobMgrReqstChannel.msg (command) and LpsSaJobMgrRespChannel.msg
-# (command, via LpsSaJobMgrReqstChannel::Command in LpsSaJobMgrRespChannel.h:21)
-# -- do not duplicate locally.
+################################################################################
+# LpsSaJobMgrReqstChannelStorage::Command
+################################################################################
 
 uint8 NONE=0
 uint8 ZERO=1

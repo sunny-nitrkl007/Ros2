@@ -1,11 +1,6 @@
-# Wire equivalent of LpsSaLoadRecordSubtotal.
-# Source: LpsSaLoadRecordChannel/LpsSaLoadRecordSubtotal.h:79-343
-# Field presence cross-checked against its own serialize() (lines 269-307)
-# at current version 4 -- all fields present.
-#
-# `accuracy_` reuses WeighBktWtAccuracy (cpm_common_interfaces) -- same type
-# already used by LpsSaJobMgrTxChannel.msg, confirmed via
-# LpsSaLoadRecordSubtotal.h:314 `mutable LpsWeighBktWtAccuracy_t accuracy_;`
+################################################################################
+# LpsSaLoadRecordSubtotal
+################################################################################
 
 LoadRecordTimeStamp start_time
 LoadRecordTimeStamp end_time

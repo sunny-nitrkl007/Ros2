@@ -1,5 +1,6 @@
-# Wire equivalent of AisJhm2TxChannelStorage::tipoff_weight_adjust_data_t.
-# Source: AisJhm2TxChannel.h:21-28
+################################################################################
+# AisJhm2TxChannelStorage::tipoff_weight_adjust_data_t
+################################################################################
 
 float32 tip_off_weight1
 float32 weigh_range_weight1

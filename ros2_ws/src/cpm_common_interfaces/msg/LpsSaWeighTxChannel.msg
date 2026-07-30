@@ -1,33 +1,30 @@
-# Wire equivalent of LpsSaWeighTxChannelStorage (published by WeighApp as
-# LpsSaWeighTxChannelOutput; consumed by JobMgr as LpsSaWeighTxChannelInput,
-# live call site LpsSaJobMgrScs.cpp:849 via weighAppInf_.waitForTxData()).
-# Source: CPM-Loader-ais/prod/common/interfaces/LpsSaWeighTxChannel/LpsSaWeighTxChannel.h
-#
-# DIRECT DDS CHANNEL (Development-Plan.txt Step 6.1.3): WeighApp -> JobMgr,
-# no Bridge involved.
-#
-# Field presence cross-checked against serialize() (LpsSaWeighTxChannel.h:429-563)
-# -- every declared field is archived, including ImplementSerialNum which is
-# serialized separately at the very end (line 562), easy to miss.
-#
-# `timePoint` IS live -- LpsSaWeighAppInf.hpp:270,289 compares this against
-# LpsSaWeighRespChannel's timePoint for response/tx freshness correlation.
-# Same int64-nanosecond representation as the other timePoint fields.
-#
-# 6 fields (dig_stat, cal_stat, dump_stat, indicator, and the two nested
-# FloatIO/LiftPosition/TiltPosition/Payload `status` fields) reference types
-# from the missing LpsPublic.h -- BLOCKED, carried as raw ints with no named
-# constants. See FloatIO.msg for the full explanation; same reasoning here,
-# not repeated per-field.
-#
-# ToaAnchorStatus_t and TestStatus_t (below) ARE locally defined in this same
-# header (LpsSaWeighTxChannel.h:214-238) -- values fully verified, not blocked.
+################################################################################
+# ToaAnchorStatus_t
+################################################################################
+
+uint8 TOA_ANCHOR_UNCHANGED=0
+uint8 TOA_ANCHOR_RESET=1
+uint8 TOA_ANCHOR_ACCEPTED=2
+uint8 TOA_ANCHOR_REJECTED=3
+
+################################################################################
+# TestStatus_t
+################################################################################
+
+uint8 TEST_INACTIVE=0
+uint8 TEST_TESTING=1
+uint8 TEST_RECORDING=2
+uint8 TEST_FAILED=3
+
+################################################################################
+# LpsSaWeighTxChannelStorage
+################################################################################
 
 int64 time_point_ns
 
-int32 dig_stat    # LpsWeighBktDigStat_t -- blocked
-int32 cal_stat    # LpsWeighCalStatus_t -- blocked
-int32 dump_stat   # LpsWeighBktDumpStat_t -- blocked
+int32 dig_stat
+int32 cal_stat
+int32 dump_stat
 
 float32 best_bkt_wt_in_tonnes
 uint16 warmup_lifts_required
@@ -54,7 +51,7 @@ FloatIO lift_cyl_vel
 TiltPosition tilt_position
 
 WeighRange weigh_range
-int32 indicator   # LpsWeighRangeIndicator_t -- blocked
+int32 indicator
 float32 cal_wt
 bool lift_stalled
 
@@ -79,21 +76,7 @@ bool can11_message_timeout_flag
 
 float32 toa_anchored_zero_offset
 float32 toa_anchored_factor
-
-# ToaAnchorStatus_t (LpsSaWeighTxChannel.h:214-219) -- values verified,
-# plain sequential enum, locally defined, not blocked.
-uint8 TOA_ANCHOR_UNCHANGED=0
-uint8 TOA_ANCHOR_RESET=1
-uint8 TOA_ANCHOR_ACCEPTED=2
-uint8 TOA_ANCHOR_REJECTED=3
 uint8 toa_anchor_status
 
 bool payload_cal_in_progress
-
-# TestStatus_t (LpsSaWeighTxChannel.h:233-238) -- values verified, plain
-# sequential enum, locally defined, not blocked.
-uint8 TEST_INACTIVE=0
-uint8 TEST_TESTING=1
-uint8 TEST_RECORDING=2
-uint8 TEST_FAILED=3
 uint8 test_status

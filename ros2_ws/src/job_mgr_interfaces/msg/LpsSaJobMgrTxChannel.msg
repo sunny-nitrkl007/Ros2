@@ -1,25 +1,52 @@
+################################################################################
+# LpsSaJobMgrManualTipOffState_t
+################################################################################
 
-# CORRECTION: `timePoint` is NOT dead. Earlier claim of a repo-wide check was
-# inaccurate -- only apps/LpsSaJobMgrApp was actually searched. Real usage
-# found in prod/common/interfaces/LpsSaJobMgrReqstChannel/LpsSaJobMgrRequestHelper.hpp
-# (used by AisJhm2RequestProcessor, the UI backend): `txData_.timePoint` is
-# compared against `nextTxTimePoint_` to detect whether fresh Tx data has
-# arrived reflecting the most recent request (lines 172, 254, 273) -- a
-# live request/response freshness-correlation mechanism, not dead weight.
-#
-# Wire representation: int64 nanosecond count from std::chrono::steady_clock
-# (glibc backs this with CLOCK_MONOTONIC, safely comparable across processes
-# on the same machine, which is what today's SCS-based comparison already
-# relies on). This is NOT wall-clock time -- do not interpret as calendar
-# time, only compare against other time_point_ns values from this same
-# channel family.
+uint8 MAN_TIP_OFF_AVAILABLE=0
+uint8 MAN_TIP_OFF_UNAVAILABLE=1
+uint8 MAN_TIP_OFF_ACTIVE=2
+uint8 MAN_TIP_OFF_INACTIVE=3
+
+################################################################################
+# LpsSaJobMgrOperationMode_t
+################################################################################
+
+uint16 OP_MODE_UNCALIBRATED=838
+uint16 OP_MODE_WEIGH=9
+uint16 OP_MODE_STANDBY=175
+uint16 OP_MODE_EXCESS=846
+
+################################################################################
+# LpsSaJobMgrClearMinusOneEnableStat_t
+################################################################################
+
+uint8 CLEAR_BTN_ENABLED=0
+uint8 MINUS_ONE_BTN_ENABLED=1
+
+################################################################################
+# ReqPloadCtrlSysStat_t
+################################################################################
+
+uint16 CTRL_STAT_NONE=58
+uint16 CTRL_STAT_CLEAR=551
+uint16 CTRL_STAT_REWEIGH=763
+uint16 CTRL_STAT_ZERO=862
+uint16 CTRL_STAT_STORE=863
+uint16 CTRL_STAT_TIPOFFTOGGLE=1438
+uint16 CTRL_STAT_MINUS_ONE=1584
+
+################################################################################
+# StorePloadHornStat_t
+################################################################################
+
+uint16 HORN_SOUND=794
+uint16 HORN_NOT_SOUND=795
+
+################################################################################
+# LpsSaJobMgrTxChannelStorage
+################################################################################
+
 int64 time_point_ns
-
-# WeighBktWtAccuracy, TipOffTriggerType, TipOffState, StandbyState now live in
-# cpm_common_interfaces (moved out of this package): each is used directly by
-# WeighApp's own code too, not just via a JobMgr channel struct -- see each
-# type's own file header in cpm_common_interfaces/msg/ for the specific
-# evidence that justified the move.
 
 uint8 task_number
 uint16 pass_count
@@ -56,33 +83,12 @@ bool tag4_enabled
 string custom_list_name4
 string tag4
 
-# LpsSaJobMgrManualTipOffState_t (LpsSaJobMgrTxChannel.h:32-38) 
-uint8 MAN_TIP_OFF_AVAILABLE=0
-uint8 MAN_TIP_OFF_UNAVAILABLE=1
-uint8 MAN_TIP_OFF_ACTIVE=2
-uint8 MAN_TIP_OFF_INACTIVE=3
 uint8 manual_tip_off_state
-
 cpm_common_interfaces/TipOffTriggerType tip_off_trigger_type
-
-# Shared by tip_off_state and tip_off_state_cfg below (same C++ type used for
-# both fields in the original LpsSaJobMgrTxChannelStorage).
 cpm_common_interfaces/TipOffState tip_off_state
 cpm_common_interfaces/TipOffState tip_off_state_cfg
-
-# LpsSaJobMgrOperationMode_t (LpsSaJobMgrTxChannel.h:40-48) ,
-# note >255 so uint16 not uint8
-uint16 OP_MODE_UNCALIBRATED=838
-uint16 OP_MODE_WEIGH=9
-uint16 OP_MODE_STANDBY=175
-uint16 OP_MODE_EXCESS=846
 uint16 operation_mode
-
 cpm_common_interfaces/StandbyState standby_state
-
-# LpsSaJobMgrClearMinusOneEnableStat_t (LpsSaJobMgrTxChannel.h:56-60) 
-uint8 CLEAR_BTN_ENABLED=0
-uint8 MINUS_ONE_BTN_ENABLED=1
 uint8 clear_minus_one_enable_stat
 
 DispBestBktWt disp_best_bkt_wt
@@ -91,19 +97,7 @@ SimpleCalData[] simple_cal_data
 uint32 store_count
 bool store_rejected
 
-# ReqPloadCtrlSysStat_t (LpsSaJobMgrTxChannel.h:82-91) , uint16
-uint16 CTRL_STAT_NONE=58
-uint16 CTRL_STAT_CLEAR=551
-uint16 CTRL_STAT_REWEIGH=763
-uint16 CTRL_STAT_ZERO=862
-uint16 CTRL_STAT_STORE=863
-uint16 CTRL_STAT_TIPOFFTOGGLE=1438
-uint16 CTRL_STAT_MINUS_ONE=1584
 uint16 req_pload_ctrl_sys_stat
-
-# StorePloadHornStat_t (LpsSaJobMgrTxChannel.h:102-106) , uint16
-uint16 HORN_SOUND=794
-uint16 HORN_NOT_SOUND=795
 uint16 horn_store_state
 
 uint16 auto_store_pass_count

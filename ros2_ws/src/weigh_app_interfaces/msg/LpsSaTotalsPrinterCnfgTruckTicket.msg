@@ -1,13 +1,6 @@
-# Wire equivalent of LpsSaTotalsPrinterCnfg::TruckTicket (nested struct,
-# not its own channel).
-# Source: CPM-Loader-ais/prod/common/interfaces/LpsSaTotals/PrinterCnfg.hpp:52-83
-# Field presence cross-checked against LpsSaTotalsPrinterCnfg::serialize()
-# (PrinterCnfg.hpp:101-137) at current version 3 -- every declared member is
-# archived (footerLine1 at v>=2, retentionPeriod at v>=3), so the full
-# struct is captured.
-#
-# retentionPeriod's RETENTION_PERIOD_DAYS_DEFAULT (732) is a static
-# constexpr default, not wire data -- not carried here.
+################################################################################
+# LpsSaTotalsPrinterCnfg::TruckTicket
+################################################################################
 
 uint8 num_copies
 bool header_enabled

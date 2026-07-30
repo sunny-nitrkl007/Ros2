@@ -1,5 +1,5 @@
-# Wire equivalent of LpsSaTotalsPrinterCnfg::MaterialReport (nested struct,
-# not its own channel).
-# Source: CPM-Loader-ais/prod/common/interfaces/LpsSaTotals/PrinterCnfg.hpp:90-93
+################################################################################
+# LpsSaTotalsPrinterCnfg::MaterialReport
+################################################################################
 
 bool reset_time_enabled

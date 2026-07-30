@@ -1,16 +1,6 @@
-# Wire equivalent of SystemHardwareHealthStorage (SystemHardwareHealthInput
-# channel, WeighApp's SystemHardwareHealthInput_).
-# Source: eta-ais/prod/coretech/ais_pcm/ais/interfaces/SystemHardwareHealth/SystemHardwareHealth.h:111-548
-# Field presence cross-checked against serialize() (lines 211-378) -- takes
-# the highest-numbered case (9, the current BOOST_CLASS_VERSION) as the
-# full current field set; case is a plain switch (not cumulative
-# `if (version >= N)` gating like other channels), but case 9 itself
-# repeats every field from every earlier case in sequence, so it IS the
-# complete superset.
-#
-# listOfEthernetStats is declared as a member (SystemHardwareHealth.h:155)
-# but only actually archived starting at case 9 (line 369) -- included
-# since case 9 is the version modeled.
+################################################################################
+# SystemHardwareHealthStorage
+################################################################################
 
 string source_system
 uint32 total_system_memory_kb

@@ -1,8 +1,6 @@
-# Wire equivalent of LpsSaJobMgrReqstChannelStorage::LpsSaJobMgrSubtotalInfo_t.
-# Source: LpsSaJobMgrReqstChannel.h:136-147
-# Field named `command` in the original -- a plain string here, NOT the
-# Command enum used elsewhere in this channel. Kept as subtotal_command to
-# avoid any confusion with LpsSaJobMgrReqstChannel.msg's own `command` field.
+################################################################################
+# LpsSaJobMgrReqstChannelStorage::LpsSaJobMgrSubtotalInfo_t
+################################################################################
 
 string subtotal_command
 uint16 current_step_number

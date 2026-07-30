@@ -1,7 +1,6 @@
-# Wire equivalent of LpsSaLiftPosition_t.
-# Source: LpsSaWeighTxChannel.h:146-161
-# `status` (LpsStat_t): same BLOCKED situation as FloatIO.msg's `stat` --
-# raw int32, no named constants yet, see that file for the full explanation.
+################################################################################
+# LpsSaLiftPosition_t
+################################################################################
 
 float32 angle
 float32 percent_angle

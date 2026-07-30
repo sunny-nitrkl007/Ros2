@@ -1,10 +1,6 @@
-# Wire equivalent of LpsSaWeighReqstChannelStorage::Command.
-# Source: LpsSaWeighReqstChannel.h:23-60 -- values verified, plain sequential
-# enum class, 0..35 in declaration order, no explicit values in source.
-#
-# Shared by LpsSaWeighReqstChannel.msg (command) and LpsSaWeighRespChannel.msg
-# (command, via LpsSaWeighReqstChannel::Command in LpsSaWeighRespChannel.h:21)
-# -- do not duplicate locally.
+################################################################################
+# LpsSaWeighReqstChannelStorage::Command
+################################################################################
 
 uint8 NONE=0
 uint8 WRITE_OVERLOAD_WARNING_ENABLE=1

@@ -1,9 +1,6 @@
-# Wire equivalent of ACDInfoPopUp::type (std::bitset<15>).
-# Source: LpsSaWeighTxChannel.h:42-64 -- bit positions fully verified
-# (locally defined, sequential from 0, not blocked).
-# std::bitset has no direct ROS2 equivalent; carried as uint32 with each
-# real bit position named as a constant (the constant holds the bit INDEX,
-# not a bitmask -- check with e.g. `(info_state >> PAYLOAD_NOT_ZEROED) & 1`).
+################################################################################
+# ACDInfoPopUp::type
+################################################################################
 
 uint8 PAYLOAD_TOO_HEAVY_TO_ZERO=0
 uint8 PAYLOAD_NOT_ZEROED=1
