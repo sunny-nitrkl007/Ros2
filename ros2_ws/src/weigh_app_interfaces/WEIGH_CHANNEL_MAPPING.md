@@ -45,10 +45,43 @@ new `.msg` needed for these 9.
 
 **Explicitly checked and rejected for reuse:** `DataLinkDataInput_`.
 JobMgr's `DataLinkData.msg` is deliberately scoped to only the 3 PIDs
-JobMgr itself reads (see `job_mgr_interfaces/msg/DataLinkParam.msg` header).
+JobMgr itself reads (see `job_mgr_interfaces/msg/DataLinkParam.msg`).
 WeighApp's own consumption is at `LpsSaWeighApp.cpp:1304-1954` -- roughly
-650 lines, a much larger PID surface than JobMgr's. Needs its own
-independently-scoped `.msg` in `weigh_app_interfaces`, not a reuse.
+650 lines, a much larger PID surface than JobMgr's.
+
+**Real header found this time.** Unlike JobMgr's channel (real struct
+never located, usage-scoped reconstruction with unconfirmed enum values),
+WeighApp's `DataLinkParamInfo`/`DataLinkParam`/`DataLinkData` classes ARE
+present in this checkout, at
+`eta-ais/prod/machineCommon/content/legacy/common/interfaces/CpmDataLinkData/`
+-- confirmed genuinely real (not a name coincidence) by matching every
+single accessor WeighApp calls (`GetSid`, `GetParamId`,
+`GetParamIdentifierType`, `GetUnits`, `GetScaling`, `GetOffset`,
+`GetLastValueDsi`, `GetLastValue<T>`, `GetLastValueEng`,
+`GetLastGoodValueEng`, `GetLastValueVector`, `GetVarParamBlockLength`,
+`GetVarParamBlock`, `GetVarLengthParamType`, `GetVarLengthParamDsi`,
+`IsPIDDataReceived`) against the real header's exact signatures -- a
+100% match, not indirect/coincidental. All 3 enums involved
+(`DlpParamIdentifierType_t`, `DlpUnits_t`,
+`VarLengthDataLinkParamFactory::VarLengthParamType`) have explicit
+confirmed numeric values, unlike JobMgr's channel.
+
+Important: JobMgr's own channel uses a *different*, still-unlocated type
+-- literally `DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID`
+(`LpsSaJobMgrScs.cpp:778`), not `DataLinkParamInfo::...` like WeighApp.
+Same enumerator naming convention, different C++ class -- do NOT use this
+finding to "fix" JobMgr's `DataLinkParam.msg`; that would be assuming two
+differently-named real types are identical based on naming resemblance
+alone, exactly the kind of guess this whole methodology exists to avoid.
+Confirmed by grepping the actual original JobMgr source, not assumed.
+
+`weigh_app_interfaces/msg/DataLinkParam.msg` is still scoped to exactly
+what WeighApp itself reads (17 fields) -- not the full real class's API
+surface (which also serves `autonomyConditionDiagnostics` and others with
+fields WeighApp never touches, e.g. `GetDataLinkType()`,
+`GetFaultDataCount()`, `GetParameterName()`) -- same scoping discipline as
+before, just with far more precise types/values now that the real
+header exists.
 
 ## Remaining: 15 channels needing their own trace (14 in LpsSaWeighApp.cpp/.h + 1 adv-only)
 
@@ -61,7 +94,7 @@ session can jump straight to step 3 (locate the real header).
 | 1 | `PrinterCnfgInput` | `printerCnfgInput_` | Input | `interfaces/LpsSaTotals/PrinterCnfgInterfaceInputChannel.h` | `LpsSaTotalsPrinterCnfgInterface.msg` + 4 nested | Done |
 | 2 | `SystemHardwareHealthInput` | `SystemHardwareHealthInput_` | Input | `ais/interfaces/SystemHardwareHealth/InterfaceTypes.h` | `SystemHardwareHealth.msg` + 4 nested | Done |
 | 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | `PartNumbers.msg` | Done -- real struct/folder not in this checkout (same class of gap as JobMgr's SwitchInputScs/OutputChannel/DataLinkData), usage-scoped reconstruction. Producer confirmed at `AutonomyConditionDiagnostics.cpp:935-3216` (real type `PartNumbersStorage`, 7 real fields via Set*() calls), but WeighApp itself only reads 3 (`LpsSaWeighApp.cpp:667-690`: product ID, sw group part number, equipment ID, each via a `IsXValid()/IsXSet()` + `GetX()` pair) -- scoped to exactly those 3, not the producer's full field set |
-| 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | | Not started -- large, ~650 lines of usage (`LpsSaWeighApp.cpp:1304-1954`), do NOT reuse job_mgr_interfaces' 3-PID-scoped version; needs its own usage-scoped reconstruction, same Part 4 fallback as JobMgr's but bigger |
+| 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | `DataLinkData.msg` + `DataLinkParam.msg` | Done -- see note below, real header found this time (unlike JobMgr's channel) |
 | 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | | Not started |
 | 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | | Not started |
 | 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | | Not started |
@@ -80,6 +113,6 @@ not yet located/traced.
 
 ## Status
 
-4 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
-3 PartNumbersInput, 15 SystemHardwareHealthRequestOutput -- 12 `.msg` files
-total). Next up: channel 4, `DataLinkDataInput` (the large one).
+5 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
+3 PartNumbersInput, 4 DataLinkDataInput, 15 SystemHardwareHealthRequestOutput
+-- 14 `.msg` files total). Next up: channel 5, `ReadyToFlashStatusOutput`.
