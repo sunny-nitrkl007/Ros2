@@ -879,7 +879,7 @@ RETURN VALUE:
 void LpsSaJobMgrApp::LpsSaWeighScsTxParamRead( )
 {
     bool dataReceived = weighAppTxDataReceived_;
-    LpsSaWeighTxChannel rxParam;
+    cpm_common_interfaces::msg::LpsSaWeighTxChannel rxParam;
     bool newData = weighAppInf_.waitForTxData(rxParam);
 
     if (newData) {
@@ -893,23 +893,23 @@ void LpsSaJobMgrApp::LpsSaWeighScsTxParamRead( )
 
     // Detect when the LFT system becomes sealed and clear the truck
     if (!LpsJobMgrJobTrackerInfoTbl.lftSealed && // Previously not sealed
-            rxParam.LftSealStatus.sealed && // Now we are sealed
+            rxParam.lft_seal_status.sealed && // Now we are sealed
             weighAppTxDataReceived_ && dataReceived) { // Previous and current data is valid
         LpsSaJobMgrWmInput.clear_request_status = TRUE;
     }
 
     // Whether new data was received or not, the rxParam contains the latest data.
-    LpsJobMgrJobTrackerInfoTbl.DigStat = rxParam.DigStat;
-    LpsJobMgrJobTrackerInfoTbl.CalStat = rxParam.CalStat;
-    LpsJobMgrJobTrackerInfoTbl.DumpStat = rxParam.DumpStat;
-    LpsSaJobMgrWmInput.current_weight = rxParam.BestBktWtInTonnes;
-    LpsSaJobMgrWmInput.calc_method = (unsigned int)rxParam.PayloadCalcMeth;
-    LpsSaJobMgrWmInput.current_bucket_weight_latched = rxParam.bktWtLatchedFlag;
-    LpsSaJobMgrWmInput.payload_latch_conditions_ok = rxParam.latchConditionsMet;
-    LpsJobMgrJobTrackerInfoTbl.zeroWeight = rxParam.ZeroWeight;
-    LpsJobMgrJobTrackerInfoTbl.simpleCalAdjust = rxParam.SimpleCalAdjust;
-    LpsJobMgrJobTrackerInfoTbl.lftSealed = rxParam.LftSealStatus.sealed;
-    LpsSaJobMgrWmInput.lift_stalled = rxParam.LiftStalled;
+    LpsJobMgrJobTrackerInfoTbl.DigStat = static_cast<LpsWeighBktDigStat_t>(rxParam.dig_stat);
+    LpsJobMgrJobTrackerInfoTbl.CalStat = static_cast<LpsWeighCalStatus_t>(rxParam.cal_stat);
+    LpsJobMgrJobTrackerInfoTbl.DumpStat = static_cast<LpsWeighBktDumpStat_t>(rxParam.dump_stat);
+    LpsSaJobMgrWmInput.current_weight = rxParam.best_bkt_wt_in_tonnes;
+    LpsSaJobMgrWmInput.calc_method = (unsigned int)rxParam.payload_calc_meth;
+    LpsSaJobMgrWmInput.current_bucket_weight_latched = rxParam.bkt_wt_latched_flag;
+    LpsSaJobMgrWmInput.payload_latch_conditions_ok = rxParam.latch_conditions_met;
+    LpsJobMgrJobTrackerInfoTbl.zeroWeight = rxParam.zero_weight;
+    LpsJobMgrJobTrackerInfoTbl.simpleCalAdjust = rxParam.simple_cal_adjust;
+    LpsJobMgrJobTrackerInfoTbl.lftSealed = rxParam.lft_seal_status.sealed;
+    LpsSaJobMgrWmInput.lift_stalled = rxParam.lift_stalled;
 
     // Remember that we have received data at least once.
     weighAppTxDataReceived_ = dataReceived;
@@ -1223,15 +1223,15 @@ DESCRIPTION: It will send the cmd to weighing App through SCS channel by polling
 PARAMETER DESCRIPTION:                        
 RETURN VALUE:             
 *******************************************************************************/
-void LpsSaJobMgrApp::LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command command)
+void LpsSaJobMgrApp::LpsSaJobMgrScsSendCmd(uint8_t command)
 {
-    LpsSaWeighReqstChannel request;
+    cpm_common_interfaces::msg::LpsSaWeighReqstChannel request;
 
     switch (command) {
-    case (LpsSaWeighReqstChannel::Command::RESET_BEST_BUCKET_WEIGHT):
-    case (LpsSaWeighReqstChannel::Command::CAPTURE_CYLINDER_EXTENSION_REFERENCE):
-    case (LpsSaWeighReqstChannel::Command::CLEAR_REWEIGH_WARNING): {
-        request.command = command;
+    case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RESET_BEST_BUCKET_WEIGHT):
+    case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CAPTURE_CYLINDER_EXTENSION_REFERENCE):
+    case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CLEAR_REWEIGH_WARNING): {
+        request.command.value = command;
         break;
     }
     default: {

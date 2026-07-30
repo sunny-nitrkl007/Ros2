@@ -490,14 +490,14 @@ RETURN VALUE:void
 void LpsSaJobMgrApp::LpsSaJobMgrSendCmdToWeighApp()
 {
     if (LpsSaJobMgrWmOutput.unlatch_current_bucket_weight) {
-        LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command::RESET_BEST_BUCKET_WEIGHT);
+        LpsSaJobMgrScsSendCmd(cpm_common_interfaces::msg::WeighReqstChannelCommand::RESET_BEST_BUCKET_WEIGHT);
     }
 
     if (LpsSaJobMgrWmOutput.dump_detect_capture_cyl_ext_reference) {
-        LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command::CAPTURE_CYLINDER_EXTENSION_REFERENCE);
+        LpsSaJobMgrScsSendCmd(cpm_common_interfaces::msg::WeighReqstChannelCommand::CAPTURE_CYLINDER_EXTENSION_REFERENCE);
     }
 
     if (LpsSaJobMgrWmOutput.clear_reweigh_warning_status) {
-        LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command::CLEAR_REWEIGH_WARNING);
+        LpsSaJobMgrScsSendCmd(cpm_common_interfaces::msg::WeighReqstChannelCommand::CLEAR_REWEIGH_WARNING);
     }
 }

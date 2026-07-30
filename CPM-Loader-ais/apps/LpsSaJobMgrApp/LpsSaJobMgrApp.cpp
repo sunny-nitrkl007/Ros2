@@ -19,10 +19,6 @@ DESCRIPTION:
 #include <scl_prmsw.h>
 #include <lps_sea_defs.h>
 
-#include <interfaces/LpsSaWeighReqstChannel/InterfaceTypes.h>
-#include <interfaces/LpsSaWeighRespChannel/InterfaceTypes.h>
-#include <interfaces/LpsSaWeighTxChannel/InterfaceTypes.h>
-
 #include "LpsSaJobMgrApp.h"
 
 namespace fs = boost::filesystem;
@@ -267,24 +263,16 @@ bool LpsSaJobMgrApp::initialize( )
         everythingOk = false;
     }
 
-    { // Initialize the WeighApp interface
-        LpsSaWeighReqstChannelOutput* requestOutput = dynamic_cast<LpsSaWeighReqstChannelOutput*>(InterfaceDb::fetch("LpsSaWeighReqstChannelOutput"));
-        if (nullptr == requestOutput) {
-            everythingOk = false;
-            AIS_LOG_ERROR("LpsSaWeighReqstChannelOutput Interface not configured.");
-        }
-
-        LpsSaWeighRespChannelInput* responseInput = dynamic_cast<LpsSaWeighRespChannelInput*>(InterfaceDb::fetch("LpsSaWeighRespChannelInput"));
-        if (nullptr == responseInput) {
-            AIS_LOG_ERROR("LpsSaWeighRespChannelInput Interface not configured.");
-            everythingOk = false;
-        }
-
-        LpsSaWeighTxChannelInput* txInput = dynamic_cast<LpsSaWeighTxChannelInput*>(InterfaceDb::fetch("LpsSaWeighTxChannelInput"));
-        if (nullptr == txInput) {
-            AIS_LOG_ERROR("LpsSaWeighTxChannelInput Interface not configured.");
-            everythingOk = false;
-        }
+    { // Initialize the WeighApp interface -- pure direct DDS, no Bridge
+      // (Development-Plan.txt Step 6.1.1/6.1.2/6.1.3). Topic names must
+      // match WeighApp's own construction of these 3 shims exactly
+      // (LpsSaWeighApp.cpp:567,573,594).
+        ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
+                new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+        ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
+                new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+        ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput =
+                new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
 
         if (!weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)) {
             AIS_LOG_ERROR("Failed to start weigh app interface.");

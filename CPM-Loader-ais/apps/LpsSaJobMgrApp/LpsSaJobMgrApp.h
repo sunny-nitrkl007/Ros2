@@ -73,10 +73,13 @@ DESCRIPTION:
 #include <job_mgr_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
 #include <job_mgr_interfaces/msg/event_diagnostic_data.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
-// weighAppInf_'s 3 channels (WeighReqst/Resp/Tx) are NOT converted here --
-// LpsSaWeighAppInf lives in a shared header (interfaces/LpsSaWeighReqstChannel/
-// LpsSaWeighAppInf.hpp), outside this file. Deferred to Step 6 (Direct DDS
-// Wiring) as its own decision, not silently folded into this edit.
+// weighAppInf_'s 3 direct-DDS channels (WeighReqst/Resp/Tx) are converted
+// inside the shared header itself (interfaces/LpsSaWeighReqstChannel/
+// LpsSaWeighAppInf.hpp, Development-Plan.txt Step 6.1) -- this include
+// pulls in the message types LpsSaWeighAppInf.hpp uses.
+#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 
 #include "LpsSaJobMgrTasks.h"
 #include "LpsSaJobMgrCnfg.h"
@@ -177,7 +180,7 @@ private:
     ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
-    LpsSaWeighAppInf weighAppInf_; // WeighApp Interface -- NOT yet converted, see Step 6 note above
+    LpsSaWeighAppInf weighAppInf_; // WeighApp Interface -- converted Step 6.1, see Challenges-And-Decisions.txt 6.11
 
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
     ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
@@ -234,7 +237,7 @@ private:
 
     boolean LpsSaJobMgrScsRx(void);/*get parameters from weighing app*/
     boolean LpsSaJobMgrScsTx(void);/*write param to UI*/
-    void LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command command); /* send command to weighing app */
+    void LpsSaJobMgrScsSendCmd(uint8_t command); /* send command to weighing app; value is cpm_common_interfaces::msg::WeighReqstChannelCommand::* */
     void LpsSaJobMgrSendCmdToWeighApp(void);
     void LpsSaJobMgrHandleTipOffBtnStates(void);
     void AisJhmDataServerTxRead(void);
