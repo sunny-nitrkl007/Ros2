@@ -679,6 +679,8 @@ RETURN VALUE:
 
 bool LpsSaWeighApp::executive( )
 {
+    executor_.spin_some();
+
     static bool cal_data_published = false;
     if  (!cal_data_published) {
         /* Publish the key-on calibration data from NVM through SCS one-time for XCP app.
@@ -1274,34 +1276,34 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaWeighApp::LpsJobMgrTxRead( )
 {
-    LpsSaJobMgrTxChannel jobMgrIn;
+    job_mgr_interfaces::msg::LpsSaJobMgrTxChannel jobMgrIn;
     while (LpsSaJobMgrScsTxIn->get(jobMgrIn)) {
-        LpsSaWeighInfoTbl.passCount = jobMgrIn.passCount;
-        LpsSaWeighInfoTbl.TruckTargetWeight = jobMgrIn.truckTargetWeight;
-        LpsSaWeighInfoTbl.TruckStartWeight = jobMgrIn.TruckStartWeight;
-        LpsSaWeighInfoTbl.TipOffState = jobMgrIn.TipOffState;
-        LpsSaWeighInfoTbl.TipOffStateCfg = jobMgrIn.TipOffStateCfg;
+        LpsSaWeighInfoTbl.passCount = jobMgrIn.pass_count;
+        LpsSaWeighInfoTbl.TruckTargetWeight = jobMgrIn.truck_target_weight;
+        LpsSaWeighInfoTbl.TruckStartWeight = jobMgrIn.truck_start_weight;
+        LpsSaWeighInfoTbl.TipOffState = static_cast<LpsSaJobMgrTipOffState_t>(jobMgrIn.tip_off_state.value);
+        LpsSaWeighInfoTbl.TipOffStateCfg = static_cast<LpsSaJobMgrTipOffState_t>(jobMgrIn.tip_off_state_cfg.value);
 
         /* Receive standby state  from job manager */
-        LpsSaWeighInfoTbl.StandbyState = jobMgrIn.StandbyState;
+        LpsSaWeighInfoTbl.StandbyState = static_cast<LpsSaJobMgrStandbyState_t>(jobMgrIn.standby_state.value);
 
         /* Flag to indicate if tipoff is currently active */
-        if ((jobMgrIn.TipoffActive) && (!LpsSaWeighInfoTbl.TipoffActive)) {
+        if ((jobMgrIn.tipoff_active) && (!LpsSaWeighInfoTbl.TipoffActive)) {
             // If we are entering tip-off, then we are done digging
             LpsWeighEndDig();
         }
-        LpsSaWeighInfoTbl.TipoffActive = jobMgrIn.TipoffActive;
+        LpsSaWeighInfoTbl.TipoffActive = jobMgrIn.tipoff_active;
 
-        if (storePressCount != jobMgrIn.storeCount) {
+        if (storePressCount != jobMgrIn.store_count) {
             sumOfAdjustedTruckWts = 0.0f;
             sumOfZeroedTruckWts = 0.0f;
             AIS_LOG_NOTICE("Storebutton pressed. Adj = %f & Zeroed = %f", sumOfAdjustedTruckWts, sumOfZeroedTruckWts );
-            storePressCount = jobMgrIn.storeCount;
+            storePressCount = jobMgrIn.store_count;
         }
 
         // only update the simple cal adjust factor when we are starting a new load which includes new split loads
         if ((0 == LpsSaWeighInfoTbl.passCount) &&
-                (1 == jobMgrIn.subtotalCount ) &&
+                (1 == jobMgrIn.subtotal_count ) &&
                 (payloadCalNvmTbl_.data.CalAdjust != updatedSimpleCalFactor)) {
             // Store it in NVM
             payloadCalNvmTbl_.data.CalAdjust = updatedSimpleCalFactor;
@@ -1317,7 +1319,29 @@ void LpsSaWeighApp::LpsJobMgrTxRead( )
         }
     }
 
-    while (DemoAppTxIn->get(demoInputs_)) {
+    // demoInputs_ stays on its real, old type (see LpsSaWeighApp.h) -- drain
+    // the shim into a new-typed local, then copy every field across.
+    weigh_app_interfaces::msg::DemoAppTxChannel demoInputsNew;
+    while (DemoAppTxIn->get(demoInputsNew)) {
+        demoInputs_.liftposition = demoInputsNew.liftposition;
+        demoInputs_.liftposition_rate = demoInputsNew.liftposition_rate;
+        demoInputs_.tiltposition = demoInputsNew.tiltposition;
+        demoInputs_.tiltposition_rate = demoInputsNew.tiltposition_rate;
+        demoInputs_.payload = demoInputsNew.payload;
+        demoInputs_.payload_rate = demoInputsNew.payload_rate;
+        demoInputs_.dig = demoInputsNew.dig;
+        demoInputs_.wrw = demoInputsNew.wrw;
+        demoInputs_.llw = demoInputsNew.llw;
+        demoInputs_.dump = demoInputsNew.dump;
+        demoInputs_.pdump = demoInputsNew.pdump;
+        demoInputs_.rack = demoInputsNew.rack;
+        demoInputs_.carry = demoInputsNew.carry;
+        demoInputs_.weight1 = demoInputsNew.weight1;
+        demoInputs_.pres_lift_he_demo = demoInputsNew.pres_lift_he_demo;
+        demoInputs_.pres_lift_re_demo = demoInputsNew.pres_lift_re_demo;
+        demoInputs_.angle_lift_demo = demoInputsNew.angle_lift_demo;
+        demoInputs_.angle_AFE_demo = demoInputsNew.angle_afe_demo;
+        demoInputs_.angle_ABC_demo = demoInputsNew.angle_abc_demo;
     }
 }
 
@@ -1351,40 +1375,40 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
 #define ECM_SERIAL_NUMBER_MAX_SIZE  16
 
-    DataLinkData dlData;
+    weigh_app_interfaces::msg::DataLinkData dlData;
     while (DataLinkDataInput_->get(dlData)) {
-        for (auto& dlParam : dlData.GetParams()) {
+        for (auto& dlParam : dlData.params) {
             // Skip this if no new data is received.
-            if (!dlParam.IsPIDDataReceived()) {
+            if (!dlParam.pid_data_received) {
                 continue;
             }
 
             AIS_LOG_INFO("sid %x paramId %x  dsi %x ParamValue raw %d eng %f scaling %f offset %f units %d",
-                    dlParam.GetSid(),
-                    dlParam.GetParamId(), dlParam.GetLastValueDsi(),
-                    dlParam.GetLastValue<float>(), dlParam.GetLastValueEng(),
-                    dlParam.GetScaling(), dlParam.GetOffset(),
-                    dlParam.GetUnits());
+                    dlParam.sid,
+                    dlParam.param_id, dlParam.last_value_dsi,
+                    dlParam.last_value_f32, dlParam.last_value_eng,
+                    dlParam.scaling, dlParam.offset,
+                    dlParam.units);
 
             // check Hyd-Oil--Temp DIAG only if we have selected a machine
             if (!LpsSaWeighInfoTbl.DiagState[ACDDiagPopUp::MACHINE_MODEL_NOT_SET]) {
-                switch (dlParam.GetParamIdentifierType()) {
+                switch (dlParam.identifier_type) {
                 // CDL PIDs
-                case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_PID): {
-                    switch (dlParam.GetParamId()) {
+                case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_PID): {
+                    switch (dlParam.param_id) {
                     case BMI_CDL_PID_HYD_OIL_TEMP:
                     {
                         bool isBad;
 
-                        if (0 == dlParam.GetLastValueDsi()) {
-                            WeighPidTbl.HydOilTemp = (float)dlParam.GetLastValueEng();
+                        if (0 == dlParam.last_value_dsi) {
+                            WeighPidTbl.HydOilTemp = (float)dlParam.last_value_eng;
                             isBad = false;
-                            AIS_LOG_DEBUG("Hydraulic Oil Temp received: %f", (float)dlParam.GetLastValueEng());
+                            AIS_LOG_DEBUG("Hydraulic Oil Temp received: %f", (float)dlParam.last_value_eng);
                         }
                         else {
                             WeighPidTbl.HydOilTemp = (float)HYDRAULIC_OIL_TEMP_MIN_VALID_DATA;  // which is -32736.0
                             isBad = true;
-                            AIS_LOG_DEBUG("Hydraulic Oil Temp PID DSI reported: %d", dlParam.GetLastValueDsi());
+                            AIS_LOG_DEBUG("Hydraulic Oil Temp PID DSI reported: %d", dlParam.last_value_dsi);
                         }
 
                         // Set the diagnostic flag if supported.
@@ -1400,105 +1424,105 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     case BMI_CDL_PID_DESIRED_GEAR:
                     case BMI_CDL_PID_ACTUAL_GEAR:
                     {
-                        if (0 == dlParam.GetLastValueDsi()) {
+                        if (0 == dlParam.last_value_dsi) {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_OK;
-                            weighUpdtTbl.RequestedGear.Val = (uint16_t)dlParam.GetLastValueEng();
+                            weighUpdtTbl.RequestedGear.Val = (uint16_t)dlParam.last_value_eng;
 
-                            AIS_LOG_DEBUG("Actual/Desired Gear PID received: %d", (uint16_t)dlParam.GetLastValueEng());
+                            AIS_LOG_DEBUG("Actual/Desired Gear PID received: %d", (uint16_t)dlParam.last_value_eng);
                         }
                         else {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_BAD;
-                            weighUpdtTbl.RequestedGear.Val = (uint16_t)dlParam.GetLastGoodValueEng();
+                            weighUpdtTbl.RequestedGear.Val = (uint16_t)dlParam.last_good_value_eng;
 
-                            AIS_LOG_DEBUG("Actual/Desired Gear PID DSI reported: %d", dlParam.GetLastValueDsi());
+                            AIS_LOG_DEBUG("Actual/Desired Gear PID DSI reported: %d", dlParam.last_value_dsi);
                         }
                         break;
                     }
 
                     case BMI_CDL_PID_DIRECTION_SWITCH_POSITION:
                     {
-                        if (0 == dlParam.GetLastValueDsi()) {
+                        if (0 == dlParam.last_value_dsi) {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_OK;
 
-                            if ((uint16_t)dlParam.GetLastGoodValueEng() == 0) {
+                            if ((uint16_t)dlParam.last_good_value_eng == 0) {
                                 weighUpdtTbl.RequestedGear.Val = 0x1000; /* Reverse, PID 0xF5D7 */
                             }
-                            else if ((uint16_t)dlParam.GetLastGoodValueEng() == 1) {
+                            else if ((uint16_t)dlParam.last_good_value_eng == 1) {
                                 weighUpdtTbl.RequestedGear.Val = 0x4000; /* Forward, PID 0xF5D7 */
                             }
                             else {
                                 weighUpdtTbl.RequestedGear.Val = 0x0000; /* not forward, not reverse, PID 0xF5D7 */
                             }
 
-                            AIS_LOG_DEBUG("Direction Switch Position PID received: %d", (uint16_t)dlParam.GetLastGoodValueEng());
+                            AIS_LOG_DEBUG("Direction Switch Position PID received: %d", (uint16_t)dlParam.last_good_value_eng);
                         }
                         else {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_BAD;
 
-                            AIS_LOG_DEBUG("Direction Switch Position PID DSI reported: %d", dlParam.GetLastValueDsi());
+                            AIS_LOG_DEBUG("Direction Switch Position PID DSI reported: %d", dlParam.last_value_dsi);
                         }
                         break;
                     }
 
                     case BMI_CDL_PID_TRANSMISSION_GEAR:
                     {
-                        if (0 == dlParam.GetLastValueDsi()) {
+                        if (0 == dlParam.last_value_dsi) {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_OK;
 
-                            if ((uint8_t)dlParam.GetLastGoodValueEng() & 0x80) {
+                            if ((uint8_t)dlParam.last_good_value_eng & 0x80) {
                                 weighUpdtTbl.RequestedGear.Val = 0x4000; /* Forward, PID 0xF5D7 */
                             }
-                            else if ((uint8_t)dlParam.GetLastGoodValueEng() & 0x20) {
+                            else if ((uint8_t)dlParam.last_good_value_eng & 0x20) {
                                 weighUpdtTbl.RequestedGear.Val = 0x1000; /* Reverse, PID 0xF5D7 */
                             }
                             else {
                                 weighUpdtTbl.RequestedGear.Val = 0x0000; /* not forward, not reverse, PID 0xF5D7 */
                             }
 
-                            AIS_LOG_DEBUG("Transmission Gear PID received: %d", (uint8_t)dlParam.GetLastGoodValueEng());
+                            AIS_LOG_DEBUG("Transmission Gear PID received: %d", (uint8_t)dlParam.last_good_value_eng);
                         }
                         else {
                             weighUpdtTbl.RequestedGear.Stat = LPS_STATUS_BAD;
 
-                            AIS_LOG_DEBUG("Transmission Gear PID DSI reported: %d", dlParam.GetLastValueDsi());
+                            AIS_LOG_DEBUG("Transmission Gear PID DSI reported: %d", dlParam.last_value_dsi);
                         }
                         break;
                     }
                     case BMI_CDL_PID_TIP_ASSIST_ENABLE:
                     {
-                        if (0 == dlParam.GetLastValueDsi()) {
-                            if (0x000C == (uint16_t)dlParam.GetLastGoodValueEng())
+                        if (0 == dlParam.last_value_dsi) {
+                            if (0x000C == (uint16_t)dlParam.last_good_value_eng)
                                 LpsSaWeighInfoTbl.TipOffAssistEnable = true;   /* enabled */
                             else
                                 LpsSaWeighInfoTbl.TipOffAssistEnable = false;   /* disabled */
 
-                            AIS_LOG_DEBUG("Tip-off Assist Enable val: %d", (uint8_t)dlParam.GetLastGoodValueEng() );
+                            AIS_LOG_DEBUG("Tip-off Assist Enable val: %d", (uint8_t)dlParam.last_good_value_eng );
                         }
                         else {
                             LpsSaWeighInfoTbl.TipOffAssistEnable = 0;   /* disabled */
-                            AIS_LOG_DEBUG("Tip-off Assist Enable PID DSI reported: %d", dlParam.GetLastValueDsi() );
+                            AIS_LOG_DEBUG("Tip-off Assist Enable PID DSI reported: %d", dlParam.last_value_dsi );
                         }
                         break;
                     }
                     case BMI_CDL_PID_LOAD_HOLD_CHECK_VALVE:
                     {
-                        if (0 == dlParam.GetLastValueDsi()) {
-                            if (0x0010 == dlParam.GetLastValue<int16_t>())
+                        if (0 == dlParam.last_value_dsi) {
+                            if (0x0010 == dlParam.last_value_i16)
                                 setLoadCheckValveInstallStatus(true);   /* HBCV is installed */
                             else
                                 setLoadCheckValveInstallStatus(false); /* HBCV is not installed */
 
-                            AIS_LOG_DEBUG("Load hold valve check valve installation val: %d", dlParam.GetLastValue<int16_t>() );
+                            AIS_LOG_DEBUG("Load hold valve check valve installation val: %d", dlParam.last_value_i16 );
                         }
                         else {
-                            AIS_LOG_DEBUG("Load hold valve check valve installation PID DSI reported: %d", dlParam.GetLastValueDsi() );
+                            AIS_LOG_DEBUG("Load hold valve check valve installation PID DSI reported: %d", dlParam.last_value_dsi );
                         }
                         break;
                     }
                     case BMI_CDL_PID_GROUND_SPEED:
                     {
-                        int16_t value = dlParam.GetLastValue<int16_t>();
-                        uint16_t dsi = dlParam.GetLastValueDsi();
+                        int16_t value = dlParam.last_value_i16;
+                        uint16_t dsi = dlParam.last_value_dsi;
 
                         if (0 == dsi) {
                             // Store ground speed in mm/sec/bit (0.0036 km/hr/bit)
@@ -1515,8 +1539,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     }
                     case BMI_CDL_PID_GROUND_SPEED_PID18:
                     {
-                        float value = dlParam.GetLastGoodValueEng();
-                        uint8_t dsi = dlParam.GetLastValueDsi();
+                        float value = dlParam.last_good_value_eng;
+                        uint8_t dsi = dlParam.last_value_dsi;
 
                         if (0 == dsi) {
                             // Store ground speed in mm/sec/bit (1mph/bit = 447.04mms/bit)
@@ -1533,8 +1557,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     }
                     case BMI_CDL_PID_MACHINE_IDLE_STATUS: // Machine Idle Status
                     {
-                        uint16_t value = dlParam.GetLastValue<uint16_t>();
-                        uint16_t dsi = dlParam.GetLastValueDsi();
+                        uint16_t value = dlParam.last_value_u16;
+                        uint16_t dsi = dlParam.last_value_dsi;
                         chassisImu_.rxPIDD10AB5(value, dsi);
                         break;
                     }
@@ -1544,8 +1568,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                         // Only used for AU2020 and Not legal for Trade
                         if (!payloadCalNvmTbl_.legalForTradeInstalled &&
                                 ADVANCED == getApplicationVariant()) {
-                            float lift_full_lower_dc = dlParam.GetLastGoodValueEng();
-                            uint16_t dsi = dlParam.GetLastValueDsi();
+                            float lift_full_lower_dc = dlParam.last_good_value_eng;
+                            uint16_t dsi = dlParam.last_value_dsi;
 
                             if (!dsi) {
                                 /* set cal value if its different */
@@ -1574,8 +1598,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                         // Only used for AU2020 and Not legal for Trade
                         if (!payloadCalNvmTbl_.legalForTradeInstalled &&
                                 ADVANCED == getApplicationVariant()) {
-                            float lift_full_raise_dc = dlParam.GetLastGoodValueEng();
-                            uint16_t dsi = dlParam.GetLastValueDsi();
+                            float lift_full_raise_dc = dlParam.last_good_value_eng;
+                            uint16_t dsi = dlParam.last_value_dsi;
 
                             if (!dsi) {
                                 /* set cal value if its different */
@@ -1604,8 +1628,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                         // Only used for AU2020 and Not legal for Trade
                         if (!payloadCalNvmTbl_.legalForTradeInstalled &&
                                 ADVANCED == getApplicationVariant()) {
-                            float tilt_full_rack_dc = dlParam.GetLastGoodValueEng();
-                            uint16_t dsi = dlParam.GetLastValueDsi();
+                            float tilt_full_rack_dc = dlParam.last_good_value_eng;
+                            uint16_t dsi = dlParam.last_value_dsi;
 
                             if (!dsi) {
                                 /* set cal value if its different */
@@ -1634,8 +1658,8 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                         // Only used for AU2020 and Not legal for Trade
                         if (!payloadCalNvmTbl_.legalForTradeInstalled &&
                                 ADVANCED == getApplicationVariant()) {
-                            float tilt_full_dump_dc = dlParam.GetLastGoodValueEng();
-                            uint16_t dsi = dlParam.GetLastValueDsi();
+                            float tilt_full_dump_dc = dlParam.last_good_value_eng;
+                            uint16_t dsi = dlParam.last_value_dsi;
 
                             if (!dsi) {
                                 /* set cal value if its different */
@@ -1661,11 +1685,11 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     case BMI_CDL_PID_LEGAL_FOR_TRADE_SW_ID:
                     {
-                        if ((0x2E == dlParam.GetSid()) &&
-                                (0 == dlParam.GetLastValueDsi()) &&
-                                (dlParam.GetLastValueVector().size() < 27) &&
+                        if ((0x2E == dlParam.sid) &&
+                                (0 == dlParam.last_value_dsi) &&
+                                (dlParam.last_value_vector.size() < 27) &&
                                 (ADVANCED == getApplicationVariant())) {
-                            const auto& lftSwId = dlParam.GetLastValueVector();
+                            const auto& lftSwId = dlParam.last_value_vector;
                             std::string LegalForTradeSwIdentifier(lftSwId.begin(), lftSwId.end());
 
                             auto pos = LegalForTradeSwIdentifier.rfind(".");
@@ -1687,10 +1711,10 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     }
                     break;
-                }/* case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_PID) */
+                }/* case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_PID) */
 
-                case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_CAT_EXT): {
-                    switch (dlParam.GetParamId()) {
+                case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_CAT_EXT): {
+                    switch (dlParam.param_id) {
                     case BMI_CAT_EXT_FLASH_INFORMATION_MESSAGE: {
                         // Data Recieved
                         // Dta: F0 03
@@ -1700,10 +1724,10 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                         // 81 08 45 54 4E 33 36 39 34 38
                         // 90 2 0 2 2 1 0
                         // 84 0
-                        uint8_t len = dlParam.GetVarParamBlockLength();
+                        uint8_t len = dlParam.var_param_block.size();
 
-                        if ((0x2E == dlParam.GetSid()) &&
-                                (0 == dlParam.GetLastValueDsi()) &&
+                        if ((0x2E == dlParam.sid) &&
+                                (0 == dlParam.last_value_dsi) &&
                                 (len > 2) &&
                                 (ADVANCED == getApplicationVariant())) {
                             std::string lastServiceToolSerialNumber;
@@ -1711,7 +1735,7 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                             std::string ecmSerialNumber;
 
                             // Locate the block of the data
-                            const uint8_t* data = dlParam.GetVarParamBlock();
+                            const uint8_t* data = dlParam.var_param_block.data();
 
                             // Scan for Last Service Tool SN, SW Part Number and ECM Serial Number
                             // Skip the F003 Record
@@ -1803,16 +1827,16 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     }
                     break;
-                }/* case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_CAT_EXT) */
+                }/* case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_CAT_EXT) */
 
-                case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_PUBLIC_PGN): {
-                    switch (dlParam.GetParamId()) {
+                case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_PUBLIC_PGN): {
+                    switch (dlParam.param_id) {
                     // Angular Rate Information (ARI)
                     case (61482): {
-                        if (VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) {
-                            uint16_t dsi = dlParam.GetLastValueDsi();
-                            uint8_t len = dlParam.GetVarParamBlockLength();
-                            const uint8_t* data = dlParam.GetVarParamBlock();
+                        if (weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) {
+                            uint16_t dsi = dlParam.last_value_dsi;
+                            uint8_t len = dlParam.var_param_block.size();
+                            const uint8_t* data = dlParam.var_param_block.data();
 
                             // Let the chassis imu know about this.
                             chassisImu_.rxPGN61482(data, len, dsi);
@@ -1822,13 +1846,13 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     // IMU - ECU Identification Information
                     case (64965): {
-                        if (VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) {
-                            uint16_t dsi = dlParam.GetLastValueDsi();
-                            uint8_t len = dlParam.GetVarParamBlockLength();
+                        if (weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) {
+                            uint16_t dsi = dlParam.last_value_dsi;
+                            uint8_t len = dlParam.var_param_block.size();
 
                             // Parse the messages
-                            if (len && (0 == dsi) && 0x82==dlParam.GetSid()) {
-                                const uint8_t* data = dlParam.GetVarParamBlock();
+                            if (len && (0 == dsi) && 0x82==dlParam.sid) {
+                                const uint8_t* data = dlParam.var_param_block.data();
                                 uint8_t dataIdx = 0;
                                 std::string imu_id_info[6];
                                 uint8_t temp;
@@ -1871,13 +1895,13 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     // IMU - Software Identification
                     case (65242): {
-                        if (VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) {
-                            uint16_t dsi = dlParam.GetLastValueDsi();
-                            uint8_t len = dlParam.GetVarParamBlockLength();
+                        if (weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) {
+                            uint16_t dsi = dlParam.last_value_dsi;
+                            uint8_t len = dlParam.var_param_block.size();
 
                             // Parse the messages
-                            if (len && (0 == dsi) && 0x82==dlParam.GetSid()) {
-                                const uint8_t* data = dlParam.GetVarParamBlock();
+                            if (len && (0 == dsi) && 0x82==dlParam.sid) {
+                                const uint8_t* data = dlParam.var_param_block.data();
 
                                 // ignore first byte (number of fields)
                                 std::string imu_sw_id_string = std::string((const char*)(data+1), len-1);
@@ -1896,13 +1920,13 @@ void LpsSaWeighApp::LpsSaBmiRead( )
 
                     // Acceleration Sensor (ACCS)
                     case (61485): {
-                        if (VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) {
-                            uint16_t dsi = dlParam.GetLastValueDsi();
-                            uint8_t len = dlParam.GetVarParamBlockLength();
+                        if (weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) {
+                            uint16_t dsi = dlParam.last_value_dsi;
+                            uint8_t len = dlParam.var_param_block.size();
 
                             // Parse the messages for Tip-Off Assist
                             if ((0 == dsi) && (len >= 7)) {
-                                const uint8_t* data = dlParam.GetVarParamBlock();
+                                const uint8_t* data = dlParam.var_param_block.data();
                                 uint16_t temp;
                                 OEL_UNPACK_LE_16(data, temp);
                                 LpsSaWeighInfoTbl.TipoffInputs.eef_imu_accelY = (float)temp*0.01-320;
@@ -1928,7 +1952,7 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                             }
 
                             // Let the chassis imu know about this.
-                            chassisImu_.rxPGN61485(dlParam.GetVarParamBlock(), len, dsi);
+                            chassisImu_.rxPGN61485(dlParam.var_param_block.data(), len, dsi);
                         }
                         else {
                             LpsSaWeighInfoTbl.TipoffInputs.input_status.flag.imu_accel_bad = 1;
@@ -1940,10 +1964,10 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     }
                     // PGN 61451  ELECTRONIC STEERING CONTROL (ESC1)
                     case (61451): {
-                        if ((VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) &&
-                                (0 == dlParam.GetVarLengthParamDsi()) &&
-                                dlParam.GetVarParamBlockLength() >= 8) {
-                            const uint8_t* data = dlParam.GetVarParamBlock();
+                        if ((weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) &&
+                                (0 == dlParam.var_length_param_dsi) &&
+                                dlParam.var_param_block.size() >= 8) {
+                            const uint8_t* data = dlParam.var_param_block.data();
                             uint16_t temp;
                             OEL_UNPACK_LE_16(data, temp);
                             LpsSaWeighInfoTbl.TipoffInputs.steering_angle = (float)temp/256.0-125;
@@ -1963,10 +1987,10 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     }
                     // EEC1
                     case (61444): {
-                        if ((VarLengthDataLinkParamPool::PGN == dlParam.GetVarLengthParamType()) &&
-                                (0 == dlParam.GetVarLengthParamDsi()) &&
-                                dlParam.GetVarParamBlockLength() >= 5) {
-                            const uint8_t* data = dlParam.GetVarParamBlock();
+                        if ((weigh_app_interfaces::msg::DataLinkParam::VAR_LENGTH_PARAM_TYPE_PGN == dlParam.var_length_param_type) &&
+                                (0 == dlParam.var_length_param_dsi) &&
+                                dlParam.var_param_block.size() >= 5) {
+                            const uint8_t* data = dlParam.var_param_block.data();
                             uint16_t temp;
                             data += 3; // Advance to byte 4
                             OEL_UNPACK_LE_16_NO_INCR(data, temp);
@@ -1991,14 +2015,14 @@ void LpsSaWeighApp::LpsSaBmiRead( )
                     default: {
                         break;
                     }
-                    } /* switch (dlParam.GetParamId())*/
+                    } /* switch (dlParam.param_id)*/
                     break;
-                } /* case (DataLinkParamInfo::DATA_LINK_PARAM_IDENTIFIER_PUBLIC_PGN)*/
+                } /* case (weigh_app_interfaces::msg::DataLinkParam::IDENTIFIER_TYPE_PUBLIC_PGN)*/
 
                 default: {
                     break;
                 }
-                } /* switch (dlParam.GetParamIdentifierType() */
+                } /* switch (dlParam.identifier_type */
             } /* if (DIAG_INACTIVE == LpsSaWeighInfoTbl.DiagState.flag.MachineModelNotSet */
         } /* for each DataLinkParam */
     } /* while (DataLinkDataInput_->get(dlData))*/
