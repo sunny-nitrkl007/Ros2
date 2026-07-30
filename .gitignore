@@ -8,3 +8,6 @@
 !/ros2_ws/
 !/ROS2_Service_Discovery.zip
 !/.gitignore
+!/Dockerfile.stage1
+!/docker/
+!/docker/**
