@@ -60,7 +60,7 @@ session can jump straight to step 3 (locate the real header).
 |---|---|---|---|---|---|---|
 | 1 | `PrinterCnfgInput` | `printerCnfgInput_` | Input | `interfaces/LpsSaTotals/PrinterCnfgInterfaceInputChannel.h` | `LpsSaTotalsPrinterCnfgInterface.msg` + 4 nested | Done |
 | 2 | `SystemHardwareHealthInput` | `SystemHardwareHealthInput_` | Input | `ais/interfaces/SystemHardwareHealth/InterfaceTypes.h` | `SystemHardwareHealth.msg` + 4 nested | Done |
-| 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | | Not started |
+| 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | `PartNumbers.msg` | Done -- real struct/folder not in this checkout (same class of gap as JobMgr's SwitchInputScs/OutputChannel/DataLinkData), usage-scoped reconstruction. Producer confirmed at `AutonomyConditionDiagnostics.cpp:935-3216` (real type `PartNumbersStorage`, 7 real fields via Set*() calls), but WeighApp itself only reads 3 (`LpsSaWeighApp.cpp:667-690`: product ID, sw group part number, equipment ID, each via a `IsXValid()/IsXSet()` + `GetX()` pair) -- scoped to exactly those 3, not the producer's full field set |
 | 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | | Not started -- large, ~650 lines of usage (`LpsSaWeighApp.cpp:1304-1954`), do NOT reuse job_mgr_interfaces' 3-PID-scoped version; needs its own usage-scoped reconstruction, same Part 4 fallback as JobMgr's but bigger |
 | 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | | Not started |
 | 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | | Not started |
@@ -72,7 +72,7 @@ session can jump straight to step 3 (locate the real header).
 | 12 | `CalMgrCmdRespOutput` | `LpsCalCmdScsRespOut` | Output | `interfaces/CalMgrCmdResp/InterfaceTypes.h` | | Not started |
 | 13 | `LpsSaNvmCalDataChannelOutput` | `LpsNvmDumpChanOut` | Output | `interfaces/LpsSaNvmCalDataChannel/InterfaceTypes.h` | | Not started |
 | 14 | `LpsSaNvmCalOnTheFlyDataChannelOutput` | `LpsNvmOnTheFlyDumpChanOut` | Output | `interfaces/LpsSaNvmCalOnTheFlyDataChannel/InterfaceTypes.h` | | Not started |
-| 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5, see the `.msg` header |
+| 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5 |
 
 **Adv-only (16th, separate file):** `TipoffModelTestPointsOutput`, bound
 and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3) --
@@ -80,6 +80,6 @@ not yet located/traced.
 
 ## Status
 
-3 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
-15 SystemHardwareHealthRequestOutput -- 11 `.msg` files total). Next up:
-channel 3, `PartNumbersInput`.
+4 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
+3 PartNumbersInput, 15 SystemHardwareHealthRequestOutput -- 12 `.msg` files
+total). Next up: channel 4, `DataLinkDataInput` (the large one).

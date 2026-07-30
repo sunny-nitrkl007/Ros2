@@ -21,6 +21,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SystemHardwareHealth.msg"
   # SystemHardwareHealthRequestOutput (channel 15)
   "msg/SystemHardwareHealthRequest.msg"
+  # PartNumbersInput (channel 3)
+  "msg/PartNumbers.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 
