@@ -26,6 +26,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   # DataLinkDataInput (channel 4)
   "msg/DataLinkParam.msg"
   "msg/DataLinkData.msg"
+  # ReadyToFlashStatusOutput (channel 5)
+  "msg/ReadyToFlashStatus.msg"
+  # LpsSaWeighInitDebugChannelOutput (channel 6)
+  "msg/LpsSaWeighInitDebugChannel.msg"
+  # LpsSaWeighDebugChannelOutput (channel 7)
+  "msg/LpsSaWeighDebugChannel.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 

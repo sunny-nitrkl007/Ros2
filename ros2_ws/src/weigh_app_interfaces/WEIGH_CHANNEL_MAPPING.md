@@ -95,9 +95,9 @@ session can jump straight to step 3 (locate the real header).
 | 2 | `SystemHardwareHealthInput` | `SystemHardwareHealthInput_` | Input | `ais/interfaces/SystemHardwareHealth/InterfaceTypes.h` | `SystemHardwareHealth.msg` + 4 nested | Done |
 | 3 | `PartNumbersInput` | `PartNumbersInput_` | Input | `interfaces/PartNumbers/InterfaceTypes.h` | `PartNumbers.msg` | Done -- real struct/folder not in this checkout (same class of gap as JobMgr's SwitchInputScs/OutputChannel/DataLinkData), usage-scoped reconstruction. Producer confirmed at `AutonomyConditionDiagnostics.cpp:935-3216` (real type `PartNumbersStorage`, 7 real fields via Set*() calls), but WeighApp itself only reads 3 (`LpsSaWeighApp.cpp:667-690`: product ID, sw group part number, equipment ID, each via a `IsXValid()/IsXSet()` + `GetX()` pair) -- scoped to exactly those 3, not the producer's full field set |
 | 4 | `DataLinkDataInput` | `DataLinkDataInput_` | Input | `interfaces/DataLinkData/InterfaceTypes.h` + `DataLinkData/DataLinkData.h` | `DataLinkData.msg` + `DataLinkParam.msg` | Done -- see note below, real header found this time (unlike JobMgr's channel) |
-| 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | | Not started |
-| 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | | Not started |
-| 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | | Not started |
+| 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | `ReadyToFlashStatus.msg` | Done -- real enum `rpa_application_ready_code_e` confirmed (19 values, -1..18) plus one WeighApp-local `#define` extension (`APP_READY_CODE_PAYLOAL_LEGAL_FOR_TRADE_IS_SEALED=22`, typo preserved verbatim from source, `LpsSaWeighApp.cpp:52`) |
+| 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | `LpsSaWeighInitDebugChannel.msg` | Done -- 8 fields, a scoped slice of the much larger (missing) `LpsInitTbl_t`; only the fields `serialize()` actually archives are modeled, not the full struct |
+| 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | `LpsSaWeighDebugChannel.msg` | Done -- large (~150 fields). Top-level fields and `TipoffAssistInputs`/`TipoffAssistOutputs` (from `adv/TipoffAssist.h`, found fully typed locally) are fully confirmed. `m_LpsWrk.*` (~45 fields) sits on `LpsWrkTbl_t`, confirmed genuinely missing from this checkout (same class of gap as `LpsPublic.h`) -- field NAMES are ground truth from `serialize()`, but TYPES are naming-inferred (float32 default, bool/uint8 where evidenced), not read from a real header. Revisit if `lps_weighing` is ever sourced (Development-Plan.txt Step 0.2). |
 | 8 | `PwmInputChannelsInput` | `PwmIn` | Input | `interfaces/PwmInputChannels/InterfaceTypes.h` | | Not started -- drains into local `inPwm_` |
 | 9 | `MachineInput` | `MachineIn` | Input | `interfaces/Machine/InterfaceTypes.h` | | Not started |
 | 10 | `DemoAppTxChannelInput` | `DemoAppTxIn` | Input | `interfaces/DemoAppTxChannel/InterfaceTypes.h` | | Not started -- drains into local `demoInputs_` |
@@ -108,11 +108,17 @@ session can jump straight to step 3 (locate the real header).
 | 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5 |
 
 **Adv-only (16th, separate file):** `TipoffModelTestPointsOutput`, bound
-and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3) --
-not yet located/traced.
+and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3).
+Location found while tracing channel 7: `TipoffAssist.h` (`apps/LpsSaWeighApp/adv/`)
+`#include`s `interfaces/TipoffModelTestPoints/InterfaceTypes.h` and declares
+`TipoffModelTestPoints TipoffModelTestPointsData;` /
+`TipoffModelTestPointsOutput *TipoffModelTestPointsOut;` as members of the
+`TipoffAssist` class -- not yet traced (real header not yet read).
 
 ## Status
 
-5 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
-3 PartNumbersInput, 4 DataLinkDataInput, 15 SystemHardwareHealthRequestOutput
--- 14 `.msg` files total). Next up: channel 5, `ReadyToFlashStatusOutput`.
+8 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
+3 PartNumbersInput, 4 DataLinkDataInput, 5 ReadyToFlashStatusOutput,
+6 LpsSaWeighInitDebugChannelOutput, 7 LpsSaWeighDebugChannelOutput,
+15 SystemHardwareHealthRequestOutput -- 17 `.msg` files total). Next up:
+channel 8, `PwmInputChannelsInput`.
