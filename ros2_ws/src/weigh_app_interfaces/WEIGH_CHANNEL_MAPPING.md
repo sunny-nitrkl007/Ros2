@@ -129,5 +129,19 @@ are all converted to shim types, and `executor_.spin_some()` is wired
 into the 50Hz `executive()`. Remaining: 5.5 (SConscript build-wiring)
 and 5.6-5.8 (build/link verification, real-time budget check,
 component testing) -- all blocked on real build infrastructure, same
-status as JobMgr's equivalent Step 4.5-4.7. Next up: Step 6 (direct
-DDS wiring between JobMgr and WeighApp).
+status as JobMgr's equivalent Step 4.5-4.7.
+
+**Step 6.1-6.2 are now complete.** All 4 JobMgr<->WeighApp channel legs
+are wired native DDS-to-DDS, no Bridge involved on either side:
+`LpsSaWeighReqstChannel` (JobMgr publishes/WeighApp subscribes),
+`LpsSaWeighRespChannel` and `LpsSaWeighTxChannel` (WeighApp
+publishes/JobMgr subscribes, via the redesigned `LpsSaWeighAppInf`,
+see Challenges-And-Decisions.txt 6.11), and the hybrid
+`LpsSaJobMgrReqstChannel` leg (WeighApp publishes onto the same
+`lps_sa_job_mgr_reqst_channel` topic JobMgr already subscribes to for
+the legacy UI path -- confirmed matching topic/message type on both
+sides, no code change needed there since Step 5). QoS matches by
+default (`qosDepth=10` on both ends, neither side overrides it).
+Remaining: 6.3 (component tests running together) -- blocked on real
+build/runtime infrastructure, same status class as the other testing
+steps. Next up: Step 7 (Bridge, `cpm_scs_bridge`).
