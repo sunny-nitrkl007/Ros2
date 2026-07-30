@@ -103,8 +103,8 @@ session can jump straight to step 3 (locate the real header).
 | 10 | `DemoAppTxChannelInput` | `DemoAppTxIn` | Input | `interfaces/DemoAppTxChannel/InterfaceTypes.h` | `DemoAppTxChannel.msg` | Done -- drains into local `demoInputs_`; real header fully present and typed, zero blocked fields |
 | 11 | `CalMgrCmdReqstInput` | `LpsCalCmdScsReqstIn` | Input | `interfaces/CalMgrCmdReqst/InterfaceTypes.h` | `CalMgrCmdReqst.msg` + `CalMgrCalibrationRequest.msg` | Done -- real folder/header not in this checkout, nor is `cal_mgr.h` (where `CAL_MGR_MC_E` is actually defined) -- usage-scoped from `LpsSaWeighCalReqstCallback()` (`LpsSaWeighApp.cpp:911-925`). `calcmd`/enum values unconfirmed (BLOCKED, raw uint8); `cal_iterm` array size unconfirmed, modeled as unbounded `uint8[]` rather than guessing a fixed count |
 | 12 | `CalMgrCmdRespOutput` | `LpsCalCmdScsRespOut` | Output | `interfaces/CalMgrCmdResp/InterfaceTypes.h` | `CalMgrCmdResp.msg` + `CalMgrCalibrationResp.msg` | Done -- same gap as channel 11, same call site (`LpsSaWeighApp.cpp:922-989`). `resp_code`/`cal_resp` BLOCKED (raw uint8, real `CAL_MGR_MR_E` values unconfirmed); `error`/`step_no`/`warning` types cross-confirmed against `LpsSaWeighInfoTbl_t`'s own matching fields |
-| 13 | `LpsSaNvmCalDataChannelOutput` | `LpsNvmDumpChanOut` | Output | `interfaces/LpsSaNvmCalDataChannel/InterfaceTypes.h` | | Not started |
-| 14 | `LpsSaNvmCalOnTheFlyDataChannelOutput` | `LpsNvmOnTheFlyDumpChanOut` | Output | `interfaces/LpsSaNvmCalOnTheFlyDataChannel/InterfaceTypes.h` | | Not started -- a large chunk of real field evidence for this one was already gathered as a byproduct of tracing channel 11/12 (`LpsSaWeighApp.cpp:991-1047`, `calOtfData.lps_sa_nvm_calibration_data_on_the_fly.*` -- statusFlags/calUpdates/curveInfo/calOverrides sub-structs, ~35 fields), not yet written up into a `.msg` |
+| 13 | `LpsSaNvmCalDataChannelOutput` | `LpsNvmDumpChanOut` | Output | `interfaces/LpsSaNvmCalDataChannel/InterfaceTypes.h` | `LpsSaNvmCalDataChannel.msg` + `LpsSaNvmCalDataChannelDataMain.msg` + `LpsSaNvmCalDataChannelDataDebug.msg` + `LpsCalIMUResults.msg` | Done -- real header fully present and typed, zero blocked fields. `LpsCalIMUResults` (16 float fields) also found in `lps_app_common/include/LpsCalAppPublic.h`, shared/reused by channel 14 |
+| 14 | `LpsSaNvmCalOnTheFlyDataChannelOutput` | `LpsNvmOnTheFlyDumpChanOut` | Output | `interfaces/LpsSaNvmCalOnTheFlyDataChannel/InterfaceTypes.h` | `LpsSaNvmCalOnTheFlyDataChannel.msg` + 6 nested messages | Done -- real header fully present and typed. `serialize()` cross-check caught 4 declared-but-never-archived struct members (`LpsCalAppInfRackCmdLmt`/`DumpCmdLmt`/`EngSpdLmt`, a second unarchived `LeverInfoAvailable` inside `Overrides` distinct from the archived `MiscUpdates.LiftLeverInfo_LeverInfoAvailable`) -- correctly omitted, same class of finding as `ReqPloadOpMode_t` earlier this session. `IMUCalResults`' 16 fields are split across two version gates (v3 archives 7, v5 archives the other 9) but together cover the *entire* real struct, so the full shared `LpsCalIMUResults.msg` type is referenced as-is |
 | 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5 |
 
 **Adv-only (16th, separate file):** `TipoffModelTestPointsOutput`, bound
@@ -117,10 +117,10 @@ Location found while tracing channel 7: `TipoffAssist.h` (`apps/LpsSaWeighApp/ad
 
 ## Status
 
-13 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
-3 PartNumbersInput, 4 DataLinkDataInput, 5 ReadyToFlashStatusOutput,
-6 LpsSaWeighInitDebugChannelOutput, 7 LpsSaWeighDebugChannelOutput,
-8 PwmInputChannelsInput, 9 MachineInput, 10 DemoAppTxChannelInput,
-11 CalMgrCmdReqstInput, 12 CalMgrCmdRespOutput, 15 SystemHardwareHealthRequestOutput
--- 24 `.msg` files total). Next up: channel 13, `LpsSaNvmCalDataChannelOutput`,
-then channel 14 (evidence already partly gathered, see its row above).
+**All 15 of 15 remaining channels done** (33 `.msg` files total, plus the 9
+reused from `cpm_common_interfaces`/`job_mgr_interfaces` -- 24 of 24
+WeighApp channels fully covered). Only the adv-only 16th channel
+(`TipoffModelTestPointsOutput`, `adv/TipoffAssist.cpp`) remains untraced --
+its location was found while tracing channel 7 (see above) but the real
+header hasn't been read yet. Step 2.2 for WeighApp is otherwise complete;
+next is Step 5 (LpsSaWeighApp.h/.cpp + LpsSaScs.cpp shim conversion).

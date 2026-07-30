@@ -44,6 +44,19 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   # CalMgrCmdRespOutput (channel 12)
   "msg/CalMgrCalibrationResp.msg"
   "msg/CalMgrCmdResp.msg"
+  # LpsSaNvmCalDataChannelOutput (channel 13)
+  "msg/LpsCalIMUResults.msg"
+  "msg/LpsSaNvmCalDataChannelDataMain.msg"
+  "msg/LpsSaNvmCalDataChannelDataDebug.msg"
+  "msg/LpsSaNvmCalDataChannel.msg"
+  # LpsSaNvmCalOnTheFlyDataChannelOutput (channel 14)
+  "msg/LpsSaNvmCalOnTheFlyStatusFlags.msg"
+  "msg/LpsSaNvmCalOnTheFlyCurveFitInfo.msg"
+  "msg/LpsSaNvmCalOnTheFlyMiscUpdates.msg"
+  "msg/LpsSaNvmCalOnTheFlyTiltOverrides.msg"
+  "msg/LpsSaNvmCalOnTheFlyOverrides.msg"
+  "msg/LpsSaNvmCalOnTheFlyDataOnTheFly.msg"
+  "msg/LpsSaNvmCalOnTheFlyDataChannel.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 
