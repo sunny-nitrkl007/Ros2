@@ -458,14 +458,14 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaWeighApp::AisJhmDataServerTxRead()
 {
-    AisJhm2TxChannel AisJhm2TxIn;
+    job_mgr_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
     while (AisJhm2TxInputScs->get(AisJhm2TxIn)) {
-        if (AisJhm2TxIn.simplecal_data.newDataFlag) {
+        if (AisJhm2TxIn.simplecal_data.new_data_flag) {
             AIS_LOG_DEBUG("### AIS Adj wt = %f", AisJhm2TxIn.simplecal_data.adjtruckweight);
-            AIS_LOG_DEBUG("### AIS Zeroed wt = %f", AisJhm2TxIn.simplecal_data.zeroedTruckWt);
+            AIS_LOG_DEBUG("### AIS Zeroed wt = %f", AisJhm2TxIn.simplecal_data.zeroed_truck_wt);
 
             sumOfAdjustedTruckWts += AisJhm2TxIn.simplecal_data.adjtruckweight;
-            sumOfZeroedTruckWts += AisJhm2TxIn.simplecal_data.zeroedTruckWt;
+            sumOfZeroedTruckWts += AisJhm2TxIn.simplecal_data.zeroed_truck_wt;
 
             if (sumOfZeroedTruckWts > 0.0f) {
                 updatedSimpleCalFactor = sumOfAdjustedTruckWts/sumOfZeroedTruckWts;
@@ -473,11 +473,11 @@ void LpsSaWeighApp::AisJhmDataServerTxRead()
             }
         }
 
-        if (AisJhm2TxIn.tipoff_weight_adjust_data.newDataFlag) {
-            auto tipOffWeight1 = AisJhm2TxIn.tipoff_weight_adjust_data.tipOffWeight1;
-            auto weighRangeWeight1 = AisJhm2TxIn.tipoff_weight_adjust_data.weighRangeWeight1;
-            auto tipOffWeight2 = AisJhm2TxIn.tipoff_weight_adjust_data.tipOffWeight2;
-            auto weighRangeWeight2 = AisJhm2TxIn.tipoff_weight_adjust_data.weighRangeWeight2;
+        if (AisJhm2TxIn.tipoff_weight_adjust_data.new_data_flag) {
+            auto tipOffWeight1 = AisJhm2TxIn.tipoff_weight_adjust_data.tip_off_weight1;
+            auto weighRangeWeight1 = AisJhm2TxIn.tipoff_weight_adjust_data.weigh_range_weight1;
+            auto tipOffWeight2 = AisJhm2TxIn.tipoff_weight_adjust_data.tip_off_weight2;
+            auto weighRangeWeight2 = AisJhm2TxIn.tipoff_weight_adjust_data.weigh_range_weight2;
 
             // If weight 1 is not given, use weight 2 twice
             if (!std::isfinite(tipOffWeight1) ||
@@ -577,14 +577,14 @@ void LpsSaWeighApp::LpsSaSEAStatus( )
     /*TODO: We are initializing the status of the SEA to installed/enabled,
      * we should probably disable the SEA if we do not receive a SEA object
      * in the first x minutes */
-    AutonomyConditionDiagnosticsTxInterface txData;
+    job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
     while (AutonomyConditionDiagnosticsTxInputChannel->get(txData)) {
-        for (const auto & element : txData.seaList) {
+        for (const auto & element : txData.sea_list) {
             if (element.reason_code == LPS_SEA_REASON_CODE_149) {
-                LpsSaWeighInfoTbl.SEALevel1EssentialsInstalled = txData.checkSEAEnableStatus(element.status);
+                LpsSaWeighInfoTbl.SEALevel1EssentialsInstalled = AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(element.status);
             }
             else if (element.reason_code == LPS_SEA_LFT_REASON_CODE_312) {
-                bool installed = txData.checkSEAEnableStatus(element.status);
+                bool installed = AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(element.status);
 
                 // Update if a change is detected
                 if (installed != payloadCalNvmTbl_.legalForTradeInstalled) {
@@ -616,10 +616,9 @@ void LpsSaWeighApp::LpsSaSEAStatus( )
 void LpsSaWeighApp::LpsSaBattVoltageRead( )
 {
     /* send a request for SystemHardwareHealth at configured period */
-    SystemHardwareHealthRequestOutput_.setNewDataFlag();
-    SystemHardwareHealthRequestOutput_.send();
+    SystemHardwareHealthRequestOutput_->publish(weigh_app_interfaces::msg::SystemHardwareHealthRequest());
 
-    SystemHardwareHealth rxData;    
+    weigh_app_interfaces::msg::SystemHardwareHealth rxData;
     while (SystemHardwareHealthInput_->get(rxData)) {
         auto voltage = rxData.battery_voltage;
 
@@ -678,35 +677,35 @@ void LpsSaWeighApp::LpsSaWeighingScsRx( )
 
     // Make sure we are printing in the units that are defined by the display settings
     if (nullptr != displayStateInput_) {
-        LpsSaUIDisplayStateInterface displayState;
+        job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
         while (displayStateInput_->get(displayState)) {
-            const LpsSaUIDisplayState& state = displayState.state;
-            LpsSaWeighInfoTbl.inVerificationMode = state.isInVerificationMode();
-            LpsSaWeighInfoTbl.weightUnits = state.getSettings().weightUnits;
-            LpsSaWeighInfoTbl.weightInterval = state.getWeightInterval();
-            LpsSaWeighInfoTbl.weightCapacity = state.getWeightCapacity();
+            const auto& state = displayState.state;
+            LpsSaWeighInfoTbl.inVerificationMode = state.in_verification_mode;
+            LpsSaWeighInfoTbl.weightUnits = static_cast<LpsCommonWeightUnits>(state.settings.weight_units);
+            LpsSaWeighInfoTbl.weightInterval = state.weight_interval;
+            LpsSaWeighInfoTbl.weightCapacity = state.weight_capacity;
             if (!LpsSaWeighInfoTbl.inVerificationMode) {
                 // Only report changes in weight interval if not in verification node.
-                sealTracker_.reportWeightInterval(LpsSaWeighInfoTbl.weightInterval, state.getWeightDecimalPrecision(), LpsSaWeighInfoTbl.weightUnits);
+                sealTracker_.reportWeightInterval(LpsSaWeighInfoTbl.weightInterval, state.weight_decimal_precision, LpsSaWeighInfoTbl.weightUnits);
             }
         }
     }
 
     // Report ticket retention period to seal tracker.
     if (nullptr != printerCnfgInput_) {
-        LpsSaTotalsPrinterCnfgInterface printerCnfg;
+        weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface printerCnfg;
         while (printerCnfgInput_->get(printerCnfg)) {
-            sealTracker_.reportTicketRetentionPeriod(printerCnfg.config.truckTicket.retentionPeriod);
+            sealTracker_.reportTicketRetentionPeriod(printerCnfg.config.truck_ticket.retention_period);
         }
     }
 
     /* Receive local time offset and override the local time offset in chrono/print.hpp */
     if (nullptr != shmClockInput_) {
-        ShmClock shmClock;
+        job_mgr_interfaces::msg::ShmClockInput shmClock;
         while (shmClockInput_->get(shmClock)) {
-            int32_t offset = shmClock.get_UTC_offset();
+            int32_t offset = shmClock.utc_offset_min;
             tzone_tx_comm_struct tzone;
-            if (tes_common_ais::get_tz_struct(tzone, shmClock)) {
+            if (tes_common_ais::get_tz_struct(shmClock.tzone_info.data(), shmClock.tzone_info.size(), tzone)) {
                 if ((tzInfo_.offset != offset) || (tzInfo_.index != tzone.tzone_id)) {
                     std::string tzStr = tes_common_ais::makeTZString(tzone);
                     if (tes_common_ais::setTZString(tzStr)) {
@@ -725,7 +724,7 @@ void LpsSaWeighApp::LpsSaWeighingScsRx( )
                 AIS_LOG_ERROR("Could not get tzone_tx_comm_struct");
             }
 
-            serviceHourMeter_ = shmClock.get_SHM();
+            serviceHourMeter_ = shmClock.shm_sec;
         }
     }
 }
@@ -741,8 +740,8 @@ void LpsSaWeighApp::LpsSaScsSendZeroRqst()
     bool scsReqstRet=false;
 
     if (LpsSaJobMgrScsReqstOut) {
-        LpsSaJobMgrReqstChannel req;
-        req.command = LpsSaJobMgrReqstChannel::Command::ZERO;
+        cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel req;
+        req.command.value = cpm_common_interfaces::msg::JobMgrReqstChannelCommand::ZERO;
         scsReqstRet = LpsSaJobMgrScsReqstOut->publish(req);
     }
 
