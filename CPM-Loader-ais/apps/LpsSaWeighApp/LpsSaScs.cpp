@@ -1403,31 +1403,31 @@ RETURN VALUE: None
 *******************************************************************************/
 void LpsSaWeighApp::PublishCalFromNvmPayload( void )
 {
-   LpsSaNvmCalDataChannel scsPayload; // Default constructor clears the initial container
+   weigh_app_interfaces::msg::LpsSaNvmCalDataChannel scsPayload; // Default constructor clears the initial container
    AIS_LOG_INFO("Populating SCS object with key-on NVM calibration data");
 
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_lift_heights,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_lift_heights.data(),
            payloadCalNvmTbl_.data.SlowRaiseEmptyBktLiftHt,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_lift_heights));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_pressures,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_pressures.data(),
            payloadCalNvmTbl_.data.SlowRaiseEmptyBktLiftPres,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_empty_pressures));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_lift_heights,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_lift_heights.data(),
            payloadCalNvmTbl_.data.SlowLowerEmptyBktLiftHt,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_lift_heights));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_pressures,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_pressures.data(),
            payloadCalNvmTbl_.data.SlowLowerEmptyBktLiftPres,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_empty_pressures));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_lift_heights,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_lift_heights.data(),
            payloadCalNvmTbl_.data.SlowRaiseFullBktLiftHt,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_lift_heights));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_pressures,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_pressures.data(),
            payloadCalNvmTbl_.data.SlowRaiseFullBktLiftPres,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.raise_slow_full_pressures));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_lift_heights,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_lift_heights.data(),
            payloadCalNvmTbl_.data.SlowLowerFullBktLiftHt,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_lift_heights));
-   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_pressures,
+   memcpy(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_pressures.data(),
            payloadCalNvmTbl_.data.SlowLowerFullBktLiftPres,
            sizeof(scsPayload.lps_sa_nvm_calibration_data_main.lower_slow_full_pressures));
 
@@ -1438,10 +1438,10 @@ void LpsSaWeighApp::PublishCalFromNvmPayload( void )
    scsPayload.lps_sa_nvm_calibration_data_main.raise_speed_full_fast = payloadCalNvmTbl_.data.FullBktFastRaiseSpd;
    scsPayload.lps_sa_nvm_calibration_data_main.raise_fast_delta_p_full = payloadCalNvmTbl_.data.FastRaiseFullBktDeltaPres;
 
-   scsPayload.lps_sa_nvm_calibration_data_debug.lift_full_lower_DC_inf_value = static_cast<int_32>(liftCalNvmTbl_.lift_full_lower_dc);
-   scsPayload.lps_sa_nvm_calibration_data_debug.lift_full_raise_DC_inf_value = static_cast<int_32>(liftCalNvmTbl_.lift_full_raise_dc);
-   scsPayload.lps_sa_nvm_calibration_data_debug.tilt_full_dump_DC_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_dump_dc);
-   scsPayload.lps_sa_nvm_calibration_data_debug.tilt_full_rack_DC_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_rack_dc);
+   scsPayload.lps_sa_nvm_calibration_data_debug.lift_full_lower_dc_inf_value = static_cast<int_32>(liftCalNvmTbl_.lift_full_lower_dc);
+   scsPayload.lps_sa_nvm_calibration_data_debug.lift_full_raise_dc_inf_value = static_cast<int_32>(liftCalNvmTbl_.lift_full_raise_dc);
+   scsPayload.lps_sa_nvm_calibration_data_debug.tilt_full_dump_dc_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_dump_dc);
+   scsPayload.lps_sa_nvm_calibration_data_debug.tilt_full_rack_dc_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_rack_dc);
    scsPayload.lps_sa_nvm_calibration_data_debug.tilt_dump_stop_angle_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_dump_stop_angle);
    scsPayload.lps_sa_nvm_calibration_data_debug.tilt_rack_stop_angle_inf_value = static_cast<int_32>(tiltCalNvmTbl_.tilt_full_rack_stop_angle);
 
@@ -1457,7 +1457,22 @@ void LpsSaWeighApp::PublishCalFromNvmPayload( void )
    // Read IMU Cal Results from file
    LpsCalIMUResults_t imu_cal_results = {};
    readIMUCalResultsFromFile(imu_cal_results);
-   scsPayload.imu_cal_results = imu_cal_results;
+   scsPayload.imu_cal_results.full_slow_imu_offset_temp1 = imu_cal_results.FullSlowImuOffsetTemp1;
+   scsPayload.imu_cal_results.full_slow_imu_offset_temp2 = imu_cal_results.FullSlowImuOffsetTemp2;
+   scsPayload.imu_cal_results.full_slow_imu_offset_temp3 = imu_cal_results.FullSlowImuOffsetTemp3;
+   scsPayload.imu_cal_results.full_slow_lumped_weight_temp1 = imu_cal_results.FullSlowLumpedWeightTemp1;
+   scsPayload.imu_cal_results.full_slow_lumped_weight_temp2 = imu_cal_results.FullSlowLumpedWeightTemp2;
+   scsPayload.imu_cal_results.full_slow_lumped_weight_temp3 = imu_cal_results.FullSlowLumpedWeightTemp3;
+   scsPayload.imu_cal_results.empty_slow_imu_offset_temp1 = imu_cal_results.EmptySlowImuOffsetTemp1;
+   scsPayload.imu_cal_results.empty_slow_imu_offset_temp2 = imu_cal_results.EmptySlowImuOffsetTemp2;
+   scsPayload.imu_cal_results.empty_slow_imu_offset_temp3 = imu_cal_results.EmptySlowImuOffsetTemp3;
+   scsPayload.imu_cal_results.empty_slow_lumped_weight_temp1 = imu_cal_results.EmptySlowLumpedWeightTemp1;
+   scsPayload.imu_cal_results.empty_slow_lumped_weight_temp2 = imu_cal_results.EmptySlowLumpedWeightTemp2;
+   scsPayload.imu_cal_results.empty_slow_lumped_weight_temp3 = imu_cal_results.EmptySlowLumpedWeightTemp3;
+   scsPayload.imu_cal_results.full_slow_imu_offset_final = imu_cal_results.FullSlowImuOffsetFinal;
+   scsPayload.imu_cal_results.empty_slow_imu_offset_final = imu_cal_results.EmptySlowImuOffsetFinal;
+   scsPayload.imu_cal_results.full_slow_lumped_weight_final = imu_cal_results.FullSlowLumpedWeightFinal;
+   scsPayload.imu_cal_results.empty_slow_lumped_weight_final = imu_cal_results.EmptySlowLumpedWeightFinal;
 
    /* The following fields are not yet populated:
     * lps_sa_nvm_calibration_data_debug.pcs_vel_slope
