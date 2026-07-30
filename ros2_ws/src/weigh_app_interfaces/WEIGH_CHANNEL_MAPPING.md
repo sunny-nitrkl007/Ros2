@@ -116,8 +116,18 @@ match. `.msg`: `TipoffModelTestPoints.msg`.
 
 ## Status
 
-**Step 2.2 for WeighApp is now fully complete -- all 16 of 16 channels
+**Step 2.2 for WeighApp is fully complete -- all 16 of 16 channels
 done** (34 `.msg` files total, plus the 9 reused from
-`cpm_common_interfaces`/`job_mgr_interfaces`). Next up: Step 5
-(`LpsSaWeighApp.h/.cpp` + `LpsSaScs.cpp` shim conversion, the WeighApp
-equivalent of JobMgr's completed Step 4).
+`cpm_common_interfaces`/`job_mgr_interfaces`).
+
+**Step 5 (5.1-5.4) is now fully complete.** `LpsSaWeighApp.h/.cpp` (22
+channels, 8 call sites), `LpsSaScs.cpp` (13 call sites), and
+`adv/TipoffAssist.cpp` (the adv-only `TipoffModelTestPointsOutput`
+channel, its own dedicated `rclcpp::Node` since `TipoffAssist` is
+instantiated standalone in the unchanged `adv/LpsAdvProcessInputs.cpp`)
+are all converted to shim types, and `executor_.spin_some()` is wired
+into the 50Hz `executive()`. Remaining: 5.5 (SConscript build-wiring)
+and 5.6-5.8 (build/link verification, real-time budget check,
+component testing) -- all blocked on real build infrastructure, same
+status as JobMgr's equivalent Step 4.5-4.7. Next up: Step 6 (direct
+DDS wiring between JobMgr and WeighApp).
