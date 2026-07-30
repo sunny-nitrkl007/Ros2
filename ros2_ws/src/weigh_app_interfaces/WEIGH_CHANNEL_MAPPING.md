@@ -98,8 +98,8 @@ session can jump straight to step 3 (locate the real header).
 | 5 | `ReadyToFlashStatusOutput` | `ReadyToFlashStatusOutput` | Output | `interfaces/ReadyToFlashStatus/InterfaceTypes.h` | `ReadyToFlashStatus.msg` | Done -- real enum `rpa_application_ready_code_e` confirmed (19 values, -1..18) plus one WeighApp-local `#define` extension (`APP_READY_CODE_PAYLOAL_LEGAL_FOR_TRADE_IS_SEALED=22`, typo preserved verbatim from source, `LpsSaWeighApp.cpp:52`) |
 | 6 | `LpsSaWeighInitDebugChannelOutput` | `LpsSaWeighScsInitDebugOut` | Output | `interfaces/LpsSaWeighInitDebugChannel/InterfaceTypes.h` | `LpsSaWeighInitDebugChannel.msg` | Done -- 8 fields, a scoped slice of the much larger (missing) `LpsInitTbl_t`; only the fields `serialize()` actually archives are modeled, not the full struct |
 | 7 | `LpsSaWeighDebugChannelOutput` | `LpsSaWeighScsDebugOut` | Output | `interfaces/LpsSaWeighDebugChannel/InterfaceTypes.h` | `LpsSaWeighDebugChannel.msg` | Done -- large (~150 fields). Top-level fields and `TipoffAssistInputs`/`TipoffAssistOutputs` (from `adv/TipoffAssist.h`, found fully typed locally) are fully confirmed. `m_LpsWrk.*` (~45 fields) sits on `LpsWrkTbl_t`, confirmed genuinely missing from this checkout (same class of gap as `LpsPublic.h`) -- field NAMES are ground truth from `serialize()`, but TYPES are naming-inferred (float32 default, bool/uint8 where evidenced), not read from a real header. Revisit if `lps_weighing` is ever sourced (Development-Plan.txt Step 0.2). |
-| 8 | `PwmInputChannelsInput` | `PwmIn` | Input | `interfaces/PwmInputChannels/InterfaceTypes.h` | | Not started -- drains into local `inPwm_` |
-| 9 | `MachineInput` | `MachineIn` | Input | `interfaces/Machine/InterfaceTypes.h` | | Not started |
+| 8 | `PwmInputChannelsInput` | `PwmIn` | Input | `interfaces/PwmInputChannels/InterfaceTypes.h` | `PwmInputChannels.msg` | Done -- real struct's own drain call site (`PwmIn->get()`/`PwmInputRead()`) is declared in the header but has NO body anywhere in this checkout -- a genuine gap, not a scoping choice. Reconstructed instead from `inPwm_.PwmData.{Period,Width,SwitchStatus,Timeout}[idx]` usage in the "sa/" build-variant file (`LpsSaProcessInputs.cpp`, real business logic, left unchanged) -- 4 parallel dynamic arrays, exact channel count intentionally left unbounded rather than guessed (References/weighapp.txt's diagram claims `[4]` but that contradicts 6 distinct `*_CH_NUM` constants seen in real code, so not trusted as authoritative) |
+| 9 | `MachineInput` | `MachineIn` | Input | `interfaces/Machine/InterfaceTypes.h` | `Machine.msg` | Done -- real header fully present and fully typed (`Machine.h`), zero blocked fields |
 | 10 | `DemoAppTxChannelInput` | `DemoAppTxIn` | Input | `interfaces/DemoAppTxChannel/InterfaceTypes.h` | | Not started -- drains into local `demoInputs_` |
 | 11 | `CalMgrCmdReqstInput` | `LpsCalCmdScsReqstIn` | Input | `interfaces/CalMgrCmdReqst/InterfaceTypes.h` | | Not started |
 | 12 | `CalMgrCmdRespOutput` | `LpsCalCmdScsRespOut` | Output | `interfaces/CalMgrCmdResp/InterfaceTypes.h` | | Not started |
@@ -117,8 +117,8 @@ Location found while tracing channel 7: `TipoffAssist.h` (`apps/LpsSaWeighApp/ad
 
 ## Status
 
-8 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
+10 of 15 remaining channels done (1 PrinterCnfgInput, 2 SystemHardwareHealthInput,
 3 PartNumbersInput, 4 DataLinkDataInput, 5 ReadyToFlashStatusOutput,
 6 LpsSaWeighInitDebugChannelOutput, 7 LpsSaWeighDebugChannelOutput,
-15 SystemHardwareHealthRequestOutput -- 17 `.msg` files total). Next up:
-channel 8, `PwmInputChannelsInput`.
+8 PwmInputChannelsInput, 9 MachineInput, 15 SystemHardwareHealthRequestOutput
+-- 19 `.msg` files total). Next up: channel 10, `DemoAppTxChannelInput`.

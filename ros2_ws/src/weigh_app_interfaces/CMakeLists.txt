@@ -32,6 +32,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LpsSaWeighInitDebugChannel.msg"
   # LpsSaWeighDebugChannelOutput (channel 7)
   "msg/LpsSaWeighDebugChannel.msg"
+  # PwmInputChannelsInput (channel 8)
+  "msg/PwmInputChannels.msg"
+  # MachineInput (channel 9)
+  "msg/Machine.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 
