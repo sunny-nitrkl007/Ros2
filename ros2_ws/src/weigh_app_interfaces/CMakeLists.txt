@@ -57,6 +57,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LpsSaNvmCalOnTheFlyOverrides.msg"
   "msg/LpsSaNvmCalOnTheFlyDataOnTheFly.msg"
   "msg/LpsSaNvmCalOnTheFlyDataChannel.msg"
+  # TipoffModelTestPointsOutput (adv-only 16th channel, adv/TipoffAssist.cpp)
+  "msg/TipoffModelTestPoints.msg"
   DEPENDENCIES cpm_common_interfaces job_mgr_interfaces
 )
 

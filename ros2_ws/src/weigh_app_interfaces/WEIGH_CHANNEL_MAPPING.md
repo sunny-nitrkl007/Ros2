@@ -108,19 +108,16 @@ session can jump straight to step 3 (locate the real header).
 | 15 | `SystemHardwareHealthRequestOutput` | `SystemHardwareHealthRequestOutput_` | Output | `ais/interfaces/SystemHardwareHealthRequest/InterfaceTypes.h` | `SystemHardwareHealthRequest.msg` | Done -- genuinely empty struct (pure trigger/ping); different binding pattern (`SCSOutData<T>` + `initPublishInterface()`/`send()` at `LpsSaScs.cpp:581`, not `InterfaceDb::bind()`+plain `publish()`) flagged for Step 5 |
 
 **Adv-only (16th, separate file):** `TipoffModelTestPointsOutput`, bound
-and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3).
-Location found while tracing channel 7: `TipoffAssist.h` (`apps/LpsSaWeighApp/adv/`)
-`#include`s `interfaces/TipoffModelTestPoints/InterfaceTypes.h` and declares
-`TipoffModelTestPoints TipoffModelTestPointsData;` /
-`TipoffModelTestPointsOutput *TipoffModelTestPointsOut;` as members of the
-`TipoffAssist` class -- not yet traced (real header not yet read).
+and published in `adv/TipoffAssist.cpp` (Development-Plan.txt 5.3) --
+Done. Real header (`TipoffModelTestPoints.h`) fully present and typed,
+82 fields, every one archived in `serialize()` -- confirmed against the
+real `publish()` call site (`TipoffAssist.cpp:127-214`), field-for-field
+match. `.msg`: `TipoffModelTestPoints.msg`.
 
 ## Status
 
-**All 15 of 15 remaining channels done** (33 `.msg` files total, plus the 9
-reused from `cpm_common_interfaces`/`job_mgr_interfaces` -- 24 of 24
-WeighApp channels fully covered). Only the adv-only 16th channel
-(`TipoffModelTestPointsOutput`, `adv/TipoffAssist.cpp`) remains untraced --
-its location was found while tracing channel 7 (see above) but the real
-header hasn't been read yet. Step 2.2 for WeighApp is otherwise complete;
-next is Step 5 (LpsSaWeighApp.h/.cpp + LpsSaScs.cpp shim conversion).
+**Step 2.2 for WeighApp is now fully complete -- all 16 of 16 channels
+done** (34 `.msg` files total, plus the 9 reused from
+`cpm_common_interfaces`/`job_mgr_interfaces`). Next up: Step 5
+(`LpsSaWeighApp.h/.cpp` + `LpsSaScs.cpp` shim conversion, the WeighApp
+equivalent of JobMgr's completed Step 4).
