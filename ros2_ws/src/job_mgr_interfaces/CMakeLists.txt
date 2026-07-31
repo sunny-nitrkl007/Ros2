@@ -8,6 +8,7 @@ find_package(cpm_common_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DispBestBktWt.msg"
   "msg/SimpleCalData.msg"
+  "msg/WeighBktWtAccuracy.msg"
   "msg/LpsSaJobMgrTxChannel.msg"
   "msg/LpsSaJobMgrRespChannel.msg"
   "msg/LpsSaJobMgrDebugChannel.msg"

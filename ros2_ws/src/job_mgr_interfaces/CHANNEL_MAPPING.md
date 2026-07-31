@@ -96,14 +96,27 @@ The test applied every time, in order:
    `job_mgr_interfaces` alone: `TipOffTriggerType`, `TipOffState`, and the
    `Command` enum shared between Reqst/Resp channels (-> `JobMgrReqstChannelCommand`).
 2. **Is it used directly by a DIFFERENT APP's own code**, not just via this
-   channel's struct (checked by grepping the real C++ type name across the
-   whole tree)? If yes, it doesn't belong in `job_mgr_interfaces` at all --
-   it moves to `cpm_common_interfaces`, the package with no dependents of
-   its own, so the dependency direction stays one-way (`job_mgr_interfaces`
-   and `weigh_app_interfaces` both depend on `cpm_common_interfaces`, never
-   the reverse). This is why `WeighBktWtAccuracy`, `StandbyState`, and the
-   entire `LpsSaJobMgrReqstChannel` family (WeighApp publishes to it
-   directly) live in `cpm_common_interfaces` instead of `job_mgr_interfaces`.
+   channel's struct? Grepping the real C++ type name across the whole tree
+   is only step one -- every hit found this way must then be traced BACK to
+   its origin: is the value actually read off a channel drain (a real
+   cross-app boundary crossing), or is it a coincidental reuse of the same
+   C++ enum name for something unrelated (a local config-file read, a raw
+   PID cast, etc.)? Grep alone over-promotes. This is why `StandbyState` and
+   the entire `LpsSaJobMgrReqstChannel` family (WeighApp publishes to it
+   directly) genuinely live in `cpm_common_interfaces` instead of
+   `job_mgr_interfaces` -- both trace back to a real `->get()` channel drain
+   on the WeighApp side. `WeighBktWtAccuracy` does NOT: its only appearance
+   in WeighApp (`LpsSaCalibration.cpp:330`,
+   `static_cast<LpsWeighBktWtAccuracy_t>(temp)`) traces back to
+   `rubyCfg.get("ZeroBktWtAccuracyLimit", temp)` -- a local calibration
+   config-file read, never a channel. It was wrongly promoted here
+   originally (this section used to list it as a cross-app example); moved
+   back to `job_mgr_interfaces` after the trace-back check caught it
+   (Challenges-And-Decisions.txt 6.12/6.13 in the top-level migration docs).
+   It's still its own file rather than fully inlined, though -- reused
+   across 2 channels within `job_mgr_interfaces` itself
+   (`LpsSaJobMgrTxChannel` + `LoadRecordSubtotal`), which is reason #1
+   below, just not reason #2.
 3. **Otherwise**, the enum/struct is inlined as local constants (enum) or
    defined as its own file used only within the one channel (nested struct)
    -- no premature sharing. `LpsSaJobMgrManualTipOffState_t` is the example:
@@ -117,9 +130,13 @@ The test applied every time, in order:
    "one channel."
 
 This check is re-run for every new field, every time -- it's why several
-already-pushed files got corrected mid-session (`WeighBktWtAccuracy` and
-friends moved out of `job_mgr_interfaces` after the cross-app usage was
-found; `timePoint` was added back to two files after being wrongly dropped).
+already-pushed files got corrected mid-session. `timePoint` was added back
+to two files after being wrongly dropped. `WeighBktWtAccuracy` went the
+other way from what this section used to say: it was moved INTO
+`cpm_common_interfaces` on a grep-only pass, then moved back OUT to
+`job_mgr_interfaces` once the trace-back check showed its one apparent
+cross-app hit was a coincidental local-config cast, not a real channel
+consumer -- see the correction in the rule above.
 
 ## Part 3 — `timePoint`: the one recurring trap
 
@@ -222,7 +239,9 @@ its full citation trail.
 `AutonomyConditionDiagnosticsTxChannel.msg`, `EventDiagnosticData.msg`
 
 **Nested messages (sub-structs, not channels themselves):**
-`DispBestBktWt.msg`, `SimpleCalData.msg`, `LpsSaJobMgrSubtotalInfo.msg`,
+`DispBestBktWt.msg`, `SimpleCalData.msg`, `WeighBktWtAccuracy.msg` (moved
+back here from `cpm_common_interfaces` -- see Part 2, rule 2 correction),
+`LpsSaJobMgrSubtotalInfo.msg`,
 `LpsSaJobMgrReqst.msg`, `FloatIO.msg`, `LiftPosition.msg`, `TiltPosition.msg`,
 `Payload.msg`, `LftSealStatus.msg`, `WeighRange.msg`,
 `ProdMeasureSensorStatus.msg`, `LinkSensorCalLim.msg`, `WeighPidData.msg`,
@@ -233,6 +252,6 @@ its full citation trail.
 
 **Shared type messages, in `cpm_common_interfaces` (reused across channels
 and/or a different app's own code):**
-`WeighBktWtAccuracy.msg`, `TipOffTriggerType.msg`, `TipOffState.msg`,
+`TipOffTriggerType.msg`, `TipOffState.msg`,
 `StandbyState.msg`, `JobMgrReqstChannelCommand.msg`,
 `WeighReqstChannelCommand.msg`, `FloatPair.msg`

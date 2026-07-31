@@ -51,11 +51,11 @@ int64 time_point_ns
 uint8 task_number
 uint16 pass_count
 float32 truck_weight
-cpm_common_interfaces/WeighBktWtAccuracy truck_weight_accuracy
+WeighBktWtAccuracy truck_weight_accuracy
 float32 truck_start_weight
 float32 remaining_weight
 float32 total_weight
-cpm_common_interfaces/WeighBktWtAccuracy total_weight_accuracy
+WeighBktWtAccuracy total_weight_accuracy
 uint32 subtotal_count
 string ticket_id
 

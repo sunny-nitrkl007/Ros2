@@ -25,4 +25,4 @@ float32 zero_weight
 float32 cal_adjust
 LoadRecordPass[] passes
 float32 weight_tonnes
-cpm_common_interfaces/WeighBktWtAccuracy accuracy
+WeighBktWtAccuracy accuracy
