@@ -43,11 +43,17 @@ new `.msg` needed for these 9.
 | `shmClockInput_` | `ShmClockInput` | Input, same ACD/ShmClock service JobMgr already subscribes to | `ShmClockInput.msg` | `job_mgr_interfaces` |
 | `displayStateInput_` | `DisplayStateInput` | Input, same UI broadcaster JobMgr already subscribes to | `LpsSaUIDisplayStateInterface.msg` | `job_mgr_interfaces` |
 
-**Explicitly checked and rejected for reuse:** `DataLinkDataInput_`.
+**`DataLinkDataInput_` -- kept as its own separate weigh_app_interfaces
+file rather than reusing job_mgr_interfaces', but see the correction
+below: this IS genuinely the same real channel, not a rejected match.**
 JobMgr's `DataLinkData.msg` is deliberately scoped to only the 3 PIDs
 JobMgr itself reads (see `job_mgr_interfaces/msg/DataLinkParam.msg`).
 WeighApp's own consumption is at `LpsSaWeighApp.cpp:1304-1954` -- roughly
-650 lines, a much larger PID surface than JobMgr's.
+650 lines, a much larger PID surface than JobMgr's. Kept separate
+because merging the two independently-scoped field sets means touching
+already-committed code in both apps -- a deliberate, recorded scope
+decision (Challenges-And-Decisions.txt 6.15), not a "these are
+different real channels" finding (that part was wrong, see below).
 
 **Real header found this time.** Unlike JobMgr's channel (real struct
 never located, usage-scoped reconstruction with unconfirmed enum values),
@@ -66,14 +72,36 @@ single accessor WeighApp calls (`GetSid`, `GetParamId`,
 `VarLengthDataLinkParamFactory::VarLengthParamType`) have explicit
 confirmed numeric values, unlike JobMgr's channel.
 
-Important: JobMgr's own channel uses a *different*, still-unlocated type
--- literally `DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID`
+CORRECTION (found in the top-level msg-package audit, Challenges-And-
+Decisions.txt 6.15 -- this section's original claim below was wrong,
+kept struck-through rather than deleted so the mistake and its fix are
+both visible):
+~~Important: JobMgr's own channel uses a *different*, still-unlocated
+type -- literally `DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID`
 (`LpsSaJobMgrScs.cpp:778`), not `DataLinkParamInfo::...` like WeighApp.
-Same enumerator naming convention, different C++ class -- do NOT use this
-finding to "fix" JobMgr's `DataLinkParam.msg`; that would be assuming two
-differently-named real types are identical based on naming resemblance
-alone, exactly the kind of guess this whole methodology exists to avoid.
-Confirmed by grepping the actual original JobMgr source, not assumed.
+Same enumerator naming convention, different C++ class -- do NOT use
+this finding to "fix" JobMgr's `DataLinkParam.msg`... Confirmed by
+grepping the actual original JobMgr source, not assumed.~~
+That grep found the names but never located either app's real header
+to actually compare classes -- JobMgr's `interfaces/DataLinkData/`
+still doesn't exist, so nothing to compare against at the time. Found
+this pass, at `eta-ais/prod/machineCommon/content/legacy/common/
+interfaces/CpmDataLinkData/DataLinkParam.h`: `class DataLinkParam :
+public DataLinkParamInfo`. It's ONE real class hierarchy -- JobMgr's
+`DataLinkParam::` reference is the derived class name, WeighApp's
+`DataLinkParamInfo::` reference is the inherited base class's own
+scope for the same enum. Genuinely the same real channel both apps
+subscribe to independently (same `interfaces/DataLinkData/
+InterfaceTypes.h` include path on both sides, same drain-loop
+structure, same `DataLinkData dlData; dlData.GetParams()` pattern).
+This caused 2 real field-type bugs in job_mgr_interfaces'
+`DataLinkParam.msg` (`last_value_dsi` was uint32, real type per
+`DataLinkParam.h:467` is uint16; `last_value_eng` was float32, real
+type per `DataLinkParam.h:227` is float64) -- both now fixed. The
+channel itself is left un-merged/misclassified on purpose (user's
+explicit choice, given the fix would touch already-committed business
+logic in both apps) -- see Challenges-And-Decisions.txt 6.15 for the
+full writeup and the deferred full-merge option.
 
 `weigh_app_interfaces/msg/DataLinkParam.msg` is still scoped to exactly
 what WeighApp itself reads (17 fields) -- not the full real class's API
