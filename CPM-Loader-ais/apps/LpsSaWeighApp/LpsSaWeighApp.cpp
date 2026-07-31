@@ -516,7 +516,7 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
+    displayStateInput_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
     if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         return false;
@@ -558,7 +558,7 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    AutonomyConditionDiagnosticsTxInputChannel = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
+    AutonomyConditionDiagnosticsTxInputChannel = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
     if (!AutonomyConditionDiagnosticsTxInputChannel) {
         AIS_LOG_ERROR("AutonomyConditionDiagnosticsTxChannelInput interface not defined");
         return false;
@@ -622,7 +622,7 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    AisJhm2TxInputScs = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+    AisJhm2TxInputScs = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
     if (!AisJhm2TxInputScs) {
         AIS_LOG_ERROR("Interface AisJhm2TxChannelInput not configured.");
         return false;
@@ -643,7 +643,7 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    shmClockInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    shmClockInput_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
     if (!shmClockInput_) {
         AIS_LOG_ERROR("No ShmClockInput input channel defined.");
         return false;

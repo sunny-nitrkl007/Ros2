@@ -148,7 +148,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsChkForReqst()
 
     // Read display state and go into standby if we are in verification mode.
     if (nullptr != displayStateInput_) {
-        job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
+        cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
         while (displayStateInput_->get(displayState)) {
             // isInVerificationMode() (DisplayState.hpp:62) is a trivial
             // accessor: `return inVerificationMode_;` -- direct field read.
@@ -671,7 +671,7 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaJobMgrApp::AisJhmDataServerTxRead()
 {
-    job_mgr_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
+    cpm_common_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
     while (AisJhm2TxInputScs->get(AisJhm2TxIn)) {
         if (AisJhm2TxIn.simplecal_data.new_data_flag) {
             simpleCal_.eraseEntry(AisJhm2TxIn.simplecal_data.time_stamp);
@@ -749,7 +749,7 @@ RETURN VALUE:
 void LpsSaJobMgrApp::LpsSaJobMgrScsSHMRead( )
 {
     if (nullptr != ShmClockInputScs) {
-        job_mgr_interfaces::msg::ShmClockInput shmClock;
+        cpm_common_interfaces::msg::ShmClockInput shmClock;
         while (ShmClockInputScs->get(shmClock)) {
             int32_t offset = shmClock.utc_offset_min;
             tzone_tx_comm_struct tzone;

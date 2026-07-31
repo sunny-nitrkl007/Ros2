@@ -458,7 +458,7 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaWeighApp::AisJhmDataServerTxRead()
 {
-    job_mgr_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
+    cpm_common_interfaces::msg::AisJhm2TxChannel AisJhm2TxIn;
     while (AisJhm2TxInputScs->get(AisJhm2TxIn)) {
         if (AisJhm2TxIn.simplecal_data.new_data_flag) {
             AIS_LOG_DEBUG("### AIS Adj wt = %f", AisJhm2TxIn.simplecal_data.adjtruckweight);
@@ -577,7 +577,7 @@ void LpsSaWeighApp::LpsSaSEAStatus( )
     /*TODO: We are initializing the status of the SEA to installed/enabled,
      * we should probably disable the SEA if we do not receive a SEA object
      * in the first x minutes */
-    job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
+    cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
     while (AutonomyConditionDiagnosticsTxInputChannel->get(txData)) {
         for (const auto & element : txData.sea_list) {
             if (element.reason_code == LPS_SEA_REASON_CODE_149) {
@@ -677,7 +677,7 @@ void LpsSaWeighApp::LpsSaWeighingScsRx( )
 
     // Make sure we are printing in the units that are defined by the display settings
     if (nullptr != displayStateInput_) {
-        job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
+        cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface displayState;
         while (displayStateInput_->get(displayState)) {
             const auto& state = displayState.state;
             LpsSaWeighInfoTbl.inVerificationMode = state.in_verification_mode;
@@ -701,7 +701,7 @@ void LpsSaWeighApp::LpsSaWeighingScsRx( )
 
     /* Receive local time offset and override the local time offset in chrono/print.hpp */
     if (nullptr != shmClockInput_) {
-        job_mgr_interfaces::msg::ShmClockInput shmClock;
+        cpm_common_interfaces::msg::ShmClockInput shmClock;
         while (shmClockInput_->get(shmClock)) {
             int32_t offset = shmClock.utc_offset_min;
             tzone_tx_comm_struct tzone;

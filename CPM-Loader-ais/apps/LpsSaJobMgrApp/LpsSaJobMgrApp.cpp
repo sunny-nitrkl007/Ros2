@@ -202,16 +202,16 @@ bool LpsSaJobMgrApp::initialize( )
     LpsSaJobMgrRespChannelOutput_ = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>(rosNode_, "lps_sa_job_mgr_resp_channel");
     LpsSaSwitchInput = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>(rosNode_, "switch_input_scs");
     LpsSaOutputChannelOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>(rosNode_, "output_channel");
-    AisJhm2TxInputScs  = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+    AisJhm2TxInputScs  = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
 
-    displayStateInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
+    displayStateInput_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
     if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         everythingOk = false;
     }
 
-    ShmClockInputScs = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
-    autonomyConditionDiagnosticsTxInputChannel_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
+    ShmClockInputScs = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    autonomyConditionDiagnosticsTxInputChannel_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
 
     dataLinkDataInput_ = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>(rosNode_, "data_link_data");
     if (!dataLinkDataInput_) {
@@ -417,7 +417,7 @@ bool LpsSaJobMgrApp::executive( )
     executor_.spin_some();
 
     if (nullptr != autonomyConditionDiagnosticsTxInputChannel_) {
-        job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
+        cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel txData;
         while (autonomyConditionDiagnosticsTxInputChannel_->get(txData)) {
             for (const auto & element : txData.sea_list) {
                 if (element.reason_code == LPS_SEA_REASON_CODE_149) {

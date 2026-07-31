@@ -76,10 +76,10 @@ DESCRIPTION:
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
 
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
-#include <job_mgr_interfaces/msg/ais_jhm2_tx_channel.hpp>
-#include <job_mgr_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
-#include <job_mgr_interfaces/msg/shm_clock_input.hpp>
-#include <job_mgr_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
+#include <cpm_common_interfaces/msg/ais_jhm2_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/shm_clock_input.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
 
 #include <weigh_app_interfaces/msg/ready_to_flash_status.hpp>
 #include <weigh_app_interfaces/msg/pwm_input_channels.hpp>
@@ -418,8 +418,8 @@ private:
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>* PwmIn;
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>* LpsSaJobMgrScsTxIn;
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>* DemoAppTxIn;
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* AutonomyConditionDiagnosticsTxInputChannel;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* AutonomyConditionDiagnosticsTxInputChannel;
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::Machine>* MachineIn;
     ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>* LpsSaWeighScsInitDebugOut;
     ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>* LpsSaWeighScsDebugOut;
@@ -431,12 +431,12 @@ private:
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>* PartNumbersInput_;
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealth>* SystemHardwareHealthInput_;
     ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>* SystemHardwareHealthRequestOutput_;
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
     // For receiving the current printer configuration
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface>* printerCnfgInput_;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>* shmClockInput_;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>* shmClockInput_;
 
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;

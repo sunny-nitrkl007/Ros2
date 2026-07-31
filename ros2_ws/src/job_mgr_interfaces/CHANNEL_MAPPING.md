@@ -221,37 +221,64 @@ its full citation trail.
 | 8 | `LoadRecordOutput` | LpsSaTotalsApp / WorkOrderAssistApp | `LpsSaLoadRecordChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/LpsSaLoadRecordChannel/` | `LpsSaLoadRecordChannel.msg` | Done -- `weight_units` raw-int (`LpsCommonWeight.h` missing) |
 | 9 | `SwitchInputScsInput` | SwitchInputScs app, hornOnStoreTest, autonomyConditionDiagnostics | unknown (struct not in checkout) | `interfaces/SwitchInputScs/` -- folder does not exist | `SwitchInputScs.msg` | Done -- usage-scoped partial reconstruction, see Part 4 |
 | 10 | `OutputChannelOutput` | OutputApp (horn relay), hornOnStoreTest (snoop) | unknown (struct not in checkout) | `interfaces/OutputChannel/` -- folder does not exist | `OutputChannel.msg` + `OutputCmd.msg` | Done -- usage-scoped partial reconstruction, see Part 4 |
-| 11 | `AisJhm2TxChannelInput` | AisJhm2 data server | `AisJhm2TxChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/AisJhm2TxChannel/` | `AisJhm2TxChannel.msg` | Done |
-| 12 | `DisplayStateInput` | UI/DisplayApp | `LpsSaUIDisplayState` | `CPM-Loader-ais/prod/common/interfaces/LpsSaUI/` | `LpsSaUIDisplayState.msg` | Done -- `weight_units`/`weight_precision` raw-int |
-| 13 | `ShmClockInput` | ACD/ShmClock service | `ShmClockStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/ShmClock/` | `ShmClockInput.msg` | Done |
+| 11 | `AisJhm2TxChannelInput` | AisJhm2 data server, **+ WeighApp (independent direct subscriber, found in the msg-package audit)** | `AisJhm2TxChannelStorage` | `CPM-Loader-ais/prod/common/interfaces/AisJhm2TxChannel/` | `AisJhm2TxChannel.msg` (+`SimpleCalDataT.msg`/`TipoffWeightAdjustData.msg`; moved to `cpm_common_interfaces`) | Done |
+| 12 | `DisplayStateInput` | UI/DisplayApp, **+ WeighApp (independent direct subscriber, found in the msg-package audit)** | `LpsSaUIDisplayState` | `CPM-Loader-ais/prod/common/interfaces/LpsSaUI/` | `LpsSaUIDisplayState.msg` (+`LpsSaUIDisplayStateInterface.msg`/`LpsSaUIDisplaySettings.msg`; moved to `cpm_common_interfaces`) | Done -- `weight_units`/`weight_precision` raw-int |
+| 13 | `ShmClockInput` | ACD/ShmClock service, **+ WeighApp (independent direct subscriber, found in the msg-package audit)** | `ShmClockStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/ShmClock/` | `ShmClockInput.msg` (moved to `cpm_common_interfaces`) | Done |
 | 14 | `DataLinkDataInput` | DataLink / other ECMs, autonomyConditionDiagnostics (much larger consumer, not fully scoped -- see Part 4) | unknown (struct not in checkout) | `interfaces/DataLinkData/` -- folder does not exist | `DataLinkData.msg` + `DataLinkParam.msg` | Done -- scoped to JobMgr's own 3 PIDs only, see Part 4 |
-| 15 | `AutonomyConditionDiagnosticsTxChannelInput` | SEA licensing broadcaster | `AutonomyConditionDiagnosticsTxInterfaceStorage` | `CPM-Loader-ais/prod/common/interfaces/AutonomyConditionDiagnostics/` | `AutonomyConditionDiagnosticsTxChannel.msg` | Done |
+| 15 | `AutonomyConditionDiagnosticsTxChannelInput` | SEA licensing broadcaster, **+ WeighApp (independent direct subscriber, found in the msg-package audit)** | `AutonomyConditionDiagnosticsTxInterfaceStorage` | `CPM-Loader-ais/prod/common/interfaces/AutonomyConditionDiagnostics/` | `AutonomyConditionDiagnosticsTxChannel.msg` (+`SEA.msg`; moved to `cpm_common_interfaces`) | Done |
 | 16 | `EventDiagnosticDataInput` | Other ECM's event/diagnostic server | `EventDiagnosticDataStorage` | `eta-ais/prod/machineCommon/content/prod/common/interfaces/EventDiagnosticData/` | `EventDiagnosticData.msg` | Done |
 
 ## All files created so far, by role
 
-**Channel messages (1:1 with a real SCS channel):**
-`LpsSaJobMgrTxChannel.msg`, `LpsSaJobMgrReqstChannel.msg`,
-`LpsSaJobMgrRespChannel.msg`, `LpsSaJobMgrDebugChannel.msg`,
-`LpsSaWeighReqstChannel.msg`, `LpsSaWeighRespChannel.msg`,
-`LpsSaWeighTxChannel.msg`, `LpsSaLoadRecordChannel.msg`,
-`AisJhm2TxChannel.msg`, `LpsSaUIDisplayState.msg`, `ShmClockInput.msg`,
-`AutonomyConditionDiagnosticsTxChannel.msg`, `EventDiagnosticData.msg`
+**This section was significantly stale until the full msg-package audit
+(see top-level `Challenges-And-Decisions.txt` 6.13/6.14) -- several
+entries previously listed here as job_mgr_interfaces-local had already
+moved to `cpm_common_interfaces` in earlier work without this doc being
+updated. Rewritten below to match the actual current file layout,
+verified directly against `ls job_mgr_interfaces/msg/` /
+`ls cpm_common_interfaces/msg/`, not carried forward from memory.**
 
-**Nested messages (sub-structs, not channels themselves):**
-`DispBestBktWt.msg`, `SimpleCalData.msg`, `WeighBktWtAccuracy.msg` (moved
-back here from `cpm_common_interfaces` -- see Part 2, rule 2 correction),
-`LpsSaJobMgrSubtotalInfo.msg`,
-`LpsSaJobMgrReqst.msg`, `FloatIO.msg`, `LiftPosition.msg`, `TiltPosition.msg`,
-`Payload.msg`, `LftSealStatus.msg`, `WeighRange.msg`,
-`ProdMeasureSensorStatus.msg`, `LinkSensorCalLim.msg`, `WeighPidData.msg`,
-`AcdInfoPopUp.msg`, `AcdDiagPopUp.msg`, `AcdEventPopUp.msg`,
+**Channel messages, still local to job_mgr_interfaces (1:1 with a real
+SCS channel, genuinely single-app -- no other app subscribes):**
+`LpsSaJobMgrTxChannel.msg`, `LpsSaJobMgrRespChannel.msg`,
+`LpsSaJobMgrDebugChannel.msg`, `LpsSaLoadRecordChannel.msg`,
+`SwitchInputScs.msg`, `OutputChannel.msg`, `DataLinkData.msg`,
+`EventDiagnosticData.msg`
+
+**Nested messages, still local to job_mgr_interfaces (sub-structs, not
+channels themselves, genuinely single-app):**
+`DispBestBktWt.msg`, `SimpleCalData.msg`, `WeighBktWtAccuracy.msg`,
 `LoadRecordTimeStamp.msg`, `LoadRecordPass.msg`, `LoadRecordSubtotal.msg`,
-`SimpleCalDataT.msg`, `TipoffWeightAdjustData.msg`,
-`LpsSaUIDisplaySettings.msg`, `SEA.msg`, `J1939Name.msg`, `Diagnostic.msg`
+`OutputCmd.msg`, `DataLinkParam.msg`, `J1939Name.msg`, `Diagnostic.msg`
 
-**Shared type messages, in `cpm_common_interfaces` (reused across channels
-and/or a different app's own code):**
-`TipOffTriggerType.msg`, `TipOffState.msg`,
-`StandbyState.msg`, `JobMgrReqstChannelCommand.msg`,
-`WeighReqstChannelCommand.msg`, `FloatPair.msg`
+**Moved to `cpm_common_interfaces` -- genuinely shared, 2 different
+reasons:**
+- The 4 direct JobMgr<->WeighApp legs (Development-Plan.txt Step 6.1):
+  `LpsSaJobMgrReqstChannel.msg`, `LpsSaWeighReqstChannel.msg`,
+  `LpsSaWeighRespChannel.msg`, `LpsSaWeighTxChannel.msg` -- plus every
+  field type either of those needs (`LpsSaJobMgrSubtotalInfo.msg`,
+  `LpsSaJobMgrReqst.msg`, `FloatIO.msg`, `LiftPosition.msg`,
+  `TiltPosition.msg`, `Payload.msg`, `LftSealStatus.msg`,
+  `WeighRange.msg`, `ProdMeasureSensorStatus.msg`,
+  `LinkSensorCalLim.msg`, `WeighPidData.msg`, `AcdInfoPopUp.msg`,
+  `AcdDiagPopUp.msg`, `AcdEventPopUp.msg`, `TipOffTriggerType.msg`,
+  `TipOffState.msg`, `JobMgrReqstChannelCommand.msg`,
+  `WeighReqstChannelCommand.msg`, `FloatPair.msg`) -- structurally
+  forced, not a judgment call (Challenges-And-Decisions.txt 6.13).
+- A second, previously-uncounted category found in the msg-package
+  audit: channels published by a THIRD source that BOTH JobMgr and
+  WeighApp independently subscribe to (real construction-code evidence:
+  identical topic string, `job_mgr_interfaces::msg::X` referenced
+  directly in both apps' own `.cpp`/`.h`, not routed through either
+  app publishing to the other). 4 channels qualify: `AisJhm2TxChannel.msg`
+  (+`SimpleCalDataT.msg`/`TipoffWeightAdjustData.msg`),
+  `AutonomyConditionDiagnosticsTxChannel.msg` (+`SEA.msg`),
+  `ShmClockInput.msg`, and `LpsSaUIDisplayStateInterface.msg`
+  (+`LpsSaUIDisplayState.msg`/`LpsSaUIDisplaySettings.msg`). Also
+  `StandbyState.msg` (a single field of `LpsSaJobMgrTxChannel`, not a
+  whole channel, promoted separately once the trace-back check proved
+  WeighApp's own `jobMgrIn` drain genuinely consumes it).
+See Challenges-And-Decisions.txt 6.14 for the full audit and how this
+was found (grep alone missed it -- required checking actual
+construction-code topic strings in both apps, not just type-name
+co-occurrence).

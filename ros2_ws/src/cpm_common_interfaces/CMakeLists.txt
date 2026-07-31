@@ -29,6 +29,15 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AcdDiagPopUp.msg"
   "msg/AcdEventPopUp.msg"
   "msg/LpsSaWeighTxChannel.msg"
+  "msg/SimpleCalDataT.msg"
+  "msg/TipoffWeightAdjustData.msg"
+  "msg/AisJhm2TxChannel.msg"
+  "msg/SEA.msg"
+  "msg/AutonomyConditionDiagnosticsTxChannel.msg"
+  "msg/ShmClockInput.msg"
+  "msg/LpsSaUIDisplaySettings.msg"
+  "msg/LpsSaUIDisplayState.msg"
+  "msg/LpsSaUIDisplayStateInterface.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)

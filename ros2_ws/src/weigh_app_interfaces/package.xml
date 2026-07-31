@@ -9,7 +9,7 @@
     Boost-serialized SCS structs under CPM-Loader-ais/prod/common/interfaces/
     -- see the comment header in each .msg for its source file. Channels
     already fully defined by job_mgr_interfaces/cpm_common_interfaces
-    (JobMgr<->WeighApp shared channels) are reused from there directly,
+    (JobMgr&lt;-&gt;WeighApp shared channels) are reused from there directly,
     not redefined here -- see WEIGH_CHANNEL_MAPPING.md.
   </description>
   <maintainer email="aawara.sunny@gmail.com">Sunny</maintainer>

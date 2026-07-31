@@ -64,13 +64,13 @@ DESCRIPTION:
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_debug_channel.hpp>
 #include <job_mgr_interfaces/msg/switch_input_scs.hpp>
 #include <job_mgr_interfaces/msg/output_channel.hpp>
-#include <job_mgr_interfaces/msg/ais_jhm2_tx_channel.hpp>
-#include <job_mgr_interfaces/msg/lps_sa_ui_display_state.hpp>
-#include <job_mgr_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
-#include <job_mgr_interfaces/msg/shm_clock_input.hpp>
+#include <cpm_common_interfaces/msg/ais_jhm2_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_ui_display_state.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_ui_display_state_interface.hpp>
+#include <cpm_common_interfaces/msg/shm_clock_input.hpp>
 #include <job_mgr_interfaces/msg/data_link_data.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_load_record_channel.hpp>
-#include <job_mgr_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/autonomy_condition_diagnostics_tx_channel.hpp>
 #include <job_mgr_interfaces/msg/event_diagnostic_data.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
 // weighAppInf_'s 3 direct-DDS channels (WeighReqst/Resp/Tx) are converted
@@ -185,14 +185,14 @@ private:
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
     ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
 
     // Type corrected during Step 4.2 -- see LpsSaUIDisplayStateInterface.msg
     // header for why this needs the wrapper type, not LpsSaUIDisplayState
     // directly.
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
 
     ros_shim::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>                 *dataLinkDataInput_;
 
@@ -214,7 +214,7 @@ private:
 
     std::chrono::steady_clock::time_point storeRejectedExpireTime;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
+    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
     bool SEALevel1EssentialsInstalled_;
     bool SEALevel2ProInstalled_;
     bool SEALegalForTradeInstalled_;
