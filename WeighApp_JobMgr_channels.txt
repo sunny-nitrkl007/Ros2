@@ -1,0 +1,41 @@
+WeighApp <-> JobMgr: direct communication channels
+=====================================================
+Derived by cross-referencing the "Interfaces" hash in both apps' config files:
+  config/LpsSaWeighApp.rb
+  config/LpsSaJobMgrApp.rb
+Rule used: same channel base name, with Output on one app's side and Input on
+the other app's side, = a real point-to-point channel between the two apps.
+Same base name with Input on BOTH sides = both apps independently subscribe
+to some third process's publisher (not a direct channel between them).
+
+
+DIRECT CHANNELS (Output <-> Input pair)
+--------------------------------------------------
+#  Base name                JobMgr    WeighApp  Direction
+1  LpsSaWeighReqstChannel   Output    Input     JobMgr   -> WeighApp  (commands)
+2  LpsSaWeighRespChannel    Input     Output    WeighApp -> JobMgr   (command responses)
+3  LpsSaWeighTxChannel      Input     Output    WeighApp -> JobMgr   (live telemetry/params)
+4  LpsSaJobMgrReqstChannel  Input     Output    WeighApp -> JobMgr   (requests)
+5  LpsSaJobMgrTxChannel     Output    Input     JobMgr   -> WeighApp  (job/state params)
+
+
+SHARED NAME, NOT A DIRECT CHANNEL (both sides only read/Input)
+------------------------------------------------------------------
+Base name                              JobMgr  WeighApp  Actual publisher (third process)
+AisJhm2TxChannel                       Input   Input     AisJhm2RequestProcessor (data server)
+DisplayState                           Input   Input     the UI process
+ShmClock                               Input   Input     shared clock/heartbeat publisher
+DataLinkData                           Input   Input     datalink/CAN publisher
+AutonomyConditionDiagnosticsTxChannel  Input   Input     ACD (Autonomy Condition Diagnostics) app
+
+
+ONE-SIDED (no counterpart in the other app's Interfaces list)
+------------------------------------------------------------------
+JobMgr only:    LpsSaJobMgrRespChannel, LpsSaJobMgrDebugChannel, SwitchInputScs,
+                OutputChannel, LoadRecord, EventDiagnosticData
+
+WeighApp only:  DemoAppTxChannel, LpsSaNvmCalDataChannel,
+                LpsSaNvmCalOnTheFlyDataChannel, PwmInputChannels, Machine,
+                CalMgrCmdReqst, CalMgrCmdResp, TipoffModelTestPoints,
+                PartNumbers, PrinterCnfg, SystemHardwareHealth,
+                SystemHardwareHealthRequest, ReadyToFlashStatus
