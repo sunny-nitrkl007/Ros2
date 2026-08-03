@@ -25,7 +25,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-namespace ros_wrapper
+namespace ros2_wrapper
 {
 
 template<typename T>
@@ -63,6 +63,6 @@ private:
     std::string topicName_;
 };
 
-} // namespace ros_wrapper
+} // namespace ros2_wrapper
 
 #endif // _RosOutputInterface_h_

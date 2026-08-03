@@ -196,24 +196,24 @@ bool LpsSaJobMgrApp::initialize( )
     rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
     executor_.add_node(rosNode_);
 
-    LpsSaJobMgrScsTxOut  = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
-    LpsSaJobMgrScsReqstIn  = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
-    LpsSaJobMgrScsDebugOut = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>(rosNode_, "lps_sa_job_mgr_debug_channel");
-    LpsSaJobMgrRespChannelOutput_ = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>(rosNode_, "lps_sa_job_mgr_resp_channel");
-    LpsSaSwitchInput = new ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>(rosNode_, "switch_input_scs");
-    LpsSaOutputChannelOut = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>(rosNode_, "output_channel");
-    AisJhm2TxInputScs  = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+    LpsSaJobMgrScsTxOut  = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
+    LpsSaJobMgrScsReqstIn  = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
+    LpsSaJobMgrScsDebugOut = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>(rosNode_, "lps_sa_job_mgr_debug_channel");
+    LpsSaJobMgrRespChannelOutput_ = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>(rosNode_, "lps_sa_job_mgr_resp_channel");
+    LpsSaSwitchInput = new ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>(rosNode_, "switch_input_scs");
+    LpsSaOutputChannelOut = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>(rosNode_, "output_channel");
+    AisJhm2TxInputScs  = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
 
-    displayStateInput_ = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
+    displayStateInput_ = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
     if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         everythingOk = false;
     }
 
-    ShmClockInputScs = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
-    autonomyConditionDiagnosticsTxInputChannel_ = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
+    ShmClockInputScs = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    autonomyConditionDiagnosticsTxInputChannel_ = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
 
-    dataLinkDataInput_ = new ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>(rosNode_, "data_link_data");
+    dataLinkDataInput_ = new ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>(rosNode_, "data_link_data");
     if (!dataLinkDataInput_) {
         AIS_LOG_ERROR("DataLinkDataInput Interface not configured.");
         everythingOk = false;
@@ -267,12 +267,12 @@ bool LpsSaJobMgrApp::initialize( )
       // (Development-Plan.txt Step 6.1.1/6.1.2/6.1.3). Topic names must
       // match WeighApp's own construction of these 3 wrappers exactly
       // (LpsSaWeighApp.cpp:567,573,594).
-        ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
-                new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
-        ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
-                new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
-        ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput =
-                new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+        ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
+                new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+        ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
+                new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+        ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput =
+                new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
 
         if (!weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)) {
             AIS_LOG_ERROR("Failed to start weigh app interface.");
@@ -283,13 +283,13 @@ bool LpsSaJobMgrApp::initialize( )
     }
 
     // Get the load record output channel
-    loadRecordOutputChannel_ = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>(rosNode_, "load_record");
+    loadRecordOutputChannel_ = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>(rosNode_, "load_record");
     if (nullptr == loadRecordOutputChannel_) {
         AIS_LOG_ERROR("\n Load record output channel not configured.");
         everythingOk = false;
     }
 
-    eddtInputChannel_ = new ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>(rosNode_, "event_diagnostic_data");
+    eddtInputChannel_ = new ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>(rosNode_, "event_diagnostic_data");
     if (!eddtInputChannel_) {
         AIS_LOG_ERROR("\n EventDiagnosticDataInput channel not configured.");
         everythingOk = false;

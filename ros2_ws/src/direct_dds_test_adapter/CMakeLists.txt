@@ -12,7 +12,7 @@ find_package(cpm_common_interfaces REQUIRED)
 find_package(job_mgr_interfaces REQUIRED)
 
 # Real, already-converted, AIS-free production headers reused directly:
-#   - CPM-Loader-ais/prod/common/ros_wrapper/*.h            (wrapper layer)
+#   - CPM-Loader-ais/prod/common/ros2_wrapper/*.h            (wrapper layer)
 #   - CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel/
 #     LpsSaWeighAppInf.hpp                                (JobMgr's real
 #     direct-DDS wrapper -- see Challenges-And-Decisions.txt 6.11)

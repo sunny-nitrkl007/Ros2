@@ -20,8 +20,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <ros_wrapper/RosInputInterface.h>
-#include <ros_wrapper/RosOutputInterface.h>
+#include <ros2_wrapper/RosInputInterface.h>
+#include <ros2_wrapper/RosOutputInterface.h>
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
@@ -33,18 +33,18 @@ int main(int argc, char** argv)
     auto node = std::make_shared<rclcpp::Node>("jobmgr_adapter_node");
 
     // Same topic names LpsSaJobMgrApp.cpp/LpsSaWeighApp.cpp already agree on.
-    auto* requestOutput = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
+    auto* requestOutput = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
             node, "lps_sa_weigh_reqst_channel");
-    auto* responseInput = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
+    auto* responseInput = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
             node, "lps_sa_weigh_resp_channel");
-    auto* txInput = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
+    auto* txInput = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
             node, "lps_sa_weigh_tx_channel");
-    auto* jobMgrReqstIn = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
+    auto* jobMgrReqstIn = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
             node, "lps_sa_job_mgr_reqst_channel");
 
     // Leg 5 -- JobMgr publishes LpsSaJobMgrTxChannel; WeighApp genuinely
     // consumes 4 of its fields directly (see class comment above).
-    auto* jobMgrTxOut = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
+    auto* jobMgrTxOut = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
             node, "lps_sa_job_mgr_tx_channel");
 
     LpsSaWeighAppInf weighAppInf;

@@ -56,8 +56,8 @@ DESCRIPTION:
 // add enums, etc.). Only the raw SCS channel POINTER types below are being
 // replaced; the underlying AIS struct definitions are untouched.
 #include <rclcpp/rclcpp.hpp>
-#include <ros_wrapper/RosInputInterface.h>
-#include <ros_wrapper/RosOutputInterface.h>
+#include <ros2_wrapper/RosInputInterface.h>
+#include <ros2_wrapper/RosOutputInterface.h>
 
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_resp_channel.hpp>
@@ -174,29 +174,29 @@ private:
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;
 
-    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>        *LpsSaJobMgrScsTxOut;/* from job manager write param to UI*/
-    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>   *LpsSaJobMgrScsReqstIn;/*get request from UI*/
-    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>     *LpsSaJobMgrScsDebugOut;/*Debug symbols*/
-    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>        *LpsSaJobMgrScsTxOut;/* from job manager write param to UI*/
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>   *LpsSaJobMgrScsReqstIn;/*get request from UI*/
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>     *LpsSaJobMgrScsDebugOut;/*Debug symbols*/
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
     LpsSaWeighAppInf weighAppInf_; // WeighApp Interface -- converted Step 6.1, see Challenges-And-Decisions.txt 6.11
 
-    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
-    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
+    ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
 
-    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
 
     // Type corrected during Step 4.2 -- see LpsSaUIDisplayStateInterface.msg
     // header for why this needs the wrapper type, not LpsSaUIDisplayState
     // directly.
-    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
-    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
 
-    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>                 *dataLinkDataInput_;
+    ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>                 *dataLinkDataInput_;
 
-    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>* loadRecordOutputChannel_;
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>* loadRecordOutputChannel_;
 
     LpsSaJobMgrTasks tasks_;
 
@@ -214,12 +214,12 @@ private:
 
     std::chrono::steady_clock::time_point storeRejectedExpireTime;
 
-    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
     bool SEALevel1EssentialsInstalled_;
     bool SEALevel2ProInstalled_;
     bool SEALegalForTradeInstalled_;
 
-    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>* eddtInputChannel_;
+    ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>* eddtInputChannel_;
 
     bool loadOldLoadRecord(LpsSaLoadRecordChannel& loadRecord);
 

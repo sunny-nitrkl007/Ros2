@@ -15,8 +15,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <ros_wrapper/RosInputInterface.h>
-#include <ros_wrapper/RosOutputInterface.h>
+#include <ros2_wrapper/RosInputInterface.h>
+#include <ros2_wrapper/RosOutputInterface.h>
 
 #include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
@@ -39,13 +39,13 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("weighapp_adapter_node");
 
-    auto* reqstIn = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
+    auto* reqstIn = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
             node, "lps_sa_weigh_reqst_channel");
-    auto* respOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
+    auto* respOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
             node, "lps_sa_weigh_resp_channel");
-    auto* txOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
+    auto* txOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
             node, "lps_sa_weigh_tx_channel");
-    auto* jobMgrReqstOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
+    auto* jobMgrReqstOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
             node, "lps_sa_job_mgr_reqst_channel");
 
     // Leg 5 -- WeighApp subscribes to JobMgr's LpsSaJobMgrTxChannel, but
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     // tip_off_trigger_type out of the ~100 fields on the wire -- that's
     // exactly why this whole channel stays in job_mgr_interfaces rather
     // than being wholesale-promoted like legs 1-4.
-    auto* jobMgrTxIn = new ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
+    auto* jobMgrTxIn = new ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
             node, "lps_sa_job_mgr_tx_channel");
 
     rclcpp::executors::SingleThreadedExecutor executor;
