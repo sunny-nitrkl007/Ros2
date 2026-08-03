@@ -1,13 +1,13 @@
-// Stage 1 direct-DDS test harness -- WeighApp side.
-// Development-Plan.txt Step 6.1 / Stage-Build-Test-Roadmap.txt 1.2b.
+// Stage 1 direct-DDS test adapter -- WeighApp side.
+// Development-Plan.txt Step 6.1.
 //
-// Mirror-image of jobmgr_harness_node: builds the 4 shims WeighApp's real
+// Mirror-image of jobmgr_adapter_node: builds the 5 shims WeighApp's real
 // code builds for these legs (LpsSaScs.cpp/LpsSaWeighApp.cpp), on the same
 // topic names. NOT the real business logic (that needs the full AIS-linked
-// build, see Stage-Build-Test-Roadmap.txt 1.5) -- a canned responder that
-// echoes requests and publishes plausible tx heartbeats, just enough to
-// exercise the wire format and the real LpsSaWeighAppInf logic on the
-// other end. No AIS SDK anywhere in this file.
+// build) -- a canned responder that echoes requests and publishes
+// plausible tx heartbeats, just enough to exercise the wire format and
+// the real LpsSaWeighAppInf logic on the other end. No AIS SDK anywhere
+// in this file.
 
 #include <chrono>
 #include <memory>
@@ -22,6 +22,7 @@
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
+#include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
 
 namespace {
 
@@ -36,7 +37,7 @@ int64_t nowNs()
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<rclcpp::Node>("weighapp_harness_node");
+    auto node = std::make_shared<rclcpp::Node>("weighapp_adapter_node");
 
     auto* reqstIn = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
             node, "lps_sa_weigh_reqst_channel");
@@ -47,10 +48,19 @@ int main(int argc, char** argv)
     auto* jobMgrReqstOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
             node, "lps_sa_job_mgr_reqst_channel");
 
+    // Leg 5 -- WeighApp subscribes to JobMgr's LpsSaJobMgrTxChannel, but
+    // (matching the real jobMgrIn drain in LpsSaWeighApp.cpp) only ever
+    // reads standby_state/tip_off_state/tip_off_state_cfg/
+    // tip_off_trigger_type out of the ~100 fields on the wire -- that's
+    // exactly why this whole channel stays in job_mgr_interfaces rather
+    // than being wholesale-promoted like legs 1-4.
+    auto* jobMgrTxIn = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
+            node, "lps_sa_job_mgr_tx_channel");
+
     rclcpp::executors::SingleThreadedExecutor executor;
     executor.add_node(node);
 
-    RCLCPP_INFO(node->get_logger(), "weighapp_harness_node up -- 20ms tick, canned responder");
+    RCLCPP_INFO(node->get_logger(), "weighapp_adapter_node up -- 20ms tick, canned responder");
 
     uint64_t tick = 0;
     bool sealed = false;
@@ -94,11 +104,24 @@ int main(int argc, char** argv)
         // Hybrid leg (6.1.4) -- publish a canned request every ~5s (250 ticks).
         if (tick % 250 == 0) {
             cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel hybridMsg;
-            hybridMsg.app_name = "weighapp_harness";
+            hybridMsg.app_name = "weighapp_adapter";
             hybridMsg.app_request_id = static_cast<uint32_t>(tick);
             jobMgrReqstOut->publish(hybridMsg);
             RCLCPP_INFO(node->get_logger(), "published hybrid leg LpsSaJobMgrReqstChannel app_request_id=%llu",
                     static_cast<unsigned long long>(tick));
+        }
+
+        // Leg 5 -- drain JobMgr's LpsSaJobMgrTxChannel, same as the real
+        // jobMgrIn drain loop, logging just the 4 fields WeighApp itself
+        // actually consumes.
+        job_mgr_interfaces::msg::LpsSaJobMgrTxChannel jobMgrTx;
+        while (jobMgrTxIn->get(jobMgrTx)) {
+            RCLCPP_INFO(node->get_logger(),
+                    "leg 5: LpsSaJobMgrTxChannel standby_state=%u tip_off_state=%u tip_off_state_cfg=%u tip_off_trigger_type=%u",
+                    static_cast<unsigned int>(jobMgrTx.standby_state.value),
+                    static_cast<unsigned int>(jobMgrTx.tip_off_state.value),
+                    static_cast<unsigned int>(jobMgrTx.tip_off_state_cfg.value),
+                    static_cast<unsigned int>(jobMgrTx.tip_off_trigger_type.value));
         }
 
         ++tick;

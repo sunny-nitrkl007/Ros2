@@ -1,13 +1,18 @@
-// Stage 1 direct-DDS test harness -- JobMgr side.
-// Development-Plan.txt Step 6.1 / Stage-Build-Test-Roadmap.txt 1.2a.
+// Stage 1 direct-DDS test adapter -- JobMgr side.
+// Development-Plan.txt Step 6.1.
 //
 // Builds the same 3 shim objects LpsSaJobMgrApp.cpp really builds for
 // legs 1-3 (LpsSaWeighReqstChannel/RespChannel/TxChannel), on the exact
 // same topic names, and hands them to a real `LpsSaWeighAppInf` instance
 // -- the actual production class (Challenges-And-Decisions.txt 6.11),
 // #include'd directly rather than mocked. Plus a 4th subscription for the
-// hybrid LpsSaJobMgrReqstChannel leg (Step 6.1.4). No AIS SDK anywhere in
-// this file.
+// hybrid LpsSaJobMgrReqstChannel leg (Step 6.1.4), and a 5th leg
+// (Step 6.1 / 6.14) publishing LpsSaJobMgrTxChannel -- WeighApp only
+// consumes 4 of its ~100 fields (standby_state, tip_off_state,
+// tip_off_state_cfg, tip_off_trigger_type), which is exactly why the
+// whole channel stays in job_mgr_interfaces rather than being wholesale-
+// promoted like legs 1-4, but the leg itself is still genuinely direct
+// DDS, so it's exercised here too. No AIS SDK anywhere in this file.
 
 #include <chrono>
 #include <memory>
@@ -20,11 +25,12 @@
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
+#include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
 
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<rclcpp::Node>("jobmgr_harness_node");
+    auto node = std::make_shared<rclcpp::Node>("jobmgr_adapter_node");
 
     // Same topic names LpsSaJobMgrApp.cpp/LpsSaWeighApp.cpp already agree on.
     auto* requestOutput = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
@@ -36,8 +42,13 @@ int main(int argc, char** argv)
     auto* jobMgrReqstIn = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
             node, "lps_sa_job_mgr_reqst_channel");
 
+    // Leg 5 -- JobMgr publishes LpsSaJobMgrTxChannel; WeighApp genuinely
+    // consumes 4 of its fields directly (see class comment above).
+    auto* jobMgrTxOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
+            node, "lps_sa_job_mgr_tx_channel");
+
     LpsSaWeighAppInf weighAppInf;
-    if (!weighAppInf.start("jobmgr_harness", requestOutput, responseInput, txInput)) {
+    if (!weighAppInf.start("jobmgr_adapter", requestOutput, responseInput, txInput)) {
         RCLCPP_ERROR(node->get_logger(), "weighAppInf.start() failed");
         return 1;
     }
@@ -45,9 +56,10 @@ int main(int argc, char** argv)
     rclcpp::executors::SingleThreadedExecutor executor;
     executor.add_node(node);
 
-    RCLCPP_INFO(node->get_logger(), "jobmgr_harness_node up -- 20ms tick, matching the real executive() rate");
+    RCLCPP_INFO(node->get_logger(), "jobmgr_adapter_node up -- 20ms tick, matching the real executive() rate");
 
     uint64_t tick = 0;
+    bool standbyActivated = false;
     while (rclcpp::ok()) {
         // Real apps call spin_some() once at the top of executive(), before
         // touching any shim -- see RosInputInterface.h's design comment.
@@ -79,6 +91,26 @@ int main(int argc, char** argv)
             RCLCPP_INFO(node->get_logger(), "hybrid leg: LpsSaJobMgrReqstChannel from app_name=%s app_request_id=%u",
                     hybridMsg.app_name.c_str(), hybridMsg.app_request_id);
         }
+
+        // Leg 5 -- publish every tick, same cadence as the real 20ms
+        // executive(). Toggle standby_state every ~2s (100 ticks) so the
+        // WeighApp side can prove it's seeing live, changing data, not a
+        // one-shot default. tip_off_state/tip_off_state_cfg/
+        // tip_off_trigger_type set to distinct non-default values so each
+        // field's identity is separately verifiable on the receiving end.
+        if (tick % 100 == 0) {
+            standbyActivated = !standbyActivated;
+            RCLCPP_INFO(node->get_logger(), "standby_state toggled -> %s",
+                    standbyActivated ? "ACTIVATED" : "DEACTIVATED");
+        }
+        job_mgr_interfaces::msg::LpsSaJobMgrTxChannel jobMgrTx;
+        jobMgrTx.standby_state.value = standbyActivated
+                ? cpm_common_interfaces::msg::StandbyState::ACTIVATED
+                : cpm_common_interfaces::msg::StandbyState::DEACTIVATED;
+        jobMgrTx.tip_off_state.value = cpm_common_interfaces::msg::TipOffState::TRUCK_ENABLE;
+        jobMgrTx.tip_off_state_cfg.value = cpm_common_interfaces::msg::TipOffState::PILE_ENABLE;
+        jobMgrTx.tip_off_trigger_type.value = cpm_common_interfaces::msg::TipOffTriggerType::MANUAL;
+        jobMgrTxOut->publish(jobMgrTx);
 
         ++tick;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));

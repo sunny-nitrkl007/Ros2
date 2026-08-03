@@ -1,13 +1,15 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>direct_dds_test_harness</name>
+  <name>direct_dds_test_adapter</name>
   <version>0.0.1</version>
   <description>
-    Stage 1 (Development-Plan.txt Step 6.1 / Stage-Build-Test-Roadmap.txt)
-    standalone test harness for the 4 direct JobMgr&lt;-&gt;WeighApp DDS
-    channels. Reuses the real, AIS-free ros_shim headers and
-    LpsSaWeighAppInf.hpp directly from CPM-Loader-ais -- no AIS SDK
+    Stage 1 (Development-Plan.txt Step 6.1) standalone test adapter for
+    the 5 direct JobMgr-WeighApp DDS legs (4 wholesale-shared channels
+    plus LpsSaJobMgrTxChannel's 4 genuinely cross-app fields --
+    standby_state, tip_off_state, tip_off_state_cfg,
+    tip_off_trigger_type). Reuses the real, AIS-free ros_shim headers
+    and LpsSaWeighAppInf.hpp directly from CPM-Loader-ais -- no AIS SDK
     dependency anywhere in this package.
   </description>
   <maintainer email="aawara.sunny@gmail.com">Sunny</maintainer>
@@ -17,6 +19,7 @@
 
   <depend>rclcpp</depend>
   <depend>cpm_common_interfaces</depend>
+  <depend>job_mgr_interfaces</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

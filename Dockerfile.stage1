@@ -1,15 +1,15 @@
-# Stage 1 direct-DDS test harness (Development-Plan.txt Step 6.1 /
-# Stage-Build-Test-Roadmap.txt). No AIS SDK anywhere in this image --
-# only rclcpp, the cpm_common_interfaces messages, and the two AIS-free
-# real files (ros_shim/*.h, LpsSaWeighAppInf.hpp).
+# Stage 1 direct-DDS test adapter (Development-Plan.txt Step 6.1). No AIS
+# SDK anywhere in this image -- only rclcpp, the cpm_common_interfaces and
+# job_mgr_interfaces messages, and the two AIS-free real files
+# (ros_shim/*.h, LpsSaWeighAppInf.hpp).
 #
 # Build (from cpm/, so the build context can reach both CPM-Loader-ais
 # and ros2_ws):
-#   docker build -f Dockerfile.stage1 -t cpm-stage1-harness .
+#   docker build -f Dockerfile.stage1 -t cpm-stage1-adapter .
 #
-# Run both harness nodes in one container (simplest -- shares loopback,
+# Run both adapter nodes in one container (simplest -- shares loopback,
 # no cross-container DDS discovery to configure):
-#   docker run --rm -it cpm-stage1-harness
+#   docker run --rm -it cpm-stage1-adapter
 
 FROM ros:jazzy-ros-base
 
@@ -21,12 +21,13 @@ WORKDIR /workspace
 COPY CPM-Loader-ais/prod/common/ros_shim CPM-Loader-ais/prod/common/ros_shim
 COPY CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel
 COPY ros2_ws/src/cpm_common_interfaces ros2_ws/src/cpm_common_interfaces
-COPY ros2_ws/src/direct_dds_test_harness ros2_ws/src/direct_dds_test_harness
+COPY ros2_ws/src/job_mgr_interfaces ros2_ws/src/job_mgr_interfaces
+COPY ros2_ws/src/direct_dds_test_adapter ros2_ws/src/direct_dds_test_adapter
 COPY docker/run_stage1.sh /run_stage1.sh
 
 WORKDIR /workspace/ros2_ws
 RUN source /opt/ros/jazzy/setup.bash && \
-    colcon build --packages-select cpm_common_interfaces direct_dds_test_harness
+    colcon build --packages-select cpm_common_interfaces job_mgr_interfaces direct_dds_test_adapter
 
 RUN chmod +x /run_stage1.sh
 ENTRYPOINT ["/run_stage1.sh"]
