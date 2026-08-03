@@ -1,7 +1,7 @@
 # Stage 1 direct-DDS test adapter (Development-Plan.txt Step 6.1). No AIS
 # SDK anywhere in this image -- only rclcpp, the cpm_common_interfaces and
 # job_mgr_interfaces messages, and the two AIS-free real files
-# (ros_shim/*.h, LpsSaWeighAppInf.hpp).
+# (ros_wrapper/*.h, LpsSaWeighAppInf.hpp).
 #
 # Build (from cpm/, so the build context can reach both CPM-Loader-ais
 # and ros2_ws):
@@ -18,7 +18,7 @@ SHELL ["/bin/bash", "-c"]
 WORKDIR /workspace
 
 # Only the pieces Stage 1 actually needs.
-COPY CPM-Loader-ais/prod/common/ros_shim CPM-Loader-ais/prod/common/ros_shim
+COPY CPM-Loader-ais/prod/common/ros_wrapper CPM-Loader-ais/prod/common/ros_wrapper
 COPY CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel
 COPY ros2_ws/src/cpm_common_interfaces ros2_ws/src/cpm_common_interfaces
 COPY ros2_ws/src/job_mgr_interfaces ros2_ws/src/job_mgr_interfaces

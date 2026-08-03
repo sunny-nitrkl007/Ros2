@@ -1,7 +1,7 @@
 // Stage 1 direct-DDS test adapter -- JobMgr side.
 // Development-Plan.txt Step 6.1.
 //
-// Builds the same 3 shim objects LpsSaJobMgrApp.cpp really builds for
+// Builds the same 3 wrapper objects LpsSaJobMgrApp.cpp really builds for
 // legs 1-3 (LpsSaWeighReqstChannel/RespChannel/TxChannel), on the exact
 // same topic names, and hands them to a real `LpsSaWeighAppInf` instance
 // -- the actual production class (Challenges-And-Decisions.txt 6.11),
@@ -20,8 +20,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <ros_shim/RosInputInterface.h>
-#include <ros_shim/RosOutputInterface.h>
+#include <ros_wrapper/RosInputInterface.h>
+#include <ros_wrapper/RosOutputInterface.h>
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
@@ -33,18 +33,18 @@ int main(int argc, char** argv)
     auto node = std::make_shared<rclcpp::Node>("jobmgr_adapter_node");
 
     // Same topic names LpsSaJobMgrApp.cpp/LpsSaWeighApp.cpp already agree on.
-    auto* requestOutput = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
+    auto* requestOutput = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(
             node, "lps_sa_weigh_reqst_channel");
-    auto* responseInput = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
+    auto* responseInput = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(
             node, "lps_sa_weigh_resp_channel");
-    auto* txInput = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
+    auto* txInput = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(
             node, "lps_sa_weigh_tx_channel");
-    auto* jobMgrReqstIn = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
+    auto* jobMgrReqstIn = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(
             node, "lps_sa_job_mgr_reqst_channel");
 
     // Leg 5 -- JobMgr publishes LpsSaJobMgrTxChannel; WeighApp genuinely
     // consumes 4 of its fields directly (see class comment above).
-    auto* jobMgrTxOut = new ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
+    auto* jobMgrTxOut = new ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
             node, "lps_sa_job_mgr_tx_channel");
 
     LpsSaWeighAppInf weighAppInf;
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     bool standbyActivated = false;
     while (rclcpp::ok()) {
         // Real apps call spin_some() once at the top of executive(), before
-        // touching any shim -- see RosInputInterface.h's design comment.
+        // touching any wrapper -- see RosInputInterface.h's design comment.
         executor.spin_some();
 
         // Every ~1s (50 ticks @ 20ms), send a real command, same as

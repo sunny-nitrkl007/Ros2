@@ -67,8 +67,8 @@ DESCRIPTION:
  #include <stdlib.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <ros_shim/RosInputInterface.h>
-#include <ros_shim/RosOutputInterface.h>
+#include <ros_wrapper/RosInputInterface.h>
+#include <ros_wrapper/RosOutputInterface.h>
 
 #include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
@@ -400,7 +400,7 @@ private:
         int32_t index;
     } tzInfo_;
 
-    // demoInputs_ and inPwm_ stay on their real, old types (not shims):
+    // demoInputs_ and inPwm_ stay on their real, old types (not wrappers):
     // both are read directly, via plain field access, by unchanged
     // business-logic files (sa/LpsSaProcessInputs.cpp,
     // adv/LpsAdvProcessInputs.cpp) that are not part of this migration's
@@ -410,33 +410,33 @@ private:
     // those files.
     DemoAppTxChannel demoInputs_;
 
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
-    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
-    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
-    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>* LpsSaJobMgrScsReqstOut;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>* ReadyToFlashStatusOutput;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>* PwmIn;
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>* LpsSaJobMgrScsTxIn;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>* DemoAppTxIn;
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* AutonomyConditionDiagnosticsTxInputChannel;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::Machine>* MachineIn;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>* LpsSaWeighScsInitDebugOut;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>* LpsSaWeighScsDebugOut;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>* LpsCalCmdScsReqstIn;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>* LpsCalCmdScsRespOut;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>* LpsNvmDumpChanOut;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>* LpsNvmOnTheFlyDumpChanOut;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>* DataLinkDataInput_;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>* PartNumbersInput_;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>* SystemHardwareHealthInput_;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>* SystemHardwareHealthRequestOutput_;
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
+    ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
+    ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
+    ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>* LpsSaJobMgrScsReqstOut;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>* ReadyToFlashStatusOutput;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>* PwmIn;
+    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>* LpsSaJobMgrScsTxIn;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>* DemoAppTxIn;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* AutonomyConditionDiagnosticsTxInputChannel;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::Machine>* MachineIn;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>* LpsSaWeighScsInitDebugOut;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>* LpsSaWeighScsDebugOut;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>* LpsCalCmdScsReqstIn;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>* LpsCalCmdScsRespOut;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>* LpsNvmDumpChanOut;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>* LpsNvmOnTheFlyDumpChanOut;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>* DataLinkDataInput_;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>* PartNumbersInput_;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>* SystemHardwareHealthInput_;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>* SystemHardwareHealthRequestOutput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
     // For receiving the current printer configuration
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>* printerCnfgInput_;
+    ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>* printerCnfgInput_;
 
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>* shmClockInput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>* shmClockInput_;
 
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;

@@ -49,15 +49,15 @@ DESCRIPTION:
 
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
-// ---- ROS2/DDS shim layer (Development-Plan.txt Step 4.1) ----------------
+// ---- ROS2/DDS wrapper layer (Development-Plan.txt Step 4.1) ----------------
 // NOTE: the interface-type includes above are KEPT, not removed -- they
 // still supply real struct/enum types this file and LpsSaJobMgrSimpleCal.h
 // depend on directly (SimpleCalData_t, DispBestBktWt_t, the tip-off/manual-
 // add enums, etc.). Only the raw SCS channel POINTER types below are being
 // replaced; the underlying AIS struct definitions are untouched.
 #include <rclcpp/rclcpp.hpp>
-#include <ros_shim/RosInputInterface.h>
-#include <ros_shim/RosOutputInterface.h>
+#include <ros_wrapper/RosInputInterface.h>
+#include <ros_wrapper/RosOutputInterface.h>
 
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_resp_channel.hpp>
@@ -168,35 +168,35 @@ private:
 
     LpsJobMgrJobTrackerInfoTbl_t     LpsJobMgrJobTrackerInfoTbl;
 
-    /* ROS2/DDS shims -- replace the raw SCS channel objects. Member names
+    /* ROS2/DDS wrappers -- replace the raw SCS channel objects. Member names
        kept identical to the originals; only the declared type changes.
        ->get()/->publish() call syntax is unchanged at every call site. */
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;
 
-    ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>        *LpsSaJobMgrScsTxOut;/* from job manager write param to UI*/
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>   *LpsSaJobMgrScsReqstIn;/*get request from UI*/
-    ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>     *LpsSaJobMgrScsDebugOut;/*Debug symbols*/
-    ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
+    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>        *LpsSaJobMgrScsTxOut;/* from job manager write param to UI*/
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>   *LpsSaJobMgrScsReqstIn;/*get request from UI*/
+    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel>     *LpsSaJobMgrScsDebugOut;/*Debug symbols*/
+    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
     LpsSaWeighAppInf weighAppInf_; // WeighApp Interface -- converted Step 6.1, see Challenges-And-Decisions.txt 6.11
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
-    ros_shim::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
+    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
+    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;
 
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>             *AisJhm2TxInputScs;
 
     // Type corrected during Step 4.2 -- see LpsSaUIDisplayStateInterface.msg
     // header for why this needs the wrapper type, not LpsSaUIDisplayState
     // directly.
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>                *ShmClockInputScs;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>                 *dataLinkDataInput_;
+    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::DataLinkData>                 *dataLinkDataInput_;
 
-    ros_shim::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>* loadRecordOutputChannel_;
+    ros_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaLoadRecordChannel>* loadRecordOutputChannel_;
 
     LpsSaJobMgrTasks tasks_;
 
@@ -214,12 +214,12 @@ private:
 
     std::chrono::steady_clock::time_point storeRejectedExpireTime;
 
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>* autonomyConditionDiagnosticsTxInputChannel_;
     bool SEALevel1EssentialsInstalled_;
     bool SEALevel2ProInstalled_;
     bool SEALegalForTradeInstalled_;
 
-    ros_shim::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>* eddtInputChannel_;
+    ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::EventDiagnosticData>* eddtInputChannel_;
 
     bool loadOldLoadRecord(LpsSaLoadRecordChannel& loadRecord);
 

@@ -11,3 +11,9 @@
 !/Dockerfile.stage1
 !/docker/
 !/docker/**
+
+# colcon build artifacts (left on disk by interactive/mounted builds --
+# never appear from a plain `docker build`, which only COPYs src/)
+/ros2_ws/build/
+/ros2_ws/install/
+/ros2_ws/log/

@@ -8,19 +8,19 @@
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
-#include <ros_shim/RosInputInterface.h>
-#include <ros_shim/RosOutputInterface.h>
+#include <ros_wrapper/RosInputInterface.h>
+#include <ros_wrapper/RosOutputInterface.h>
 
 #include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 #include <cpm_common_interfaces/msg/weigh_reqst_channel_command.hpp>
 
-// ROS2/DDS shim version (Development-Plan.txt Step 6.1). The old class was
+// ROS2/DDS wrapper version (Development-Plan.txt Step 6.1). The old class was
 // notified of new responseInput_/txInput_ data via boost::signals2 callbacks
 // firing on a background SCS thread, so waitForTxData()/waitForResponse()
 // could genuinely block on a condition_variable until that callback woke
-// them (or a timeout elapsed). ros_shim::RosInputInterface<T> has no
+// them (or a timeout elapsed). ros_wrapper::RosInputInterface<T> has no
 // callback -- its subscription just fills a queue, drained by get(), and
 // that queue is only ever populated once per tick, synchronously, during
 // executor_.spin_some() (called at the top of executive(), before any of
@@ -60,9 +60,9 @@ public:
 
     /* Start the interface service. */
     bool start(const std::string& appName,
-            ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput,
-            ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput,
-            ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput) {
+            ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput,
+            ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput,
+            ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput) {
 
         stop();
 
@@ -81,7 +81,7 @@ public:
 
     /*
      * Stop the interface service. No connections to tear down under the
-     * poll-based shim (nothing was subscribed to in the first place).
+     * poll-based wrapper (nothing was subscribed to in the first place).
      */
     bool stop() {
         return true;
@@ -172,9 +172,9 @@ private:
     uint8_t lastCommand_;
     cpm_common_interfaces::msg::LpsSaWeighTxChannel txData_;
 
-    ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput_;
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput_;
-    ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput_;
+    ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput_;
+    ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput_;
 };
 
 #endif

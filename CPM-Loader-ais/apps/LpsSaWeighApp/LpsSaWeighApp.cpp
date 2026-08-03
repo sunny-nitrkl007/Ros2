@@ -498,9 +498,9 @@ bool LpsSaWeighApp::initialize( )
      * Initialising SCS Channels
      */
 
-    /* ROS2/DDS shim construction replaces InterfaceDb::bind()/
+    /* ROS2/DDS wrapper construction replaces InterfaceDb::bind()/
        SCSOutData::initPublishInterface(). One shared node for the whole
-       app; every shim below just creates its own publisher/subscription
+       app; every wrapper below just creates its own publisher/subscription
        on it. Topic names are the original SCS channel name in
        snake_case, minus the redundant Input/Output suffix -- and, for
        the channels shared directly with JobMgr (LpsSaJobMgrReqstChannel,
@@ -510,73 +510,73 @@ bool LpsSaWeighApp::initialize( )
     rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
     executor_.add_node(rosNode_);
 
-    SystemHardwareHealthRequestOutput_ = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>(rosNode_, "system_hardware_health_request");
+    SystemHardwareHealthRequestOutput_ = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>(rosNode_, "system_hardware_health_request");
     if (!SystemHardwareHealthRequestOutput_)
     {
         return false;
     }
 
-    displayStateInput_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
+    displayStateInput_ = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>(rosNode_, "display_state");
     if (!displayStateInput_) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
         return false;
     }
 
-    printerCnfgInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>(rosNode_, "printer_cnfg");
+    printerCnfgInput_ = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>(rosNode_, "printer_cnfg");
     if (!printerCnfgInput_) {
         AIS_LOG_ERROR("No PrinterCnfgInput input channel defined.");
         return false;
     }
 
-    SystemHardwareHealthInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>(rosNode_, "system_hardware_health");
+    SystemHardwareHealthInput_ = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>(rosNode_, "system_hardware_health");
     if (!SystemHardwareHealthInput_) {
         AIS_LOG_ERROR("No SystemHardwareHealthInput channel defined.");
         return false;
     }
 
-    PartNumbersInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>(rosNode_, "part_numbers");
+    PartNumbersInput_ = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>(rosNode_, "part_numbers");
     if (!PartNumbersInput_) {
         AIS_LOG_ERROR("No Part Numbers input channel defined.");
         return false;
     }
 
-    DataLinkDataInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>(rosNode_, "weigh_app_data_link_data");
+    DataLinkDataInput_ = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>(rosNode_, "weigh_app_data_link_data");
     if (!DataLinkDataInput_) {
         AIS_LOG_ERROR("DataLinkDataInput interface not defined");
         return false;
     }
 
-    LpsSaJobMgrScsReqstOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
+    LpsSaJobMgrScsReqstOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
     if (!LpsSaJobMgrScsReqstOut) {
         AIS_LOG_ERROR("LpsSaJobMgrReqstChannelOutput interface not defined");
         return false;
     }
 
-    ReadyToFlashStatusOutput = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>(rosNode_, "ready_to_flash_status");
+    ReadyToFlashStatusOutput = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::ReadyToFlashStatus>(rosNode_, "ready_to_flash_status");
     if (!ReadyToFlashStatusOutput)
     {
         return false;
     }
 
-    AutonomyConditionDiagnosticsTxInputChannel = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
+    AutonomyConditionDiagnosticsTxInputChannel = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AutonomyConditionDiagnosticsTxChannel>(rosNode_, "autonomy_condition_diagnostics_tx_channel");
     if (!AutonomyConditionDiagnosticsTxInputChannel) {
         AIS_LOG_ERROR("AutonomyConditionDiagnosticsTxChannelInput interface not defined");
         return false;
     }
 
-    LpsSaWeighScsTxOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+    LpsSaWeighScsTxOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
     if (!LpsSaWeighScsTxOut) {
          AIS_LOG_ERROR("Interface LpsSaWeighTxChannelOutput not configured.");
          return false;
     }
 
-    LpsSaWeighScsRespOut = new ros_shim::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+    LpsSaWeighScsRespOut = new ros_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
     if (!LpsSaWeighScsRespOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighRespChannelOutput not configured.");
         return false;
     }
 
-    LpsSaWeighScsInitDebugOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>(rosNode_, "lps_sa_weigh_init_debug_channel");
+    LpsSaWeighScsInitDebugOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighInitDebugChannel>(rosNode_, "lps_sa_weigh_init_debug_channel");
     if (!LpsSaWeighScsInitDebugOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighInitDebugChannelOutput not configured.");
         return false;
@@ -585,50 +585,50 @@ bool LpsSaWeighApp::initialize( )
         LpsSaWeighScsInitDebugTx();
     }
 
-    LpsSaWeighScsDebugOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>(rosNode_, "lps_sa_weigh_debug_channel");
+    LpsSaWeighScsDebugOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaWeighDebugChannel>(rosNode_, "lps_sa_weigh_debug_channel");
     if (!LpsSaWeighScsDebugOut) {
         AIS_LOG_ERROR("Interface LpsSaWeighDebugChannelOutput not configured.");
         return false;
     }
 
-    LpsSaWeighScsReqstIn = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+    LpsSaWeighScsReqstIn = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
     if (!LpsSaWeighScsReqstIn) {
         //LpsSaWeighScsReqstIn->addNewDataSlot(boost::bind(&LpsSaWeighApp::LpsSaWeighReqstRead, this ) );
         AIS_LOG_ERROR("Interface LpsSaWeighReqstChannelInput not configured.");
         return false;
     }
 
-    PwmIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>(rosNode_, "pwm_input_channels");
+    PwmIn = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::PwmInputChannels>(rosNode_, "pwm_input_channels");
     if (!PwmIn) {
          AIS_LOG_ERROR("Interface PwmInputChannelsInput not configured.");
          return false;
     }
 
-    MachineIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::Machine>(rosNode_, "machine");
+    MachineIn = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::Machine>(rosNode_, "machine");
     if (!MachineIn) {
          AIS_LOG_ERROR("Interface MachineInput not configured.");
          return false;
     }
 
-    LpsSaJobMgrScsTxIn = new ros_shim::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
+    LpsSaJobMgrScsTxIn = new ros_wrapper::RosInputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(rosNode_, "lps_sa_job_mgr_tx_channel");
     if (!LpsSaJobMgrScsTxIn) {
          AIS_LOG_ERROR("Interface LpsSaJobMgrTxChannelInput not configured.");
          return false;
     }
 
-    DemoAppTxIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>(rosNode_, "demo_app_tx_channel");
+    DemoAppTxIn = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::DemoAppTxChannel>(rosNode_, "demo_app_tx_channel");
     if (!DemoAppTxIn) {
         AIS_LOG_ERROR("DemoAppTxChannelInput interface not configured");
         return false;
     }
 
-    AisJhm2TxInputScs = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
+    AisJhm2TxInputScs = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
     if (!AisJhm2TxInputScs) {
         AIS_LOG_ERROR("Interface AisJhm2TxChannelInput not configured.");
         return false;
     }
 
-    LpsCalCmdScsReqstIn = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>(rosNode_, "cal_mgr_cmd_reqst");
+    LpsCalCmdScsReqstIn = new ros_wrapper::RosInputInterface<weigh_app_interfaces::msg::CalMgrCmdReqst>(rosNode_, "cal_mgr_cmd_reqst");
     if (!LpsCalCmdScsReqstIn) {
         AIS_LOG_ERROR("Interface CalMgrCmdReqstInput not configured.");
         return false;
@@ -637,24 +637,24 @@ bool LpsSaWeighApp::initialize( )
         LpsCalCmdScsReqstIn->addNewDataSlot(boost::bind(&LpsSaWeighApp::LpsSaWeighCalReqstCallback, this));
     }
 
-    LpsCalCmdScsRespOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>(rosNode_, "cal_mgr_cmd_resp");
+    LpsCalCmdScsRespOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::CalMgrCmdResp>(rosNode_, "cal_mgr_cmd_resp");
     if (!LpsCalCmdScsRespOut) {
         AIS_LOG_ERROR("Interface CalMgrCmdRespOutput not configured.");
         return false;
     }
 
-    shmClockInput_ = new ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
+    shmClockInput_ = new ros_wrapper::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>(rosNode_, "shm_clock");
     if (!shmClockInput_) {
         AIS_LOG_ERROR("No ShmClockInput input channel defined.");
         return false;
     }
 
-    LpsNvmDumpChanOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>(rosNode_, "lps_sa_nvm_cal_data_channel");
+    LpsNvmDumpChanOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalDataChannel>(rosNode_, "lps_sa_nvm_cal_data_channel");
     if (!LpsNvmDumpChanOut) {
         AIS_LOG_ERROR("Interface LpsSaNvmCalDataChannelOutput not configured.");
     }
 
-    LpsNvmOnTheFlyDumpChanOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>(rosNode_, "lps_sa_nvm_cal_on_the_fly_data_channel");
+    LpsNvmOnTheFlyDumpChanOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>(rosNode_, "lps_sa_nvm_cal_on_the_fly_data_channel");
     if (!LpsNvmOnTheFlyDumpChanOut) {
         AIS_LOG_ERROR("Interface LpsSaNvmCalOnTheFlyDataChannelOutput not configured.");
     }
@@ -1320,7 +1320,7 @@ void LpsSaWeighApp::LpsJobMgrTxRead( )
     }
 
     // demoInputs_ stays on its real, old type (see LpsSaWeighApp.h) -- drain
-    // the shim into a new-typed local, then copy every field across.
+    // the wrapper into a new-typed local, then copy every field across.
     weigh_app_interfaces::msg::DemoAppTxChannel demoInputsNew;
     while (DemoAppTxIn->get(demoInputsNew)) {
         demoInputs_.liftposition = demoInputsNew.liftposition;

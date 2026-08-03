@@ -5,7 +5,7 @@
 #include <interfaces/TipoffModelTestPoints/InterfaceTypes.h>
 #include "../LpsSaIncludes.h"
 #include <rclcpp/rclcpp.hpp>
-#include <ros_shim/RosOutputInterface.h>
+#include <ros_wrapper/RosOutputInterface.h>
 #include <weigh_app_interfaces/msg/tipoff_model_test_points.hpp>
 
 /* Tipoff Assist Inputs */
@@ -99,7 +99,7 @@ public:
 
     /* Tipoff Assist  Model Test Points */
     weigh_app_interfaces::msg::TipoffModelTestPoints    TipoffModelTestPointsData;
-    ros_shim::RosOutputInterface<weigh_app_interfaces::msg::TipoffModelTestPoints> *TipoffModelTestPointsOut;
+    ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::TipoffModelTestPoints> *TipoffModelTestPointsOut;
 
 private:
     rclcpp::Node::SharedPtr node_;

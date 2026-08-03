@@ -47,7 +47,7 @@ bool TipoffAssist::initialize(LpsSaMachineProperties_t const& machine_properties
 
     // Initialize Test Output SCS Channel
     node_ = std::make_shared<rclcpp::Node>("tipoff_assist_node");
-    TipoffModelTestPointsOut = new ros_shim::RosOutputInterface<weigh_app_interfaces::msg::TipoffModelTestPoints>(node_, "tipoff_model_test_points");
+    TipoffModelTestPointsOut = new ros_wrapper::RosOutputInterface<weigh_app_interfaces::msg::TipoffModelTestPoints>(node_, "tipoff_model_test_points");
 
     initTipoffAssistModelData(machine_properties);
 

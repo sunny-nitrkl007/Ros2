@@ -153,7 +153,7 @@ channels, 8 call sites), `LpsSaScs.cpp` (13 call sites), and
 `adv/TipoffAssist.cpp` (the adv-only `TipoffModelTestPointsOutput`
 channel, its own dedicated `rclcpp::Node` since `TipoffAssist` is
 instantiated standalone in the unchanged `adv/LpsAdvProcessInputs.cpp`)
-are all converted to shim types, and `executor_.spin_some()` is wired
+are all converted to wrapper types, and `executor_.spin_some()` is wired
 into the 50Hz `executive()`. Remaining: 5.5 (SConscript build-wiring)
 and 5.6-5.8 (build/link verification, real-time budget check,
 component testing) -- all blocked on real build infrastructure, same
