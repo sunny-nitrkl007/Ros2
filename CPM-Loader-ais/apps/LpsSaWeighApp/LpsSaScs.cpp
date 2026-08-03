@@ -410,7 +410,9 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorage& request, bool success, const std::string& arg1) {
     // Build the response
-    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; // Default timepoint is now
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response;
+    response.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
     response.app_name = request.appName;
     response.app_request_id = request.appRequestId;
     response.command.value = static_cast<uint8_t>(request.command);
@@ -431,7 +433,9 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorag
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1) {
     // Build the response
-    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; // Default timepoint is now
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response;
+    response.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
     response.app_name = request.app_name;
     response.app_request_id = request.app_request_id;
     response.command = request.command;
