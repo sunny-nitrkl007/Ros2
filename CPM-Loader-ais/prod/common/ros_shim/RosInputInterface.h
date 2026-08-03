@@ -6,8 +6,7 @@
 ///        `while (channel->get(x)) { ... }` throughout LpsSaJobMgrScs.cpp
 ///        keep working unchanged.
 ///
-/// Design decisions (Development-Plan.txt, "RESOLVED DECISIONS"):
-///   - Backed by a real std::queue<T>, not a single cached latest-value.
+///    - Backed by a real std::queue<T>, not a single cached latest-value.
 ///     Real SCS get() is called in drain loops everywhere in the existing
 ///     codebase -- if two messages arrive between polls, both must be
 ///     retrievable, not just the newest.
@@ -17,7 +16,7 @@
 ///     calls get() immediately after. There is no concurrent access to
 ///     guard against -- unlike a background-thread-spin design, which
 ///     would need one.
-///   - No PIMPL -- see RosOutputInterface.h for the same reasoning.
+///   
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef _RosInputInterface_h_
