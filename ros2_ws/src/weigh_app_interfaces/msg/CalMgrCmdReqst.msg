@@ -2,4 +2,4 @@
 # CalMgrCmdReqst
 ################################################################################
 
-CalMgrCalibrationRequest calibration_request
+CalibrationRequest calibration_request

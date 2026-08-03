@@ -22,16 +22,17 @@ uint16 DATE_SEPARATOR_HYPHEN=0x0679
 # LpsSaTotalsPrinterCnfg
 ################################################################################
 
-uint16 date_format
-uint16 date_separator
-
 bool installed
+
 uint8 leading_blank_lines
 uint8 trailing_blank_lines
 
-LpsSaTotalsPrinterCnfgTruckTicket truck_ticket
-LpsSaTotalsPrinterCnfgTruckReport truck_report
-LpsSaTotalsPrinterCnfgMaterialReport material_report
+uint16 date_format
+uint16 date_separator
+
+TruckTicket truck_ticket
+TruckReport truck_report
+MaterialReport material_report
 
 string udp_transfer_ip
 uint32 udp_transfer_port

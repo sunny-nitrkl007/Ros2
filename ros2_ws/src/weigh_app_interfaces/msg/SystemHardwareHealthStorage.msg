@@ -5,7 +5,7 @@
 string source_system
 uint32 total_system_memory_kb
 uint32 available_system_memory_kb
-DiskSpaceRemainType[] list_of_remaining_disk_space
+DiskSpaceRemain[] list_of_remaining_disk_space
 float64 system_up_time_sec
 float64 load_avg1min
 float64 load_avg5min
@@ -15,7 +15,7 @@ string ecm_sw_version
 string software_group_part_number
 string software_group_description
 string software_group_release_date
-ECMVersionInfoType ecm_hw_version
+EcmVersionInfo ecm_hw_version
 float64 eth0_tx_kbs
 float64 eth0_rx_kbs
 float64 eth1_tx_kbs
@@ -25,5 +25,5 @@ float64 system_cpu_usage_percent
 float64 system_cpu_io_wait_percent
 float64 system_cpu_irq_percent
 string ecm_os_version
-SystemHardwareHealthCoreUsage[] per_core_cpu_data
+CoreUsage[] per_core_cpu_data
 float64 battery_voltage

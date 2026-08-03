@@ -429,12 +429,12 @@ private:
     ros_shim::RosOutputInterface<weigh_app_interfaces::msg::LpsSaNvmCalOnTheFlyDataChannel>* LpsNvmOnTheFlyDumpChanOut;
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::DataLinkData>* DataLinkDataInput_;
     ros_shim::RosInputInterface<weigh_app_interfaces::msg::PartNumbers>* PartNumbersInput_;
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealth>* SystemHardwareHealthInput_;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>* SystemHardwareHealthInput_;
     ros_shim::RosOutputInterface<weigh_app_interfaces::msg::SystemHardwareHealthRequest>* SystemHardwareHealthRequestOutput_;
     ros_shim::RosInputInterface<cpm_common_interfaces::msg::LpsSaUIDisplayStateInterface>* displayStateInput_;
 
     // For receiving the current printer configuration
-    ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface>* printerCnfgInput_;
+    ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>* printerCnfgInput_;
 
     ros_shim::RosInputInterface<cpm_common_interfaces::msg::ShmClockInput>* shmClockInput_;
 

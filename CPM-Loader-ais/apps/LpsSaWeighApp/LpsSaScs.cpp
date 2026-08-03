@@ -622,7 +622,7 @@ void LpsSaWeighApp::LpsSaBattVoltageRead( )
     /* send a request for SystemHardwareHealth at configured period */
     SystemHardwareHealthRequestOutput_->publish(weigh_app_interfaces::msg::SystemHardwareHealthRequest());
 
-    weigh_app_interfaces::msg::SystemHardwareHealth rxData;
+    weigh_app_interfaces::msg::SystemHardwareHealthStorage rxData;
     while (SystemHardwareHealthInput_->get(rxData)) {
         auto voltage = rxData.battery_voltage;
 
@@ -697,7 +697,7 @@ void LpsSaWeighApp::LpsSaWeighingScsRx( )
 
     // Report ticket retention period to seal tracker.
     if (nullptr != printerCnfgInput_) {
-        weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface printerCnfg;
+        weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage printerCnfg;
         while (printerCnfgInput_->get(printerCnfg)) {
             sealTracker_.reportTicketRetentionPeriod(printerCnfg.config.truck_ticket.retention_period);
         }
@@ -1318,57 +1318,58 @@ void LpsSaWeighApp::LpsSaWeighScsDebugTx()
 
         {
             const auto& ti = DebugLpsSaXCPChannels.m_TipoffInputs;
-            txOut.tipoff_input_status = ti.input_status.data;
-            txOut.tipoff_invalidate_outputs = ti.invalidate_outputs;
-            txOut.tipoff_lift_valve_cmd = ti.lift_valve_cmd;
-            txOut.tipoff_tilt_valve_cmd = ti.tilt_valve_cmd;
-            txOut.tipoff_tilt_extension = ti.tilt_extension;
-            txOut.tipoff_lift_angle = ti.lift_angle;
-            txOut.tipoff_lift_he_pressure = ti.lift_he_pressure;
-            txOut.tipoff_lift_re_pressure = ti.lift_re_pressure;
-            txOut.tipoff_tilt_he_pressure = ti.tilt_he_pressure;
-            txOut.tipoff_tilt_re_pressure = ti.tilt_re_pressure;
-            txOut.tipoff_eef_imu_accel_x = ti.eef_imu_accelX;
-            txOut.tipoff_eef_imu_accel_y = ti.eef_imu_accelY;
-            txOut.tipoff_eef_imu_accel_z = ti.eef_imu_accelZ;
-            txOut.tipoff_steering_angle = ti.steering_angle;
-            txOut.tipoff_tool_mass = ti.tool_mass;
-            txOut.tipoff_truck_target_wt = ti.truck_target_wt;
-            txOut.tipoff_truck_start_weight = ti.truck_start_weight;
-            txOut.tipoff_bucket_current_weight_accuracy = ti.bucket_current_weight_accuracy;
-            txOut.tipoff_bucket_current_weight = ti.bucket_current_weight;
-            txOut.tipoff_mode = ti.tipoff_mode;
-            txOut.tipoff_zero_offset = ti.zero_offset;
-            txOut.tipoff_simple_cal_factor = ti.simple_cal_factor;
-            txOut.tipoff_unlatch_trigger = ti.unlatch_trigger;
-            txOut.tipoff_bucket_angle = ti.bucket_angle;
-            txOut.tipoff_anchor_zero_offset = ti.anchor_zero_offset;
-            txOut.tipoff_anchor_factor = ti.anchor_factor;
-            txOut.tipoff_pass_count = ti.pass_count;
-            txOut.tipoff_lift_norm_angle = ti.lift_norm_angle;
-            txOut.tipoff_lift_norm_length = ti.lift_norm_length;
-            txOut.tipoff_tilt_norm_angle = ti.tilt_norm_angle;
-            txOut.tipoff_tilt_norm_length = ti.tilt_norm_length;
-            txOut.tipoff_friction_mu = ti.friction_mu;
-            txOut.tipoff_friction_offset = ti.friction_offset;
+            txOut.tipoff_inputs.input_status = ti.input_status.data;
+            txOut.tipoff_inputs.invalidate_outputs = ti.invalidate_outputs;
+            txOut.tipoff_inputs.lift_valve_cmd = ti.lift_valve_cmd;
+            txOut.tipoff_inputs.tilt_valve_cmd = ti.tilt_valve_cmd;
+            txOut.tipoff_inputs.tilt_extension = ti.tilt_extension;
+            txOut.tipoff_inputs.lift_angle = ti.lift_angle;
+            txOut.tipoff_inputs.lift_he_pressure = ti.lift_he_pressure;
+            txOut.tipoff_inputs.lift_re_pressure = ti.lift_re_pressure;
+            txOut.tipoff_inputs.tilt_he_pressure = ti.tilt_he_pressure;
+            txOut.tipoff_inputs.tilt_re_pressure = ti.tilt_re_pressure;
+            txOut.tipoff_inputs.eef_imu_accel_x = ti.eef_imu_accelX;
+            txOut.tipoff_inputs.eef_imu_accel_y = ti.eef_imu_accelY;
+            txOut.tipoff_inputs.eef_imu_accel_z = ti.eef_imu_accelZ;
+            txOut.tipoff_inputs.steering_angle = ti.steering_angle;
+            txOut.tipoff_inputs.tool_mass = ti.tool_mass;
+            txOut.tipoff_inputs.truck_target_wt = ti.truck_target_wt;
+            txOut.tipoff_inputs.truck_start_weight = ti.truck_start_weight;
+            txOut.tipoff_inputs.bucket_current_weight_accuracy = ti.bucket_current_weight_accuracy;
+            txOut.tipoff_inputs.bucket_current_weight = ti.bucket_current_weight;
+            txOut.tipoff_inputs.tipoff_mode = ti.tipoff_mode;
+            txOut.tipoff_inputs.zero_offset = ti.zero_offset;
+            txOut.tipoff_inputs.simple_cal_factor = ti.simple_cal_factor;
+            txOut.tipoff_inputs.mach_pitch_cal_offset = ti.mach_pitch_cal_offset;
+            txOut.tipoff_inputs.unlatch_trigger = ti.unlatch_trigger;
+            txOut.tipoff_inputs.bucket_angle = ti.bucket_angle;
+            txOut.tipoff_inputs.anchor_zero_offset = ti.anchor_zero_offset;
+            txOut.tipoff_inputs.anchor_factor = ti.anchor_factor;
+            txOut.tipoff_inputs.pass_count = ti.pass_count;
+            txOut.tipoff_inputs.lift_norm_angle = ti.lift_norm_angle;
+            txOut.tipoff_inputs.lift_norm_length = ti.lift_norm_length;
+            txOut.tipoff_inputs.tilt_norm_angle = ti.tilt_norm_angle;
+            txOut.tipoff_inputs.tilt_norm_length = ti.tilt_norm_length;
+            txOut.tipoff_inputs.friction_mu = ti.friction_mu;
+            txOut.tipoff_inputs.friction_offset = ti.friction_offset;
 
             const auto& to = DebugLpsSaXCPChannels.m_TipoffOutputs;
-            txOut.tipoff_out_arbitrated_payload_norm_error = to.arbitrated_payload_norm_error_out;
-            txOut.tipoff_out_current_weight_norm_error = to.current_weight_norm_error_out;
-            txOut.tipoff_out_error_code = to.error_code_out;
-            txOut.tipoff_out_payload_norm_stdev = to.payload_norm_stdev_out;
-            txOut.tipoff_out_payload_send_to_cpm = to.payload_send_to_CPM;
-            txOut.tipoff_out_payload_status_send_to_cpm = to.payload_status_send_to_CPM;
-            txOut.tipoff_out_pcs_weight_accuracy = to.pcs_weight_accuracy_out;
-            txOut.tipoff_out_spill_rate = to.spill_rate_out;
-            txOut.tipoff_out_tilt_pressure = to.tilt_pressure_out;
-            txOut.tipoff_out_tilt_sensitivity = to.tilt_sensitivity_out;
-            txOut.tipoff_out_weigh_status = to.weigh_status_out;
-            txOut.tipoff_out_bucket_payload_target = to.bucket_payload_target;
-            txOut.tipoff_out_unsecured_pfw_status = to.unsecured_PFW_status;
-            txOut.tipoff_out_unsecured_payload_lower_bound_norm = to.unsecured_payload_lower_bound_norm;
-            txOut.tipoff_out_unsecured_payload_upper_bound_norm = to.unsecured_payload_upper_bound_norm;
-            txOut.tipoff_out_min_secure_bucket_angle = to.min_secure_bucket_angle;
+            txOut.tipoff_outputs.arbitrated_payload_norm_error_out = to.arbitrated_payload_norm_error_out;
+            txOut.tipoff_outputs.current_weight_norm_error_out = to.current_weight_norm_error_out;
+            txOut.tipoff_outputs.error_code_out = to.error_code_out;
+            txOut.tipoff_outputs.payload_norm_stdev_out = to.payload_norm_stdev_out;
+            txOut.tipoff_outputs.payload_send_to_cpm = to.payload_send_to_CPM;
+            txOut.tipoff_outputs.payload_status_send_to_cpm = to.payload_status_send_to_CPM;
+            txOut.tipoff_outputs.pcs_weight_accuracy_out = to.pcs_weight_accuracy_out;
+            txOut.tipoff_outputs.spill_rate_out = to.spill_rate_out;
+            txOut.tipoff_outputs.tilt_pressure_out = to.tilt_pressure_out;
+            txOut.tipoff_outputs.tilt_sensitivity_out = to.tilt_sensitivity_out;
+            txOut.tipoff_outputs.weigh_status_out = to.weigh_status_out;
+            txOut.tipoff_outputs.bucket_payload_target = to.bucket_payload_target;
+            txOut.tipoff_outputs.unsecured_pfw_status = to.unsecured_PFW_status;
+            txOut.tipoff_outputs.unsecured_payload_lower_bound_norm = to.unsecured_payload_lower_bound_norm;
+            txOut.tipoff_outputs.unsecured_payload_upper_bound_norm = to.unsecured_payload_upper_bound_norm;
+            txOut.tipoff_outputs.min_secure_bucket_angle = to.min_secure_bucket_angle;
         }
 
         txOut.chassis_imu_gravity_x = DebugLpsSaXCPChannels.chassisImuGravityX;

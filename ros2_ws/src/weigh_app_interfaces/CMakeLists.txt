@@ -8,17 +8,17 @@ find_package(job_mgr_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   # PrinterCnfgInput (channel 1 of 15 -- see WEIGH_CHANNEL_MAPPING.md)
-  "msg/LpsSaTotalsPrinterCnfgTruckTicket.msg"
-  "msg/LpsSaTotalsPrinterCnfgTruckReport.msg"
-  "msg/LpsSaTotalsPrinterCnfgMaterialReport.msg"
+  "msg/TruckTicket.msg"
+  "msg/TruckReport.msg"
+  "msg/MaterialReport.msg"
   "msg/LpsSaTotalsPrinterCnfg.msg"
-  "msg/LpsSaTotalsPrinterCnfgInterface.msg"
+  "msg/LpsSaTotalsPrinterCnfgInterfaceStorage.msg"
   # SystemHardwareHealthInput (channel 2)
-  "msg/DiskSpaceRemainType.msg"
+  "msg/DiskSpaceRemain.msg"
   "msg/EthernetStatsType.msg"
-  "msg/ECMVersionInfoType.msg"
-  "msg/SystemHardwareHealthCoreUsage.msg"
-  "msg/SystemHardwareHealth.msg"
+  "msg/EcmVersionInfo.msg"
+  "msg/CoreUsage.msg"
+  "msg/SystemHardwareHealthStorage.msg"
   # SystemHardwareHealthRequestOutput (channel 15)
   "msg/SystemHardwareHealthRequest.msg"
   # PartNumbersInput (channel 3)
@@ -31,6 +31,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   # LpsSaWeighInitDebugChannelOutput (channel 6)
   "msg/LpsSaWeighInitDebugChannel.msg"
   # LpsSaWeighDebugChannelOutput (channel 7)
+  "msg/TipoffAssistInputs.msg"
+  "msg/TipoffAssistOutputs.msg"
   "msg/LpsSaWeighDebugChannel.msg"
   # PwmInputChannelsInput (channel 8)
   "msg/PwmInputChannels.msg"
@@ -39,7 +41,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   # DemoAppTxChannelInput (channel 10)
   "msg/DemoAppTxChannel.msg"
   # CalMgrCmdReqstInput (channel 11)
-  "msg/CalMgrCalibrationRequest.msg"
+  "msg/CalibrationRequest.msg"
   "msg/CalMgrCmdReqst.msg"
   # CalMgrCmdRespOutput (channel 12)
   "msg/CalMgrCalibrationResp.msg"

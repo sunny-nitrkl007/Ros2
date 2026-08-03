@@ -1,9 +1,9 @@
 ################################################################################
-# ECMVersionInfoType
+# EcmVersionInfo
 ################################################################################
 
-string serialnum
-string partnum
+string serial_num
+string part_num
 string dom
 string mac0
 string mac1

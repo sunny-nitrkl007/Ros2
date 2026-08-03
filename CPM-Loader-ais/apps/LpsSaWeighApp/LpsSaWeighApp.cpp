@@ -522,13 +522,13 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    printerCnfgInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterface>(rosNode_, "printer_cnfg");
+    printerCnfgInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::LpsSaTotalsPrinterCnfgInterfaceStorage>(rosNode_, "printer_cnfg");
     if (!printerCnfgInput_) {
         AIS_LOG_ERROR("No PrinterCnfgInput input channel defined.");
         return false;
     }
 
-    SystemHardwareHealthInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealth>(rosNode_, "system_hardware_health");
+    SystemHardwareHealthInput_ = new ros_shim::RosInputInterface<weigh_app_interfaces::msg::SystemHardwareHealthStorage>(rosNode_, "system_hardware_health");
     if (!SystemHardwareHealthInput_) {
         AIS_LOG_ERROR("No SystemHardwareHealthInput channel defined.");
         return false;
@@ -702,7 +702,7 @@ bool LpsSaWeighApp::executive( )
 
         while (PartNumbersInput_->get(partNumbers)) {
             /* We receive new ProductID */
-            if (partNumbers.product_id_valid) {
+            if (partNumbers.product_id_num_set) {
                 std::string productId = partNumbers.product_id_num;
                 if (sealTracker_.reportProductId(productId)) {
                     // If it changed, write the product id log file
