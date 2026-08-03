@@ -1,0 +1,3 @@
+string timestamp
+float32 truck_weight
+float32 zeroed_truck_weight

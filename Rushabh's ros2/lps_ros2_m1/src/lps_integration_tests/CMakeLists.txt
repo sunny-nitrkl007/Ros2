@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.8)
+project(lps_integration_tests)
+find_package(ament_cmake REQUIRED)
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_contracts test/test_contracts.py)
+endif()
+ament_package()

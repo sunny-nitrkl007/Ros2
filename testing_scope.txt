@@ -1,3 +1,0 @@
-What you do need to verify is the I/O boundary: does the ROS2 message carry the same fields the SCS struct did,
- does the publish/subscribe timing match the old SCS cadence, does an end-to-end run (UI command in → ticket out) 
- still produce the same result.
