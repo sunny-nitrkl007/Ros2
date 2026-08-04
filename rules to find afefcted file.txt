@@ -1,0 +1,69 @@
+Here's the complete method, as a checklist you can run in VS Code, starting from the original/unconverted code (since that's what you'll actually have at site 2 — not my already-converted working copy).
+
+Step 1 — For each of your 3 channels, find where each app touches it.
+
+Open VS Code's workspace search (Ctrl+Shift+F), scope it to the app's folder (there's a filter box under the search bar — type apps/LpsSaJobMgrApp/** or right-click the folder → "Find in Folder"), and search for how the channel gets registered:
+
+
+InterfaceDb::bind("LpsSaWeighReqstChannel
+InterfaceDb::fetch("LpsSaWeighReqstChannel
+(Try both — different apps use different patterns, as you saw: JobMgr uses fetch+dynamic_cast, WeighApp uses bind.) This string search finds the exact line where the channel gets wired up, which immediately tells you the local variable or member name being assigned.
+
+Step 2 — If Step 1 finds a member directly in the app's .h file, you're done finding it. If it doesn't, check whether it's being handed into a helper class.
+
+Like you just saw with LpsSaWeighReqstChannel on JobMgr's side: the construction line exists in the .cpp, but there's no persistent member in the .h for it — instead the constructed object gets passed as an argument into another object's method (weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)). When you see a locally-constructed variable get passed into another class's method like that, open that class's header (Ctrl+click on weighAppInf_'s type, or on .start(, jumps you straight to LpsSaWeighAppInf.hpp) and repeat Step 1 inside that file.
+
+Step 3 — Once you have the real member name, find every place it's used.
+
+Right-click the member name → Find All References (or Shift+F12). If the C/C++ extension's IntelliSense is fully configured for this codebase this is exact; if not, fall back to Ctrl+Shift+F searching the exact member name across the app's whole folder (not just the .h). Either way, this gives you every function that touches it.
+
+Step 4 — For each function that shows up, read the whole thing and ask: does it also reference any other channel's member?
+
+This is the one manual judgment step. First, go back to the app's .h and note every other channel member name declared near yours (usually grouped under a comment like /*SCS Interfaces*/ or /*Interfaces*/). Then, with the function open, use Ctrl+F (find-in-file, not workspace search) to check each of those other names against the function body. Two outcomes:
+
+None found → the function is single-purpose, safe to convert whole.
+Found → the function is tangled (like JobMgr's LpsSaJobMgrScsChkForReqst(), which also touches SwitchInputScs and displayStateInput_). Flag it — don't hand-edit it without real care, since a partial edit inside a shared function is where mistakes hide.
+Step 5 — Do Steps 1–4 for both ends of the channel — the app that publishes it and the app that subscribes to it — independently. A channel only counts as "clean" if both ends check out. This is exactly what caught LpsSaJobMgrTxChannel (leg 5) being clean on JobMgr's publish side but tangled with DemoAppTxChannel on WeighApp's receive side — you'd have missed that if you only checked one direction.
+
+Step 6 — Once every function is classified, your file list falls out directly:
+
+The .h file that declares the member (or, if wrapped, the helper class's header) — always needs the type change.
+The .cpp file with the constructor initializer list and initialize()/construction code — always needs the trivial "how it's built" change (new node/executor setup, new ros2_wrapper::... in place of the old bind/fetch).
+Only the specific business-logic .cpp files containing functions you classified as "clean" in Step 4 — nothing else in those files, and no file that only contained tangled functions.
+Step 7 — Don't forget the trivial connective tissue. Every member you retype also needs its constructor init-list entry and null-check/error-log lines updated to match (same pattern, just following the new type) — these show up automatically once you've done Step 3's reference search, so you won't miss them, but they're easy to mentally file under "business logic" when they're really just plumbing that has to stay consistent.
+
+That's the whole method — it's the same 7 steps regardless of which channel or which app you're starting from.
+
+
+Immediate next step: widen the same search from "just the .h file" to the whole app folder.
+
+In VS Code: open the search panel (Ctrl+Shift+F), and in the "files to include" box (below the search field), change the scope from the single .h file to the whole folder — apps/LpsSaJobMgrApp/** — then re-run the exact same search term:
+
+
+LpsSaWeighReqstChannel
+(or the more targeted InterfaceDb::fetch("LpsSaWeighReqstChannel / InterfaceDb::bind("LpsSaWeighReqstChannel if you want to skip past comments/includes).
+
+That's the whole move: if the .h comes up empty, the object still has to be constructed somewhere — so you check the .cpp next. In this exact case, that widened search is what lands you on the line you already found:
+
+
+LpsSaWeighReqstChannelOutput* requestOutput = dynamic_cast<...>(InterfaceDb::fetch("LpsSaWeighReqstChannelOutput"));
+in LpsSaJobMgrApp.cpp's initialize().
+
+Then, one more concrete check once you've found that line — look at where the local variable goes next, right there in the same block of code:
+
+If it gets assigned to this->someMember = ... (or just someMember = ... inside a member function) → that's your real, persistent member. Go straight to Step 3 (find all references to that name).
+If it gets passed as an argument into another object's method call — like weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput) — that object (weighAppInf_) is a helper class that's taking ownership of it internally. That's your signal to stop looking in this file and go open the helper class's header instead (Ctrl+click on weighAppInf_'s declared type, or on .start(, jumps you there directly), and repeat Step 1 inside that file.
+So the rule of thumb: empty .h → search the .cpp next → read the 2-3 lines right after construction to see whether it becomes a member or gets handed off elsewhere. That one check tells you which of the two situations you're in, every time.
+Not quite — that search only answers part of the question. It shows every file that references the JobMgr-side instance variable weighAppInf_ — but that's narrower than "every file that needs to change for Stage 1." Two things it's missing:
+
+1. It won't find the helper class's own definition file. weighAppInf_ is an instance of the class LpsSaWeighAppInf — the class's own file (LpsSaWeighAppInf.hpp) doesn't contain the literal text weighAppInf_ anywhere inside it (a class definition doesn't refer to itself by some external variable's name). That file only turns up if you search for the class name instead:
+
+
+LpsSaWeighAppInf
+(no trailing underscore — that's the type, not the JobMgr-side variable). Search that, scoped to the whole CPM-Loader-ais/ tree this time, not just apps/LpsSaJobMgrApp/, and you'll find LpsSaWeighAppInf.hpp itself under prod/common/interfaces/LpsSaWeighReqstChannel/ — that's the 4th file, and it's the one that actually needs converting (it's where requestOutput_/responseInput_/txInput_ live, which you traced into a few turns back).
+
+2. It's entirely blind to WeighApp. weighAppInf_ is a JobMgr-only name — WeighApp doesn't have an object called that at all. WeighApp holds these same 3 legs under its own member names (LpsSaWeighScsReqstIn, LpsSaWeighScsRespOut, LpsSaWeighScsTxOut), which you already found separately a few turns ago. Searching weighAppInf_ will never surface LpsSaWeighApp.h, LpsSaWeighApp.cpp, or LpsSaScs.cpp — you have to run the entire 7-step process again, from scratch, scoped to apps/LpsSaWeighApp/, because it's a different app with its own independent set of member names for the same logical channels.
+
+So the corrected count: your search found 3 of the files (JobMgr's side of legs 1-3). Add LpsSaWeighAppInf.hpp (found by searching the class name, not the instance name) and the 3 WeighApp files (found by repeating Steps 1-7 on the other app) — that's the real 7, plus the 2 shared ros2_wrapper headers that back all of this = 9 total. Matches the file list already in Stage1-Development-Plan.txt, but now you've re-derived it yourself rather than taking it on faith.
+
+The general lesson: one search only ever shows you one name's footprint. A channel touches two apps, and inside each app it might be a direct member or an instance of a helper class — you have to deliberately re-run the search for each name (instance var, class name, other app's instance var) rather than assuming one search covers everything the channel touche

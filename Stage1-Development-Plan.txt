@@ -1,0 +1,341 @@
+======================================================================
+STAGE 1 DEVELOPMENT PLAN
+JobMgr <-> WeighApp: minimal direct ROS2/DDS proof
+======================================================================
+
+======================================================================
+1. OBJECTIVE
+======================================================================
+Prove that direct ROS2/DDS communication works between the real
+LpsSaJobMgrApp and LpsSaWeighApp binaries -- built through the actual
+SConscript/AIS SDK toolchain, original repo and dependencies intact --
+while every other channel in both apps keeps working exactly as it
+does today (raw SCS, untouched). 
+
+Once this is proven with a small, low-risk slice, the same pattern
+scales to the rest of both apps' channels as Stage 2.
+
+======================================================================
+2. BACKGROUND 
+======================================================================
+JobMgr and WeighApp currently talk to each other, and to every other
+part of the machine, entirely over SCS (the existing AIS pub/sub
+mechanism): each channel is a C++ object of type
+interfaces::baseTypes::InputInterface<T> or OutputInterface<T>, with
+a synchronous, poll-based API:
+    bool InputInterface<T>::get(T& data);       // drain one pending msg
+    bool OutputInterface<T>::publish(const T& data);
+
+The end goal of the wider migration is to replace SCS with ROS2/DDS
+everywhere. Two apps talk to each other directly over 5 shared
+channels; everything else routes through a  Bridge
+process for channels reaching still-unmigrated apps (legacy UI, etc).
+
+Two pieces of that wider migration are already done and already
+proven (Docker-verified, and re-used as-is here):
+
+2.1 -- Message definitions (.msg files)
+Every real C++ channel struct has a matching ROS2 .msg definition,
+across 3 packages: cpm_common_interfaces (shared between apps),
+job_mgr_interfaces, weigh_app_interfaces. Nested C++ structs each got
+their own .msg file (ROS2 has no inline/anonymous struct). Field names
+were kept close to the real struct (snake_case'd), enums got named
+constants matching the real values.
+
+2.2 -- The wrapper layer (ros2_wrapper)
+Two header-only C++ templates, living at
+CPM-Loader-ais/prod/common/ros2_wrapper/{RosInputInterface.h,RosOutputInterface.h},
+are drop-in replacements for SCS's InputInterface<T>/OutputInterface<T>
+-- same get()/publish() method signatures, so existing call sites like
+`while (channel->get(x)) {...}` keep compiling and behaving unchanged.
+Only the declared member *type* changes.
+
+    namespace ros2_wrapper {
+    template<typename T>
+    class RosInputInterface {
+    public:
+        RosInputInterface(const rclcpp::Node::SharedPtr& node,
+                           const std::string& topicName, size_t qosDepth = 10);
+        bool get(T& data);   // true + fills data if a message was pending
+    };
+
+    template<typename T>
+    class RosOutputInterface {
+    public:
+        RosOutputInterface(const rclcpp::Node::SharedPtr& node,
+                            const std::string& topicName, size_t qosDepth = 10);
+        bool publish(const T& data);
+    };
+    }
+
+Design points that matter for anyone touching this code:
+  - Backed by a real std::queue<T>, not a cached latest-value -- real
+    SCS get() is called in drain loops everywhere, so multiple
+    messages arriving between polls must all be retrievable.
+  - No mutex. The subscription callback only ever runs during
+    executor_.spin_some(), called synchronously once per executive()
+    tick, on the same thread that then calls get(). No concurrent
+    access to guard against.
+  
+
+======================================================================
+3. SCOPE DECISION -- why legs 1-3, not all 5
+======================================================================
+There are 5 channels JobMgr and WeighApp share directly:
+
+  1. LpsSaWeighReqstChannel   JobMgr -> WeighApp   (request)
+  2. LpsSaWeighRespChannel    WeighApp -> JobMgr    (response)
+  3. LpsSaWeighTxChannel      WeighApp -> JobMgr    (Tx heartbeat)
+  4. LpsSaJobMgrReqstChannel  WeighApp -> JobMgr    (hybrid -- also Bridge)
+  5. LpsSaJobMgrTxChannel     JobMgr -> WeighApp    (hybrid -- also Bridge)
+
+Stage 1 takes only 1-3. Reasons:
+
+  - Legs 1-3 are already bundled as one atomic unit on JobMgr's side,
+    via a single real class: LpsSaWeighAppInf (see section 5). Its
+    3 wrapper objects are constructed together in one self-contained
+    ~10-line block; nothing else in JobMgr's business logic needed to
+    change to support it -- confirmed by diffing JobMgr's post-Step-4
+    files against the pre-conversion baseline: LpsSaJobMgrScs.cpp
+    needed zero edits (weighAppInf_'s public API -- sendRequest(),
+    waitForTxData() -- never changed signature).
+  - On WeighApp's side, all 3 legs' logic lives in exactly 3
+    self-contained functions in LpsSaScs.cpp (LpsSaScsChkForReqst(),
+    LpsSaScsSendReqstResponse(), LpsSaWeighingScsTx()) -- confirmed
+    clean by diffing each against baseline: no reference to any
+    unrelated channel.
+  - Legs 4 and 5 are NOT this clean. Leg 4's JobMgr-side handler
+    (LpsSaJobMgrScsChkForReqst()) also reads SwitchInputScs and
+    displayStateInput_ -- two unrelated channels -- in the same
+    function body. Splitting that safely by hand (keep leg 4's lines
+    converted, revert the other two) is real surgical risk in
+    production code with no compiler here to catch a mistake. Not
+    worth it for a first proof.
+
+So: legs 1-3 are the smallest genuinely-clean slice that proves the
+whole chain -- msg definitions, wrapper layer, real ROS2 node
+lifecycle inside a task::Task app, and SCons/rclcpp link compatibility
+-- without touching anything entangled.
+
+======================================================================
+4. WHAT STAYS EXACTLY AS-IS
+======================================================================
+Every other channel in both apps: still raw SCS
+interfaces::baseTypes::InputInterface<T>/OutputInterface<T>, still
+InterfaceDb::bind()/fetch()-constructed, zero code changes. This
+includes legs 4 and 5 -- they keep working over SCS as they always
+have; Stage 1 does not touch them.
+
+Files with zero changes: LpsSaJobMgrProcess.cpp, adv/TipoffAssist.h,
+adv/TipoffAssist.cpp, and every function in LpsSaJobMgrScs.cpp and
+LpsSaScs.cpp not listed in section 5 below.
+
+======================================================================
+5. FILES TO CHANGE -- exact list
+======================================================================
+Paths relative to CPM-Loader-ais/.
+
+--- apps/LpsSaJobMgrApp/LpsSaJobMgrApp.h ---
+Add includes: <rclcpp/rclcpp.hpp>, <ros2_wrapper/RosInputInterface.h>,
+<ros2_wrapper/RosOutputInterface.h>, and the 3 message headers
+(cpm_common_interfaces/msg/lps_sa_weigh_{reqst,resp,tx}_channel.hpp).
+Add 2 new private members:
+    rclcpp::Node::SharedPtr rosNode_;
+    rclcpp::executors::SingleThreadedExecutor executor_;
+No existing channel member is retyped -- weighAppInf_'s own member
+declaration (`LpsSaWeighAppInf weighAppInf_;`) is unchanged.
+
+--- apps/LpsSaJobMgrApp/LpsSaJobMgrApp.cpp ---
+Constructor initializer list: add `rosNode_(nullptr), executor_(),`.
+In initialize(), replace the existing weighAppInf_ setup block:
+
+    { // Initialize the WeighApp interface
+        LpsSaWeighReqstChannelOutput* requestOutput = dynamic_cast<...>(InterfaceDb::fetch(...));
+        ...
+        LpsSaWeighRespChannelInput* responseInput = dynamic_cast<...>(...);
+        ...
+        LpsSaWeighTxChannelInput* txInput = dynamic_cast<...>(...);
+        ...
+        if (!weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)) { ... }
+        weighAppTxDataReceived_ = false;
+    }
+
+with:
+
+    rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
+    executor_.add_node(rosNode_);
+
+    { // Initialize the WeighApp interface -- pure direct DDS, no Bridge
+        ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
+                new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+        ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
+                new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+        ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput =
+                new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+
+        if (!weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)) {
+            AIS_LOG_ERROR("Failed to start weigh app interface.");
+            everythingOk = false;
+        }
+        weighAppTxDataReceived_ = false;
+    }
+
+In executive(), add one line at the top, before any other work:
+    executor_.spin_some();
+
+--- apps/LpsSaJobMgrApp/LpsSaJobMgrScs.cpp ---
+No changes. weighAppInf_.sendRequest(request) and
+weighAppInf_.waitForTxData(rxParam) call sites are untouched -- same
+public API before and after.
+
+--- apps/LpsSaWeighApp/LpsSaWeighApp.h ---
+Add the same 6 includes as JobMgr's header (rclcpp + ros2_wrapper +
+3 message headers). Retype 3 members:
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
+Add the same 2 new members as JobMgr (rosNode_, executor_).
+
+--- apps/LpsSaWeighApp/LpsSaWeighApp.cpp ---
+Constructor initializer list: add `rosNode_(nullptr), executor_(),`
+near the 3 existing nullptr-inits for the retyped members.
+In initialize(), replace the 3 InterfaceDb::bind() calls:
+    task::InterfaceDb::bind("LpsSaWeighTxChannelOutput", LpsSaWeighScsTxOut)
+    task::InterfaceDb::bind("LpsSaWeighRespChannelOutput", LpsSaWeighScsRespOut)
+    task::InterfaceDb::bind("LpsSaWeighReqstChannelInput", LpsSaWeighScsReqstIn)
+with, first (once, before all 3):
+    rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
+    executor_.add_node(rosNode_);
+then direct construction in place of each bind:
+    LpsSaWeighScsTxOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+    LpsSaWeighScsRespOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+    LpsSaWeighScsReqstIn = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+(each keeps its existing null-check/error-log/return-false pattern).
+In executive(), add at the top:
+    executor_.spin_some();
+
+--- apps/LpsSaWeighApp/LpsSaScs.cpp ---
+Only 3 functions change; everything else in this file is untouched:
+  - LpsSaScsChkForReqst() -- drains LpsSaWeighScsReqstIn, converts the
+    ~30-case command switch to use the .msg type's flattened fields
+    (request.arg_f1/arg_b/arg_s/arg_u/arg_map instead of the old
+    union-based request.arg.f1/.b/.s/.u/.map) and the new namespaced
+    enum (cpm_common_interfaces::msg::WeighReqstChannelCommand::* in
+    place of LpsSaWeighReqstChannel::Command::*).
+  - LpsSaScsSendReqstResponse() -- builds and publishes the response
+    on LpsSaWeighScsRespOut. Sets response.time_point_ns explicitly
+    (steady_clock now(), nanoseconds) -- this field has no auto-default
+    and is read by JobMgr's freshness gate, so it must be set at every
+    call site.
+  - LpsSaWeighingScsTx() -- builds and publishes txOut on
+    LpsSaWeighScsTxOut, field-by-field from the same real data sources
+    as before (LpsSaWeighInfoTbl, sealTracker_, etc), just writing into
+    the new message type's flattened field names instead of the old
+    struct's.
+
+--- prod/common/ros2_wrapper/RosInputInterface.h (new file) ---
+--- prod/common/ros2_wrapper/RosOutputInterface.h (new file) ---
+As specified in section 2.2.
+
+--- prod/common/interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp ---
+New content -- this file IS legs 1-3's implementation on JobMgr's side
+(the real class weighAppInf_ wraps). Its public API (start(),
+sendRequest(), waitForTxData()) is unchanged; only its internals now
+hold the 3 ros2_wrapper objects instead of raw SCS pointers.
+
+======================================================================
+6. BUILD PROCESS
+======================================================================
+6.1 -- Reconcile .msg files
+If a .msg file was independently created at the build site using a
+real header not present elsewhere, merge that field set in rather
+than overwrite. Otherwise take the already-verified .msg files as
+authoritative.
+
+6.2 -- Colcon build (before anything else)
+Only 2 packages needed for legs 1-3 -- weigh_app_interfaces is not
+used by any of them:
+    cd ros2_ws
+    source /opt/ros/jazzy/setup.bash
+    colcon build --packages-select cpm_common_interfaces job_mgr_interfaces
+    source install/setup.bash
+Must happen before the SCons build below -- it reads install/'s
+contents via AMENT_PREFIX_PATH. Re-run if a .msg file changes.
+
+6.3 -- Toolchain/ABI sanity check
+    gcc --version      # want GCC 13.x to match ROS2 Jazzy
+    ldd --version       # want glibc 2.39
+
+6.4 -- Wire SConscript
+Add this block to BOTH CPM-Loader-ais/apps/LpsSaJobMgrApp/SConscript
+and CPM-Loader-ais/apps/LpsSaWeighApp/SConscript, before their
+existing `sourceFiles = ...` line:
+
+    # --- ROS2/DDS integration ---------------------------------------
+    import os, glob
+
+    _ros2_prefixes = [p for p in os.environ.get('AMENT_PREFIX_PATH', '').split(os.pathsep) if p]
+    if not _ros2_prefixes:
+        print("WARNING: AMENT_PREFIX_PATH is empty -- source /opt/ros/jazzy/setup.bash "
+              "AND ros2_ws/install/setup.bash before running scons.")
+
+    myEnv.Append(CPPPATH = [p + '/include' for p in _ros2_prefixes])
+    myEnv.Append(LIBPATH = [p + '/lib' for p in _ros2_prefixes])
+
+    _ros2_libs = []
+    for p in _ros2_prefixes:
+        for so in glob.glob(p + '/lib/lib*.so'):
+            _ros2_libs.append(os.path.basename(so)[3:-3])
+
+Then append _ros2_libs to each app's existing LIBS list in
+myEnv.Program(...), e.g. for JobMgr:
+    LIBS = [ 'ais_task', 'ais_config', 'ais_log' ] + _ros2_libs
+
+No dds_wrapper_runtime wrapper library needed -- rclcpp is linked
+directly, consistent with the no-PIMPL design in section 2.2. Only
+build a wrapper library later if direct linking causes a real,
+observed problem.
+
+If ros2_wrapper/RosInputInterface.h isn't found once building for
+real: add myEnv['SSP_DIR'] + '/CPM-Loader-ais/prod/common' to
+CPPPATH explicitly (matching JobMgr's existing SSP_DIR-relative
+style) -- try without it first, since the app already reaches
+prod/common for its `interfaces/...` includes via something in the
+top-level testEnv not visible in this checkout.
+
+Pick one ROS_DOMAIN_ID and export it in whatever shell/session both
+binaries will run in.
+
+6.5 -- Build
+    scons JobMgrApp
+    scons LpsSaWeighApp
+(existing Alias targets, nothing new to name). Expect real
+compile/link errors on the first attempt -- this exact combination has
+never been built before. Fix what surfaces.
+
+6.6 -- Run
+Both binaries, same ROS_DOMAIN_ID.
+
+======================================================================
+7. SUCCESS CRITERIA
+======================================================================
+  - JobMgr's real weighAppInf_.sendRequest() calls succeed and reach
+    WeighApp over the new DDS leg (same as they did over SCS before).
+  - WeighApp's real request handling (LpsSaScsChkForReqst) produces
+    responses that reach JobMgr's real weighAppInf_.waitForTxData()/
+    response-drain path.
+  - WeighApp's Tx heartbeat data (LpsSaWeighingScsTx) reaches JobMgr
+    continuously, not just once.
+  - Every other channel in both apps keeps working exactly as before
+    -- no regression, because nothing about them changed.
+
+======================================================================
+8. EXPLICITLY OUT OF SCOPE FOR STAGE 1
+======================================================================
+  - Legs 4 and 5 (LpsSaJobMgrReqstChannel, LpsSaJobMgrTxChannel) --
+    deferred to Stage 2 because of the tangling described in section 3.
+  - Every other channel in both apps (~12 in JobMgr, ~19+ in WeighApp)
+    -- stays on raw SCS.
+  - The Bridge (cpm_scs_bridge) -- not started, not needed until the
+    other channels are converted.
+  - Integration testing, shadow-mode run, cutover -- later stages.

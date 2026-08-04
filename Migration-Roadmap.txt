@@ -1,0 +1,93 @@
+======================================================================
+JobMgr & WeighApp -- SCS to ROS2/DDS Migration -- Roadmap
+======================================================================
+
+SCOPE: LpsSaJobMgrApp + LpsSaWeighApp
+APPROACH: Communication-only. Business logic, scheduling, and build
+          system stay exactly as-is. Only the transport changes.
+CURRENT STAGE: Step 03 -- Wrapper Adapter Layer (not started)
+
+----------------------------------------------------------------------
+STEP 00 -- Prerequisites                                    [PARTIAL]
+----------------------------------------------------------------------
+Source missing AIS content (platformCommon, toolchain, WeighApp's 5
+missing submodules) and confirm the unmodified apps still build,
+before any wrapper work starts.
+  - lps_common        -- missing
+  - lps_weighing       -- missing
+  - toolchain ABI      -- not verified
+
+----------------------------------------------------------------------
+STEP 01 -- Foundation                                        [PARTIAL]
+----------------------------------------------------------------------
+colcon workspace and packages already exist. Still open:
+  - toolchain ABI check (A7H4 vs ROS2 Jazzy)
+  - DDS/rmw implementation choice
+  - ROS_DOMAIN_ID
+  - link rclcpp directly from SConscript, or via a wrapper library
+
+----------------------------------------------------------------------
+STEP 02 -- Interface Definitions                     [DONE for JobMgr]
+----------------------------------------------------------------------
+Every real SCS struct translated field-by-field into .msg types,
+verified against source -- not invented.
+  - 16 / 16 JobMgr channels done
+  - 3 packages committed (job_mgr_interfaces, cpm_common_interfaces,
+    + the shared-type promotions inside them)
+  - 0 / ~23 WeighApp channels done yet
+
+NOTE: a .msg only defines the SHAPE of the data. No Topic (the live,
+named communication channel) exists yet -- that only happens once a
+wrapper is constructed with an actual topic-name string, in Step 04.
+
+----------------------------------------------------------------------
+STEP 03 -- Wrapper Adapter Layer                    [NEXT -- NOT STARTED]
+----------------------------------------------------------------------
+RosInputInterface<T> / RosOutputInterface<T> -- header-only templates
+matching SCS's get()/publish() call signatures exactly. This is where
+a Topic first gets created in code, inside the wrapper's own constructor
+(create_publisher<T>(name) / create_subscription<T>(name, ...)).
+  3a. get()/publish() templates -- queue-based, no mutex needed
+      (spin_some() and get() run on the same thread, same tick)
+  3b. choose the topic-name convention, one per channel
+  3c. unit test the wrapper in isolation
+
+----------------------------------------------------------------------
+STEP 04 -- JobMgr Conversion                                [PENDING]
+----------------------------------------------------------------------
+Swap raw SCS objects for wrapper types across 5 files. This is where the
+16 real Topics actually come into existence -- each wrapper gets
+constructed with a real topic-name string inside LpsSaJobMgrApp.cpp's
+initialize(). Business logic in the other 7 files is never touched.
+
+----------------------------------------------------------------------
+STEP 05 -- WeighApp Conversion                               [PENDING]
+----------------------------------------------------------------------
+Same pattern, 5 files. The 50Hz executive() and the OEL task_1x() NVM
+background task stay exactly as-is.
+
+----------------------------------------------------------------------
+STEP 06 -- Direct DDS Wiring                                 [PENDING]
+----------------------------------------------------------------------
+The 4 channels JobMgr and WeighApp share connect natively over DDS,
+bypassing the Bridge entirely.
+
+----------------------------------------------------------------------
+STEP 07 -- Bridge Development                                [PENDING]
+----------------------------------------------------------------------
+cpm_scs_bridge -- the sole SCS <-> DDS seam for every unmigrated app.
+The only new binary in the whole system.
+
+----------------------------------------------------------------------
+STEP 08 -- Integration & Cutover                              [PENDING]
+----------------------------------------------------------------------
+End-to-end test rig, shadow-mode parallel run against the real
+binaries, then swap the AIS task table entry.
+
+======================================================================
+CURRENT STATUS SNAPSHOT
+======================================================================
+  16 / 16   JobMgr channels defined
+  3         interface packages committed
+  1         new process in the final design (the Bridge)
+  0         business-logic files touched so far

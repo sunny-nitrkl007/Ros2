@@ -1,0 +1,366 @@
+======================================================================
+JobMgr & WeighApp -> ROS2/DDS Communication Migration
+STEP-BY-STEP DEVELOPMENT PLAN
+======================================================================
+
+SCOPE (confirmed, final architecture)
+----------------------------------------------------------------------
+- LpsSaJobMgrApp and LpsSaWeighApp remain task::Task / SConscript-built
+  binaries. No new class, no new process, no new launch mechanism, no
+  change to scheduling/OEL/NVM.
+- Every channel on both apps becomes a DDS-backed wrapper. Zero raw SCS
+  objects remain inside either app. Both apps are fully stripped of
+  direct SCS relations.
+- JobMgr <-> WeighApp shared channels go native DDS-to-DDS directly,
+  no bridge. Confirmed count: 4 whole channels, plus a 5th channel
+  (LpsSaJobMgrTxChannel) that keeps its Bridge leg for the legacy UI
+  but has 4 individual fields consumed directly by WeighApp too --
+  see Step 6.1.5, added after independent verification against both
+  apps' real .rb Interfaces config (Challenges-And-Decisions.txt 6.16).
+- Every other channel (JobMgr: 12 of 16 remaining; WeighApp: its other
+  ~19 channels) routes through ONE single shared cpm_scs_bridge
+  process -- the only new binary in the whole system, and the sole
+  SCS<->DDS translation seam.
+- Nothing is deleted from the existing JobMgr/WeighApp source trees.
+  Raw SCS types/includes are swapped for wrapper types inside the files
+  listed below; the underlying AIS SCS machinery stays in the repo
+  untouched because other (unmigrated) apps and the Bridge itself
+  still depend on it.
+
+----------------------------------------------------------------------
+STEP 0 -- Prerequisites (blocking, do first)
+----------------------------------------------------------------------
+0.1  Source missing content via existing AIS fetch scripts:
+       - get-platformCommon-content.sh  (platformCommon is entirely
+         absent from the current checkout)
+       - get-ais-sdk.sh                 (toolchain/SDK content)
+     Needs access to Caterpillar's internal git remotes -- not
+     something to fabricate or stub.
+0.2  Source WeighApp's 5 missing dependencies:
+       - lps_weighing
+       - lps_common
+       - tipoff_assist
+       - libsl
+       - toa_wl00_x86_64-b   (newly found: LpsSaWeighApp/SConscript
+         lines 46-68 Glob() this directory directly; not previously
+         counted)
+0.3  Confirm a working build: current, UNMODIFIED JobMgr and WeighApp
+     must build and run successfully on real infrastructure before any
+     wrapper work starts. This isolates "we broke it" from "it was never
+     buildable here."
+0.4  Decide native x86_64-linux-gnu ("OCS" platform) simulation build
+     vs. real A7H4 target for the first working test rig. Native is
+     cheaper (get-ais-sdk.sh skips the cross-SDK fetch when SDKROOT
+     is unset) and nothing in either app's SConscript blocks it.
+
+----------------------------------------------------------------------
+STEP 1 -- Foundation (shared infrastructure, build once)
+----------------------------------------------------------------------
+1.1  Toolchain/ABI validation: confirm chosen platform's GCC/glibc are
+     ABI-compatible with ROS2 Jazzy (GCC 13 / glibc 2.39 / C++17).
+1.2  Create the colcon workspace. Package layout is intentionally
+     small:
+       - job_mgr_interfaces      (.msg/.srv only)
+       - weigh_app_interfaces    (.msg/.srv only)
+       - cpm_scs_bridge          (the Bridge)
+       - (optional) dds_wrapper_runtime  -- see 1.4
+     There is NO job_mgr_node / weigh_app_node package -- JobMgr and
+     WeighApp stay in the existing SConscript build.
+1.3  Wire SConscript's CPPPATH/LIBPATH to reach the colcon install
+     space, and add the rclcpp/DDS link dependency. rclcpp is not a
+     single library -- it pulls in rcl, rmw, the chosen rmw
+     implementation, rosidl_runtime_c, rosidl_typesupport_cpp,
+     rcutils, rcpputils, ament_index_cpp, etc. ament_cmake resolves
+     this automatically via find_package(); SCons does not, so this
+     has to be done manually (pkg-config if available, or explicit
+     CPPPATH/LIBPATH/LIBS).
+1.4  DECISION POINT: build a small wrapper library (its own tiny
+     ament_cmake package, e.g. dds_wrapper_runtime) that internally does
+     find_package(rclcpp) properly and exposes one narrow, stable C++
+     API + one .so for SCons to link -- insulating SCons from rclcpp's
+     internal dependency churn across ROS2 releases. Recommended, not
+     yet finalized -- confirm before Step 3.
+1.5  Decide ROS_DOMAIN_ID / discovery config shared by all three DDS
+     participants (JobMgr, WeighApp, Bridge).
+1.6  Bridge skeleton: task::Task subclass + embedded rclcpp::Node,
+     spun via executor.spin_some() each executive() tick -- extend the
+     existing cpm_scs_bridge/WeighScsRosBridge.hpp prototype rather
+     than starting from scratch. No real channels wired yet.
+
+----------------------------------------------------------------------
+STEP 2 -- Interface definitions
+----------------------------------------------------------------------
+2.1  Define .msg/.srv for all 16 JobMgr channels in job_mgr_interfaces,
+     field names kept identical to the SCS structs.
+2.2  Define .msg/.srv for WeighApp's ~23 channels in
+     weigh_app_interfaces (22 in LpsSaWeighApp.cpp + 1 adv-only in
+     TipoffAssist.cpp).
+2.3  Field-mapping conversion functions, unit tested independently.
+2.4  Line-by-line review against the real struct headers (the same
+     discipline that caught the fabricated fields in the earlier
+     jobmgr.txt document -- do not skip this).
+2.5  NOTE on LpsSaJobMgrReqstChannelInput specifically: this channel
+     has TWO independent producers -- the UI (aisJhm2RequestProc, via
+     LpsSaJobMgrRequestHelper.hpp, staying SCS-only, relayed through
+     the Bridge) AND WeighApp (LpsSaScsSendZeroRqst(), going direct
+     DDS). Model it as a normal ROS2 topic with two publishers, not as
+     a request/response service with a single server.
+
+----------------------------------------------------------------------
+STEP 3 -- Wrapper adapter layer
+----------------------------------------------------------------------
+3.1  Implement RosInputInterface<T> / RosOutputInterface<T> --
+     header-only templates matching SCS's InputInterface<T>::get() /
+     OutputInterface<T>::publish() signatures exactly, backed by an
+     rclcpp::Node's subscriptions/publishers internally.
+3.2  Unit test the wrapper in isolation before touching either app.
+3.3  Location: shared, not per-app -- both JobMgr and WeighApp
+     #include the same headers.
+
+----------------------------------------------------------------------
+STEP 4 -- JobMgr: SCS adapter replacement
+----------------------------------------------------------------------
+4.1  LpsSaJobMgrApp.h/.cpp: swap all 16 channel member types from raw
+     SCS InputInterface<T>*/OutputInterface<T>* to wrapper types.
+     initialize()'s 16 InterfaceDb::bind/fetch calls become wrapper
+     construction (creates the embedded rclcpp::Node, publishers,
+     subscribers).
+4.2  LpsSaJobMgrScs.cpp: type declarations swap SCS -> wrapper; the 10
+     ->get()/->publish() call sites keep identical syntax.
+4.3  LpsSaJobMgrProcess.cpp: 1 call site (loadRecordOutputChannel_),
+     type swap only.
+4.4  Add executor_.spin_some() as one new line inside the existing,
+     unmodified executive() body.
+4.5  SConscript: add CPPPATH/LIBPATH/link deps per Step 1.3/1.4.
+4.6  Build/link verification: confirm the 7 untouched logic files
+     (Tasks.cpp, SimpleCal.cpp, Stats.cpp, Cnfg.cpp, Init.cpp) and
+     lps_pass_tracker still link cleanly -- no changes needed in them.
+4.7  Component-level testing in isolation (ros2 topic pub / service
+     call against fake inputs, no bridge yet).
+
+----------------------------------------------------------------------
+STEP 5 -- WeighApp: SCS adapter replacement
+----------------------------------------------------------------------
+5.1  LpsSaWeighApp.h/.cpp: swap all 22 channel member types; 22
+     InterfaceDb::bind() calls -> wrapper construction; its own 8
+     ->get()/->publish() call sites, type swap only.
+5.2  LpsSaScs.cpp: 13 ->get()/->publish() call sites, type swap only.
+5.3  adv/TipoffAssist.cpp (adv build variant only): its own
+     bind()+publish() of TipoffModelTestPointsOutput, same treatment.
+5.4  Add executor_.spin_some() inside the existing 50Hz executive().
+5.5  SConscript: same build-wiring change as JobMgr's.
+5.6  Build/link verification: confirm LpsSaProcess.cpp, calibration
+     library glue, and the whole dig/dump/best-bucket computation are
+     byte-for-byte unchanged. src_app/ (OEL task_1x(), NVM) and
+     src_nvm/ are untouched.
+5.7  Real-time budget sanity check: confirm the 20ms cycle budget
+     still holds with spin_some() added.
+5.8  Component-level testing, same approach as 4.7, larger feature
+     surface.
+
+----------------------------------------------------------------------
+STEP 6 -- Direct DDS wiring: JobMgr <-> WeighApp (no bridge)
+----------------------------------------------------------------------
+6.1  5 channel-legs go native DDS-to-DDS once both apps have wrappers.
+     3 of these are pure direct (no Bridge involvement at all); the
+     4th and 5th are HYBRIDs that also keep a Bridge leg (see 6.1.4
+     and 6.1.5):
+       1. LpsSaWeighReqstChannelOutput/Input   (JobMgr -> WeighApp)
+          -- pure direct
+       2. LpsSaWeighRespChannelOutput/Input    (WeighApp -> JobMgr)
+          -- pure direct
+       3. LpsSaWeighTxChannelOutput/Input      (WeighApp -> JobMgr)
+          -- pure direct
+       4. LpsSaJobMgrReqstChannelOutput/Input  (WeighApp -> JobMgr,
+          confirmed live at LpsSaScs.cpp:700-712, previously
+          uncounted -- see Step 2.5) -- HYBRID: this is the same
+          channel JobMgr already reads as ReqstChannelInput from the
+          legacy UI (aisJhm2RequestProc) via the Bridge. WeighApp's
+          leg goes direct; the UI's leg still needs the Bridge, since
+          the UI itself isn't migrated. Both publish onto the same
+          ROS2 topic JobMgr subscribes to.
+       5. LpsSaJobMgrTxChannelOutput/Input     (JobMgr -> WeighApp) --
+          HYBRID, but a different shape than #4: same publisher (JobMgr)
+          on the same topic either way, not two different publishers.
+          The channel carries ~100 fields total; only 4 of them
+          (standby_state, tip_off_state, tip_off_state_cfg,
+          tip_off_trigger_type) are genuinely read by WeighApp's own
+          business logic (confirmed via the real jobMgrIn drain in
+          LpsSaWeighApp.cpp, and independently re-confirmed against
+          both apps' real .rb Interfaces config -- see
+          Challenges-And-Decisions.txt 6.14/6.16). Those 4 fields'
+          types live in cpm_common_interfaces; the channel message
+          itself stays in job_mgr_interfaces and keeps its Bridge leg
+          to reach the legacy UI/DisplayApp for its other ~96 fields
+          -- still counted as 1 of JobMgr's 12 Bridge-routed channels
+          in Step 7.1, same as channel #4's UI leg is.
+6.2  Agree topic/service names and QoS between the two tracks.
+6.3  Validate the loop with both apps' component tests running
+     together, still no bridge.
+
+----------------------------------------------------------------------
+STEP 7 -- Bridge: legacy channel relays
+----------------------------------------------------------------------
+7.1  JobMgr side -- 13 channel-legs through the Bridge: 11 that are
+     pure-bridge (no direct DDS leg at all), plus the legacy-UI leg of
+     the hybrid channel from Step 6.1.4, plus JobMgrTxChannelOutput
+     (also hybrid, Step 6.1.5 -- its Bridge leg here carries the full
+     ~100-field channel to the legacy UI same as always, but 4 of those
+     fields are ALSO consumed directly by WeighApp via a separate leg
+     that doesn't go through here at all). (16 total channels -
+     3 pure-direct = 13; matches the figure used in
+     Migration-Project-Plan.pdf EPIC J3.)
+     Publisher relays (ROS2 -> SCS), 5:
+       JobMgrTxChannelOutput (hybrid, Step 6.1.5), RespChannelOutput,
+       DebugChannelOutput, LoadRecordOutput, OutputChannelOutput
+     Subscriber relays (SCS -> ROS2), 8:
+       ReqstChannelInput (legacy/UI leg only -- the hybrid channel
+       from Step 6.1.4; WeighApp's leg is direct, not through here),
+       SwitchInputScsInput, AisJhm2TxChannelInput, DisplayStateInput,
+       ShmClockInput, DataLinkDataInput,
+       AutonomyConditionDiagnosticsTxChannelInput,
+       EventDiagnosticDataInput
+     5 + 8 = 13, consistent with the citation table in
+     References/jobmngr_new.txt -- re-verify against it when
+     implementing.
+7.2  WeighApp side -- its remaining ~19 external channels, same
+     publisher/subscriber relay pattern.
+7.3  Bridge fidelity testing: loopback validation, known value on the
+     SCS side arrives byte-correct on the ROS2 side and vice versa,
+     for every bridged channel.
+
+----------------------------------------------------------------------
+STEP 8 -- Integration, regression, cutover
+----------------------------------------------------------------------
+(Deferred detail -- see Migration-Project-Plan.pdf EPIC J4/W4 for the
+ already-scoped end-to-end test rig, feature validation staging,
+ shadow-mode parallel run, and cutover steps. Testing/simulation-rig
+ specifics intentionally excluded from this plan per current scope --
+ revisit separately.)
+
+======================================================================
+COMPLETE FILE INVENTORY
+======================================================================
+
+--- JobMgr: files to EDIT ---
+  LpsSaJobMgrApp.h          -- member types: SCS -> wrapper
+  LpsSaJobMgrApp.cpp        -- initialize()/cleanup(), 16 bind/fetch
+                                -> wrapper construction
+  LpsSaJobMgrScs.cpp        -- 10 call sites, type swap
+  LpsSaJobMgrProcess.cpp    -- 1 call site, type swap
+  SConscript                -- CPPPATH/LIBPATH/link deps
+
+--- JobMgr: files left UNCHANGED (reference only, do not edit) ---
+  LpsSaJobMgrTasks.h/.cpp
+  LpsSaJobMgrSimpleCal.h/.cpp
+  LpsSaJobMgrStats.h/.cpp
+  LpsSaJobMgrCnfg.h/.cpp
+  LpsSaJobMgrInit.cpp
+
+--- WeighApp: files to EDIT ---
+  LpsSaWeighApp.h           -- member types: SCS -> wrapper
+  LpsSaWeighApp.cpp         -- 22 bind() -> wrapper construction, 8 call
+                                sites type swap
+  LpsSaScs.cpp              -- 13 call sites, type swap
+  adv/TipoffAssist.cpp      -- adv build only, 1 bind + 1 publish
+  SConscript                -- CPPPATH/LIBPATH/link deps
+
+--- WeighApp: files left UNCHANGED (reference only, do not edit) ---
+  LpsSaProcess.cpp
+  LpsSaCalibration.cpp
+  LpsSaInit.cpp
+  LpsSaLinkageCal.cpp
+  LpsSaLinkageTables.cpp
+  LpsSaUpdate.cpp
+  LpsSaWeighAppCnfg.cpp/.h
+  LpsSaWeighAppLog.cpp
+  LpsSaWeighAppNvm.cpp/.h
+  LpsSaWeighAppTestFixture.cpp/.h
+  LpsSaCalMgr.h
+  LpsSaChassisIMU.h
+  LpsSaIncludes.h
+  LpsSaWeighAppSeal.h
+  src_app/   (OEL task_1x() background task, NVM)
+  src_nvm/
+  sa/        (build-variant glue)
+
+--- Files DELETED: none, in either app ---
+  Raw SCS includes/types stop being used inside the files above; the
+  underlying AIS SDK headers (InputInterface<T>/OutputInterface<T>,
+  InterfaceDb, the per-channel InterfaceTypes.h headers under
+  prod/common/interfaces/) stay in the repo untouched -- the Bridge
+  and every unmigrated app still depend on them.
+
+--- NEW: shared wrapper headers (not per-app) ---
+  RosInputInterface.h
+  RosOutputInterface.h
+
+--- NEW: dds_wrapper_runtime package (optional, recommended -- Step 1.4) ---
+  dds_wrapper_runtime/package.xml
+  dds_wrapper_runtime/CMakeLists.txt
+  dds_wrapper_runtime/include/dds_wrapper_runtime/*.hpp
+  dds_wrapper_runtime/src/*.cpp
+
+--- NEW: job_mgr_interfaces package ---
+  job_mgr_interfaces/package.xml
+  job_mgr_interfaces/CMakeLists.txt
+  job_mgr_interfaces/msg/*.msg
+  job_mgr_interfaces/srv/*.srv   (if any request/response channels
+                                   end up modeled as services)
+
+--- NEW: weigh_app_interfaces package ---
+  weigh_app_interfaces/package.xml
+  weigh_app_interfaces/CMakeLists.txt
+  weigh_app_interfaces/msg/*.msg
+  weigh_app_interfaces/srv/*.srv
+
+--- NEW: cpm_scs_bridge package (the Bridge) ---
+  cpm_scs_bridge/package.xml
+  cpm_scs_bridge/CMakeLists.txt
+  cpm_scs_bridge/include/cpm_scs_bridge/ScsRosBridge.hpp
+  cpm_scs_bridge/include/cpm_scs_bridge/JobMgrChannels.hpp
+  cpm_scs_bridge/include/cpm_scs_bridge/WeighAppChannels.hpp
+  cpm_scs_bridge/src/ScsRosBridge.cpp
+  cpm_scs_bridge/src/JobMgrChannels.cpp
+  cpm_scs_bridge/src/WeighAppChannels.cpp
+
+======================================================================
+OPEN DECISIONS BEFORE STARTING
+======================================================================
+  1. dds_wrapper_runtime wrapper library: build it, or link rclcpp
+     directly from SConscript? (Step 1.4)
+  2. DDS/rmw implementation: Fast DDS (default) vs Cyclone DDS vs RTI
+     Connext -- not yet decided.
+  3. ROS_DOMAIN_ID / discovery config (multicast default vs Discovery
+     Server) for JobMgr/WeighApp/Bridge.
+  4. Native x86_64 simulation build vs real A7H4 target for the first
+     working milestone (Step 0.4).
+
+======================================================================
+RESOLVED DECISIONS
+======================================================================
+  1. RosInputInterface<T>/RosOutputInterface<T> (Step 3) will NOT use
+     PIMPL initially -- <rclcpp/rclcpp.hpp> is allowed to show up
+     wherever the wrapper headers are included. PIMPL doesn't transfer
+     cleanly to a header-only template (no single .cpp to hide Impl
+     in -- would need a non-templated, type-erased base class the
+     template forwards to), so it's kept as an explicit FALLBACK, not
+     built preemptively: only implement the type-erased PIMPL version
+     if the plain approach causes a real, observed problem (e.g.
+     excessive compile-time/header bleed into the AIS SConscript
+     build), not on spec. Reference implementation pattern for both
+     the plain and PIMPL approaches: a real working ROS2 Jazzy
+     pub/sub example (plain CMake, no colcon, rclcpp::spin_some()
+     validated) -- see ros2_ws/ commit history around
+     "ROS2_custom_Code.zip" investigation for the source.
+  2. RosInputInterface<T>::get() will use a real queue (std::queue<T>),
+     not a single cached latest-value -- SCS's real get() is called in
+     drain loops everywhere in the existing codebase
+     (`while (channel->get(x)) {...}`), so multiple messages arriving
+     between polls must all be retrievable, not just the newest.
+  3. No mutex needed inside the wrapper for the spin_some()-in-executive()
+     model: spin_some() and get() run on the same thread, sequentially,
+     inside one executive() tick -- the subscription callback finishes
+     before get() is ever called, so there's no actual data race to
+     guard against (unlike a background-thread-spin design, which
+     would need one).

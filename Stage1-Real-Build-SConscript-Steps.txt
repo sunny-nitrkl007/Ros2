@@ -1,0 +1,156 @@
+======================================================================
+Stage 1 -- Real App Build via SConscript -- A-Z Steps
+======================================================================
+Based on the real SConscript files (CPM-Loader-ais/apps/LpsSaJobMgrApp/
+SConscript and CPM-Loader-ais/apps/LpsSaWeighApp/SConscript), not
+generic ROS2 boilerplate. 
+
+======================================================================
+A -- Reconcile .msg files
+======================================================================
+Done
+
+======================================================================
+B -- Pull
+======================================================================
+    git pull origin ros2Project
+
+Brings Steps 3-6.2 already applied to the real files:
+LpsSaJobMgrApp.h/.cpp, LpsSaWeighApp.h/.cpp, TipoffAssist.h/.cpp,
+LpsSaWeighAppInf.hpp, plus the 3 .msg packages under ros2_ws/src/.
+Nothing to add there -- it's done.
+
+======================================================================
+C -- Step 0.3 -- baseline (optional, quick)
+======================================================================
+If the isolation this step is meant to give is wanted, build the
+commit BEFORE today's pull (`git log` to find it, `git checkout
+<that-commit>` in a throwaway worktree) with the existing build
+command, confirm it still works, then come back to the pulled branch.
+If confident the old build worked before, skip this and move on --
+it's insurance, not a blocker.
+
+======================================================================
+D -- Build the colcon workspace -- where the files go, and when
+======================================================================
+Nothing new to create -- cpm/ros2_ws/src/ already has
+cpm_common_interfaces, job_mgr_interfaces, weigh_app_interfaces.
+Colcon's own output (build/, install/, log/) lands inside
+cpm/ros2_ws/ itself -- already gitignored, don't create these
+anywhere else:
+
+    cd cpm/ros2_ws
+    source /opt/ros/jazzy/setup.bash
+    colcon build --packages-select cpm_common_interfaces job_mgr_interfaces weigh_app_interfaces
+    source install/setup.bash
+
+This has to happen BEFORE the SCons build below -- the SConscript
+wiring in step F reads install/'s contents via AMENT_PREFIX_PATH,
+which only exists after this succeeds and install/setup.bash is
+sourced. Re-run this step any time a .msg file changes; otherwise
+it's a one-time setup per shell session.
+
+======================================================================
+E -- Toolchain/ABI sanity check (1.1)
+======================================================================
+    gcc --version      # want GCC 13.x to match ROS2 Jazzy
+    ldd --version       # want glibc 2.39
+
+If the build toolchain is meaningfully older, flag it before going
+further -- this is the one place a mismatch would show up as obscure
+link errors rather than a clear message.
+
+======================================================================
+F -- Wire SConscript -- the actual new code, in the actual files
+======================================================================
+No new package needed. A dds_wrapper_runtime wrapper library was
+originally floated as an open decision -- on reflection that
+contradicts the project's own already-recorded call in
+Development-Plan.txt's "RESOLVED DECISIONS": ros2_wrapper's headers
+were deliberately built without PIMPL, on the explicit basis that
+<rclcpp/rclcpp.hpp> is allowed to show up wherever they're included,
+and a wrapper library was to be built later ONLY IF direct linking
+causes a real observed problem. That problem hasn't been hit -- so
+link rclcpp directly, consistent with that decision, and only build
+the wrapper library later if this genuinely causes trouble.
+
+Add this block to BOTH CPM-Loader-ais/apps/LpsSaJobMgrApp/SConscript
+and CPM-Loader-ais/apps/LpsSaWeighApp/SConscript, right before their
+existing `sourceFiles = ...` line:
+
+    # --- ROS2/DDS integration (Development-Plan.txt Step 1.3) ---------------
+    import os, glob
+
+    _ros2_prefixes = [p for p in os.environ.get('AMENT_PREFIX_PATH', '').split(os.pathsep) if p]
+    if not _ros2_prefixes:
+        print("WARNING: AMENT_PREFIX_PATH is empty -- source /opt/ros/jazzy/setup.bash "
+              "AND ros2_ws/install/setup.bash before running scons.")
+
+    myEnv.Append(CPPPATH = [p + '/include' for p in _ros2_prefixes])
+    myEnv.Append(LIBPATH = [p + '/lib' for p in _ros2_prefixes])
+
+    _ros2_libs = []
+    for p in _ros2_prefixes:
+        for so in glob.glob(p + '/lib/lib*.so'):
+            _ros2_libs.append(os.path.basename(so)[3:-3])  # strip 'lib' prefix, '.so' suffix
+
+Then add _ros2_libs to each app's existing LIBS = [...] list inside
+myEnv.Program(...) -- e.g. for JobMgr:
+
+    LpsSaJobMgrApp = myEnv.Program(
+            target = 'LpsSaJobMgrApp',
+            source = sourceFiles,
+            LIBS = [ 'ais_task', 'ais_config', 'ais_log' ] + _ros2_libs
+        )
+
+Same pattern for WeighApp's LIBS list.
+
+Why glob every .so on AMENT_PREFIX_PATH instead of hand-listing
+rclcpp/rcl/rmw_fastrtps_cpp/etc.: it's blunt, but shared-lib linking
+doesn't care about extra unused -l flags the way static linking does
+-- this gets to a working first build without needing to know the
+exact rmw implementation or every transitive dependency by name. Once
+it links successfully, trim _ros2_libs down to just what shows up as
+actually needed (rclcpp, rcl, the rmw_* implementation,
+rosidl_typesupport_cpp/_c for the 3 message packages, rcutils,
+rcpputils, ament_index_cpp) if a cleaner list is wanted -- not
+required for it to work.
+
+ONE THING TO VERIFY, NOT ASSUME: LpsSaJobMgrApp.h already does
+`#include <ros2_wrapper/RosInputInterface.h>` with no new CPPPATH
+entry added for prod/common -- that's because the app already
+successfully includes <interfaces/.../InterfaceTypes.h> from the same
+prod/common root, so that path must already be reachable via
+something in the top-level testEnv that isn't visible here. If the
+build can't find ros2_wrapper/RosInputInterface.h, add
+myEnv['SSP_DIR'] + '/CPM-Loader-ais/prod/common' to CPPPATH explicitly
+(matching JobMgr's existing SSP_DIR-relative style) -- but try without
+it first.
+
+DECIDE 1.5 NOW, NOT LATER: pick one ROS_DOMAIN_ID (e.g. `export
+ROS_DOMAIN_ID=42`) and export it in whatever shell/session both
+binaries will run in.
+
+======================================================================
+G -- Build the real apps
+======================================================================
+Same shell that has AMENT_PREFIX_PATH populated from step D (don't
+open a fresh terminal without re-sourcing both setup.bash files):
+
+    scons JobMgrApp
+    scons LpsSaWeighApp
+
+(Those are the existing Alias targets already in the two SConscript
+files -- nothing new to name.) Expect real compile/link errors on the
+first attempt; this exact combination has never been built before,
+anywhere. Fix what surfaces -- most likely candidates are missing
+CPPPATH entries for a specific rosidl-generated header, or a missing
+.so if AMENT_PREFIX_PATH didn't pick up every package.
+
+======================================================================
+H -- Run and verify
+======================================================================
+Both binaries, same ROS_DOMAIN_ID, and confirm the same 5-leg round
+trip the Docker adapter showed -- but this time from JobMgr's real
+sendRequest-equivalent path and WeighApp's real business logic, not
+stand-in nodes. That's when Stage 1 is actually validated.

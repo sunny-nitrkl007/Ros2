@@ -1,0 +1,944 @@
+======================================================================
+JobMgr & WeighApp -- SCS to ROS2/DDS Migration
+CHALLENGES & DECISIONS LOG
+======================================================================
+Running record of real problems hit, how they were actually resolved,
+and the evidence behind each decision -- not a plan, a record of what
+already happened. Updated as work continues.
+
+======================================================================
+PART 1 -- ARCHITECTURE DECISIONS
+======================================================================
+
+1.1  Full rewrite vs. communication-only migration
+----------------------------------------------------------------------
+Two candidate approaches were compared: rewrite JobMgr/WeighApp as
+pure ROS2 nodes, or swap only the communication transport and leave
+logic untouched. Investigated what "full rewrite" would actually cost:
+loss of native OEL real-time scheduling, WeighApp's independent
+task_1x() OEL background task (NVM read/write) having no equivalent
+in a pure-node design, watchdog servicing built into task::Task with
+no automatic replacement, and a live launch/supervision mechanism
+that would need building from scratch (currently solved for free by
+staying on the AIS task supervisor).
+DECISION: communication-only. Logic, scheduling, and NVM usage stay
+exactly as-is; only the transport changes.
+
+1.2  SCS/OEL are not "non-AIS" layers
+----------------------------------------------------------------------
+Early framing treated SCS and OEL as separate from "AIS proper."
+Traced the actual repo layout: SCS (InputInterface<T>/OutputInterface<T>
++ scsIOContainer) and OEL both physically live inside eta-ais/
+machineCommon, same as ais_task, ais_log, ais_config. There is no
+non-AIS layer above raw OS/hardware.
+DECISION: corrected the mental model before any further design work
+proceeded on top of it.
+
+1.3  Variant A -> Variant B -> final "full DDS boundary" design
+----------------------------------------------------------------------
+Three iterations, each driven by a real objection:
+  - Variant A (pure rclcpp::Node, leave task::Task entirely): real
+    ROS2 citizen, but reopens every cost in 1.1.
+  - Variant B (apps stay task::Task, only SOME channels get DDS
+    wrappers): avoids 1.1's costs, but rejected -- "I don't see ros2
+    nodes and all, just you have changed communication from scs to
+    dds... ros2 needs to be brought into the picture as a lead actor."
+  - Final: apps stay task::Task (all of 1.1's guarantees preserved),
+    but EVERY channel becomes a DDS wrapper -- zero raw SCS objects held
+    by either app. The 4 JobMgr<->WeighApp shared channels go native
+    DDS-to-DDS; everything else goes through one shared Bridge.
+DECISION: final design adopted specifically because it's the only one
+that satisfies both "ROS2 is a real, full participant in this app's
+communication" AND "nothing about scheduling/NVM/watchdog needs
+re-verifying."
+
+1.4  Bridge count: one shared process, not one per app
+----------------------------------------------------------------------
+Considered per-app bridge instances vs. a single shared cpm_scs_bridge.
+DECISION: one shared Bridge -- matches "one boundary, one seam"
+framing, and its channel list is a visible, incrementally-growable
+measure of migration progress as more apps eventually migrate.
+
+======================================================================
+PART 2 -- DATA VERIFICATION: MISTAKES CAUGHT AND FIXED
+======================================================================
+These are the cases where an earlier claim (mine or a pasted document)
+turned out to be wrong, and what actually corrected it. Listed because
+each one represents a real risk that shipped into a channel definition
+before being caught.
+
+2.1  jobmgr.txt (pasted reference document) was fabricated
+----------------------------------------------------------------------
+Claimed function name weigh_mode() (real: LpsPtUpdate()), wrong struct
+field names, a false "PassCount < 50" horn threshold, a false claim
+that WeighApp's task_1x() handles JobMgr's NVM writes (JobMgr has no
+src_app/ at all), a wrong state machine, and "Bind all 10 SCS
+channels" when the real, fully-cited count is 16.
+RESOLUTION: never trusted without independent citation. Full 16-channel
+list rebuilt from real bind()/fetch()/get()/publish() call sites,
+written up in References/jobmngr_new.txt with file:line citations for
+every one.
+
+2.2  timePoint claimed dead everywhere -- wrong
+----------------------------------------------------------------------
+Verified (correctly) that LpsSaJobMgrTxChannel's timePoint is never
+read back by any consumer -- constructed, serialized, never used.
+Generalized this to "drop timePoint from all 16 channels" -- this was
+wrong. LpsSaJobMgrRequestHelper.hpp and LpsSaWeighAppInf.hpp both
+compare timePoint across Tx/Resp channel pairs for response-freshness
+correlation (nextTxTimePoint_ = response.timePoint, then compared
+against the Tx channel's own timePoint). The earlier "repo-wide grep"
+claim was inaccurate -- only apps/LpsSaJobMgrApp had actually been
+searched, not prod/common/interfaces/*RequestHelper.hpp.
+RESOLUTION: LpsSaJobMgrTxChannel.msg and LpsSaJobMgrRespChannel.msg
+(both already pushed) were corrected after the fact, with an honest
+commit message explaining the mistake. Documented the real rule in
+CHANNEL_MAPPING.md Part 3: timePoint is live wherever a
+...RequestHelper.hpp/...AppInf.hpp companion class exists, dead
+otherwise -- checked per channel, not assumed.
+
+2.3  DataLinkDataInput matched to the wrong struct
+----------------------------------------------------------------------
+First pass matched it to eta-ais/.../legacy/common/interfaces/
+CpmDataLinkData/DataLinkData.h, marked "uncertain match." That struct
+is unrelated -- a coincidental name collision. The real resolution
+path is interfaces/DataLinkData/InterfaceTypes.h (confirmed via the
+actual #include in LpsSaJobMgrApp.h:46), which does not exist in this
+checkout at all.
+RESOLUTION: corrected in CHANNEL_MAPPING.md; the earlier "legacy
+folder, complex map-based struct" entry was replaced with an accurate
+"folder does not exist" status once the real include path was traced.
+
+2.4  4th JobMgr<->WeighApp direct channel found late
+----------------------------------------------------------------------
+The original boundary diagram (and the whole "3 direct channels"
+framing used through most of the design discussion) missed that
+WeighApp calls LpsSaScsSendZeroRqst() (LpsSaScs.cpp:700-712), which
+publishes directly onto LpsSaJobMgrReqstChannelOutput -- the same
+channel JobMgr reads from the UI. This was found while doing the
+file-level dependency walk for the wrapper work, not during the earlier
+architecture discussion.
+DECISION: corrected the direct-channel count to 4, not 3. This
+channel is a HYBRID -- WeighApp's leg goes direct DDS, but the
+legacy UI's leg still needs the Bridge, since aisJhm2RequestProc isn't
+migrated. Both publish onto the same DDS topic.
+
+======================================================================
+PART 3 -- REAL STRUCTS: BLOCKED, RECONSTRUCTED, OR SCOPED
+======================================================================
+
+3.1  WeighBktWtAccuracy_t -- reconstructed from indirect evidence
+----------------------------------------------------------------------
+Real enum defined in lps_common (missing submodule). No file in this
+checkout states its numeric values directly. Reconstructed from two
+independent sources that agree: LpsSaTotalsApp/CPMTicket/CPMTicket.pb.h
+(a protobuf mirror enum, NONE=0/LOW=1/MEDIUM=2/HIGH=3) and
+LpsSaLoadRecordSubtotal.h's downgrade-scan behavior (starts at HIGH,
+only ever decreases), consistent with ascending-quality ordering.
+DECISION: used with high confidence, explicitly marked PROVISIONAL in
+the .msg file header, to be confirmed once lps_common is sourced.
+
+3.2  LpsPublic.h fields (LpsSaWeighTxChannel) -- zero evidence, not blocked
+----------------------------------------------------------------------
+6 types (LpsWeighBktDigStat_t, LpsWeighCalStatus_t, LpsWeighBktDumpStat_t,
+LpsWeighRangeIndicator_t, LpsStat_t, LpsInstWtRawStat_t) are defined in
+LpsPublic.h, which does not exist anywhere in this checkout. Unlike
+3.1, no mirror enum or ordering evidence was found for any of them --
+every use site names only the enumerator, never a number.
+DECISION: did not invent numbers. Carried as raw int32 fields with no
+named constants. This is still correct at runtime: the wrapper's
+conversion function does static_cast<int32_t>(realEnumValue) against
+the real, still-compiled C++ enum in WeighApp's own code, so the
+correct value flows through regardless of whether the human-readable
+mapping is known yet. Named constants get added later as a pure
+documentation change, once LpsPublic.h is sourced.
+
+3.3  SwitchInputScsInput / OutputChannelOutput / DataLinkDataInput --
+     genuinely absent, confirmed two different ways
+----------------------------------------------------------------------
+First pass: searched two known interface locations (CPM-Loader-ais/
+prod/common/interfaces and eta-ais/prod/machineCommon), found nothing,
+marked blocked.
+Second pass (after being asked to look harder in eta-ais/prod/coretech,
+which surfaced the unrelated aisBridge framework): re-verified via the
+actual #include paths in LpsSaJobMgrApp.h (interfaces/SwitchInputScs/,
+interfaces/OutputChannel/, interfaces/DataLinkData/) and confirmed by
+directory search that none of the three folders exist anywhere in this
+checkout -- not a location problem, the same class of gap as the
+missing submodules.
+DECISION (after being asked to reconstruct from usage instead of
+leaving these undrafted): traced every real call site across the whole
+tree for each type.
+  - SwitchInputScs: only ever used via get_STG_value(index)/
+    set_STG_value(index, value), always index 3/STG4, always compared
+    to STG::CLOSED. Collapsed to a single `bool closed` -- a deliberate
+    scoping simplification, not a claim the real struct only has two
+    states.
+  - OutputChannel/OutputCmd: reconstructed from the one real
+    construction site (LpsSaJobMgrScs.cpp:921-928). AddOutputAppCmd()
+    is an "Add" method, not a setter -- modeled as an array on that
+    evidence. Port/State/ChangeDuration enums carried as raw ints (no
+    numeric values found anywhere, same reasoning as 3.2).
+  - DataLinkData/DataLinkParam: confirmed to be a large, generic,
+    multi-type PID system (55KB of matches in autonomyConditionDiagnostics'
+    own consumption of it) -- NOT fully reconstructed. Scoped
+    deliberately to the exact 3 PIDs and 3 different value accessors
+    JobMgr itself reads (GetLastGoodValue<uint8_t>(), GetLastValueEng()
+    returning a float, GetLastGoodValue<uint16_t>()) -- discovered
+    these were 3 different types, not 1, only after reading the whole
+    function rather than the first PID's handling alone.
+
+======================================================================
+PART 4 -- PACKAGE STRUCTURE DECISIONS
+======================================================================
+
+4.1  cpm_common_interfaces split out of job_mgr_interfaces
+----------------------------------------------------------------------
+Several types (WeighBktWtAccuracy, TipOffTriggerType, TipOffState,
+the Reqst/Resp Command enums, and eventually the whole
+LpsSaJobMgrReqstChannel message family) were first drafted directly
+inside job_mgr_interfaces. Mid-session, grepping for cross-app usage
+(prompted by a direct question: "is any struct/enum used by/needed in
+any other app?") found LpsSaWeighApp.h:256 uses
+LpsSaJobMgrStandbyState_t directly, and WeighApp publishes directly to
+LpsSaJobMgrReqstChannelOutput (see 2.4).
+DECISION: created cpm_common_interfaces as a third package with no
+dependents of its own; job_mgr_interfaces and weigh_app_interfaces
+both depend on it, never the reverse. Required going back and moving
+7 already-created files out of job_mgr_interfaces after the fact.
+
+4.2  Field naming: snake_case is a ROS2 requirement, not a style choice
+----------------------------------------------------------------------
+Original plan said "field names kept identical to minimize downstream
+diff." rosidl (ROS2's message generator) rejects camelCase/PascalCase
+field names outright -- this was asserted before actually checking the
+constraint. Confirmed by contrast with the real Caterpillar ROS1
+precedent (ais_mc_msgs/MachineSN.msg, prod/coretech/aisBridge, 2019-2021):
+that ROS1 system kept camelCase field names (machineSN, equipmentID) --
+proving the constraint is specific to ROS2/rosidl, not a general ROS
+rule this project chose to break.
+DECISION: mechanical camelCase -> snake_case conversion for every
+field, with an explicit old-name/new-name citation in each .msg file's
+header so nothing drifts silently.
+
+======================================================================
+PART 5 -- BUILD & WRAPPER DESIGN DECISIONS
+======================================================================
+
+5.1  Does SCons need colcon to link rclcpp? -- No, but unverified until
+     real evidence appeared
+----------------------------------------------------------------------
+Initial answer was reasoned from first principles: colcon is
+orchestration, not a build requirement, so any build system that gets
+the right -I/-L paths should link rclcpp fine. This was underspecified
+until ROS2_custom_Code.zip (a real, user-provided example) was
+inspected: build.sh does plain `cmake .. && make`, explicitly skips
+ament_package(), and the zip contains real compiled build artifacts
+proving it worked on ROS2 Jazzy.
+DECISION: confirmed the mechanism (CMAKE_PREFIX_PATH/AMENT_PREFIX_PATH,
+set by sourcing setup.bash) is what actually matters, not which build
+tool reads it. SCons needs the same environment variables parsed into
+CPPPATH/LIBPATH -- exact mechanism (pkg-config vs. manual paths, direct
+rclcpp link vs. a dds_wrapper_runtime wrapper library) still open.
+Real risk still unverified: A7H4 toolchain ABI compatibility with
+ROS2 Jazzy's prebuilt binaries (GCC 13/glibc 2.39) -- needs a real
+build environment, not more source reading.
+
+5.2  PIMPL for RosInputInterface<T>/RosOutputInterface<T> -- fallback, not built
+----------------------------------------------------------------------
+Considered hiding rclcpp::Node/Publisher/Subscription behind a
+forward-declared Impl class (pattern found in the same zip) to keep
+<rclcpp/rclcpp.hpp> out of consuming headers.
+DECISION: not used initially. PIMPL doesn't transfer cleanly to a
+header-only template -- no single .cpp exists to hide Impl in; would
+need a non-templated, type-erased base class the template forwards to.
+Kept as an explicit, documented fallback in Development-Plan.txt,
+built only if the plain approach causes a real, observed problem
+(e.g. excessive compile-time/header bleed), not preemptively.
+
+5.3  RosInputInterface<T>::get() -- queue, not a cached latest-value
+----------------------------------------------------------------------
+The same zip's subscriber example uses a single cached value
+(has_new_msg_ + latest_msg_, overwritten on each new message). Real
+SCS get() is called in drain loops everywhere in the actual codebase
+(`while (channel->get(x)) {...}`) -- a single-value cache would
+silently drop messages if more than one arrives between polls.
+DECISION: backed by a real std::queue<T>.
+
+5.4  No mutex needed in the wrapper -- a direct consequence of an earlier
+     scheduling decision, not a new one
+----------------------------------------------------------------------
+The zip's subscriber spins on its own background thread, so it
+genuinely needs a mutex (callback thread vs. caller thread race).
+This project's wrapper doesn't have that race: executor_.spin_some() is
+called synchronously from inside executive(), on the same thread that
+then calls get() immediately after -- the callback is guaranteed to
+have finished before get() runs. This is a direct payoff of the
+earlier decision (1.3 final design) to keep DDS spinning tied to the
+AIS task's own cycle rather than a separate thread.
+
+======================================================================
+PART 6 -- IMPLEMENTATION-LEVEL FINDINGS (Step 4.1, LpsSaJobMgrApp.h/.cpp)
+======================================================================
+
+6.1  Interface-type includes had to be KEPT, not removed
+----------------------------------------------------------------------
+Assumption going in: once a channel's raw SCS pointer type is replaced
+by a wrapper, the old #include <interfaces/.../InterfaceTypes.h> line
+should go too. Checked first: grepped for SimpleCalData_t,
+DispBestBktWt_t, and the tip-off enums across the app folder, and
+found LpsSaJobMgrSimpleCal.h/.cpp (an UNTOUCHED file) and
+LpsSaJobMgrApp.h's own LpsJobMgrJobTrackerInfoTbl_t struct both depend
+on these types transitively through that same include.
+DECISION: kept every existing interface-type include. Only the
+channel POINTER type declarations changed; the headers supplying the
+underlying struct/enum definitions stayed exactly as they were.
+
+6.2  checkSEAEnableStatus() -- a real method, not just a rename
+----------------------------------------------------------------------
+The AutonomyConditionDiagnosticsTxChannel block in executive() called
+txData.checkSEAEnableStatus(element.status) -- a method that doesn't
+exist on the new plain-data ROS2 message type (message types are pure
+data, no methods). Rather than reimplementing the logic from guesswork,
+found the real implementation: TxInterface.hpp:58, a static method,
+switch-statement over SCL_PRMSW_FEAT_STATUS_* constants. Confirmed it's
+static (doesn't need an instance) and that the header defining it
+(TxInterfaceInputChannel.h -> TxInterface.hpp) was already kept per 6.1.
+DECISION: called directly via its class name
+(AutonomyConditionDiagnosticsTxInterfaceStorage::checkSEAEnableStatus(...))
+-- same real logic, zero behavior change, nothing reimplemented.
+
+6.3  weighAppInf_ deliberately left untouched, not silently converted
+----------------------------------------------------------------------
+weighAppInf_ (type LpsSaWeighAppInf) wraps the 3 direct JobMgr<->WeighApp
+channels (WeighReqst/Resp/Tx), but it's defined in a SHARED header
+(interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp) outside
+LpsSaJobMgrApp's own files -- not something Step 4.1 (scoped to
+LpsSaJobMgrApp.h/.cpp specifically) should quietly reach into.
+DECISION: left as raw SCS for now, flagged clearly in both files with
+a comment pointing to Step 6 (Direct DDS Wiring) as where this gets
+resolved, rather than either silently converting it (scope creep) or
+silently leaving it unmentioned (silent gap).
+
+6.4  Debug channel field names had to change, not just the channel type
+----------------------------------------------------------------------
+LpsSaJobMgrScsDebugOut->publish(txOut) populated txOut.currentState
+and txOut.tipoffAssistActivationCount (camelCase, matching the old AIS
+struct). The new job_mgr_interfaces::msg::LpsSaJobMgrDebugChannel type
+uses current_state/tipoff_assist_activation_count (snake_case, per 4.2).
+DECISION: this confirmed that "swap the channel type, keep everything
+else identical" is only true at the call-site-syntax level
+(->get()/->publish()) -- FIELD access inside the populated struct also
+needs updating everywhere a message gets constructed, which is real,
+distributed work across every publish call site, not a one-time
+mechanical pass.
+
+6.5  HORN_PORT_NUMBER and PORT_ON/PORT_OFF/NO_FLASH -- real hardware
+     values with zero evidence, not treated the same as a data-only enum
+----------------------------------------------------------------------
+#define HORN_PORT_NUMBER OutputChannel::Port::OUTPUT_SINK_3 (comment:
+PIN29_GPIO88) and the PORT_ON/PORT_OFF/NO_FLASH constants used to build
+the horn-output command have no numeric value anywhere in this
+checkout -- confirmed by repo-wide grep, same as the other reconstructed-
+from-usage types (Part 3.3). The difference: this one drives a real
+GPIO pin, not just an internal data field.
+DECISION: did not apply the usual "raw int, wrapper casts the real value
+through at runtime" reasoning here, because there IS no real compiled
+enum on the other side to cast from anymore -- the whole Port/State/
+ChangeDuration type was reconstructed, not preserved. Used obviously-
+fake sentinel values (0xFF, 0xF0, 0xF1, 0xF2) with loud "DO NOT
+HARDWARE-TEST UNTIL FIXED" comments at both the #define and the call
+site, specifically so this cannot be mistaken for a verified value or
+silently drive the wrong pin during hardware bring-up.
+
+6.6  WeighBktWtAccuracy/TipOffState/etc. are nested messages, not
+     scalars -- every assignment needs `.value`
+----------------------------------------------------------------------
+These were promoted to shared "enum-as-message" types
+(cpm_common_interfaces, Part 4.1) with the shape `{ constants..., uint8
+value }`, not plain uintN fields. Assigning to them (e.g.
+txOut.truck_weight_accuracy = someEnum) doesn't compile -- it has to be
+txOut.truck_weight_accuracy.value = static_cast<uint8_t>(someEnum).
+Caught while converting LpsSaJobMgrScsTx(), which touches 6 fields of
+this shape in one function.
+DECISION: every nested-type assignment gets an explicit static_cast
+from the real, untouched AIS enum plus a .value accessor -- consistent,
+not worked around per-field.
+
+6.7  simpleCal_.getSimpleCalData() -- a real container-type conversion,
+     not a field rename
+----------------------------------------------------------------------
+Untouched business logic (LpsSaJobMgrSimpleCal.h/.cpp) fills a
+std::deque<SimpleCalData_t>& out-parameter. The new message's
+simple_cal_data field is a ROS2 array, which generates as
+std::vector<job_mgr_interfaces::msg::SimpleCalData> -- different
+container AND different element type. Passing the new field directly
+as the out-parameter doesn't compile.
+DECISION: kept simpleCal_.getSimpleCalData() calling into a local,
+OLD-typed std::deque<SimpleCalData_t> (business logic stays completely
+untouched, exactly as planned), then explicitly converted
+element-by-element into the new message's vector. This is the general
+shape any future "untouched business logic fills an old container"
+call site will need -- not a one-off.
+
+6.8  get_tz_struct() -- traced through a submodule, called via its
+     lower-level overload instead of reconstructing ShmClock
+----------------------------------------------------------------------
+tes_common_ais::get_tz_struct() is not declared anywhere inside
+CPM-Loader-ais. Repo-wide grep initially came up empty; broadening the
+search to the full eta-ais tree found it in
+eta-ais/prod/machineCommon/content/prod/common/ais_chrono/tz.hpp
+(already transitively reachable via <chrono/tz.hpp>), with two
+overloads: a byte-array+size overload doing the actual timezone
+decode, and a ShmClock&-taking overload that just calls
+shmClock_in.get_TZ(tz_data) then forwards to the first. Reconstructing
+ShmClock (a real class from the same submodule, not present in this
+checkout as a header) to call the second overload would have meant
+guessing its shape.
+DECISION: called the byte-array overload directly --
+tes_common_ais::get_tz_struct(shmClock.tzone_info.data(),
+shmClock.tzone_info.size(), tzone) -- using the raw tzone_info bytes
+already preserved verbatim in ShmClockInput.msg. No reconstruction of
+ShmClock needed. Same session also converted get_UTC_offset() ->
+utc_offset_min and get_SHM() -> shm_sec, both confirmed as trivial
+field accessors.
+
+6.9  DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID -- another
+     unverified hardware/protocol placeholder
+----------------------------------------------------------------------
+LpsSaJobMgrScsDataLinkDataRead() compares
+dlParam.GetParamIdentifierType() against
+DataLinkParam::DATA_LINK_PARAM_IDENTIFIER_PID. Repo-wide grep found
+only two enumerator NAMES anywhere in the tree
+(DATA_LINK_PARAM_IDENTIFIER_PID and _CAT_EXT, the latter in
+DataLinkDataScsRx.cpp) -- no numeric value for either, and the
+DataLinkParam struct itself isn't present in this checkout (see
+DataLinkParam.msg header for the full partial-reconstruction
+rationale, scoped to only the 3 PIDs JobMgr itself reads).
+DECISION: same treatment as HORN_PORT_NUMBER/PORT_ON/PORT_OFF/
+NO_FLASH -- an obviously-fake local constexpr sentinel (0xF3) with a
+loud "UNVERIFIED PLACEHOLDER" comment, never a plausible-looking
+guess. This is now the second call site needing this pattern; if a
+third comes up, worth considering a single named convention (e.g. a
+shared UNVERIFIED_PLACEHOLDER header) instead of repeating the comment
+block each time.
+
+6.10  LoadRecordOutput (Step 4.3, LpsSaJobMgrProcess.cpp) -- the
+      business-logic type is too large to convert at declaration; only
+      the publish() boundary gets converted
+----------------------------------------------------------------------
+LpsSaLoadRecordChannel (Datum<LpsSaLoadRecordChannelStorage>) is not a
+plain-data struct -- it has real methods (getSubtotalByIndex(),
+subtotalCount(), storeAction(), disableLists(), getCurrentSubtotal(),
+etc.) that LpsSaJobMgrPtUpdate() calls throughout to build up a load
+record (remove empty subtotals, set store action, apply zero/cal
+adjust, add to simpleCal_). Unlike smaller channels, converting the
+local variable itself to the new message type at declaration was not
+an option -- none of those methods exist on a plain-data message, and
+reimplementing them would violate the "logic stays untouched" decision
+(1.1).
+DECISION: kept `LpsSaLoadRecordChannel loadRecord;` as the OLD type for
+the entire function body (unchanged), and added a one-shot
+ConvertLoadRecord() (plus per-nested-type helpers
+ConvertLoadRecordSubtotal/Pass/TimeStamp, anonymous namespace, local to
+LpsSaJobMgrProcess.cpp) called only at the actual
+`loadRecordOutputChannel_->publish(...)` call site. This is the
+general pattern for any future channel whose old-side type carries
+real business logic, not just data: the OLD type owns the logic
+end-to-end, and exactly one conversion happens at the DDS boundary,
+as late as possible.
+Also confirmed (grep) that LpsSaJobMgrApp.cpp's loadOldLoadRecord()
+NVM-load path (App.cpp:320-325) never crosses the DDS boundary at all
+(no publish/get call in that flow) -- correctly left as pure old-type
+file I/O, no conversion needed there.
+
+6.11  LpsSaWeighAppInf.hpp (Step 6.1) -- the boost::signals2
+      callback-driven blocking wait has no equivalent under the wrapper,
+      so it was redesigned, not just retyped
+----------------------------------------------------------------------
+This shared header (prod/common/interfaces/LpsSaWeighReqstChannel/
+LpsSaWeighAppInf.hpp -- outside the original 10-file list, deliberately
+deferred from Step 4, see 6.3) wraps JobMgr's 3 direct-DDS legs to
+WeighApp (LpsSaWeighReqstChannelOutput/RespChannelInput/TxChannelInput).
+Under real SCS it used boost::signals2 addNewDataSlot() callbacks,
+firing on a background SCS thread, so waitForTxData()/waitForResponse()
+could genuinely block on a std::condition_variable until that callback
+woke them or a timeout elapsed. ros2_wrapper::RosInputInterface<T>
+(RosInputInterface.h) has no callback mechanism at all -- its
+subscription just fills a std::queue<T>, drained by get(), and that
+queue is only ever populated once per tick, synchronously, during
+executor_.spin_some() at the top of executive(), on the same thread
+that then calls into this class. There is no background thread left to
+notify a blocked waiter; a condition_variable wait here would just
+block for the full 250ms timeout, every tick, for zero benefit (nothing
+new can arrive while blocked -- spin_some() already ran before this
+class's methods are called).
+DECISION: rewrote the class as pure single-shot polling -- every method
+checks whatever spin_some() already delivered this tick and returns
+immediately, no waiting. waitForTxData() now drains responseInput_
+first (to tighten the freshness gate once the matching response
+arrives, same logic as the old notifyResponseInput() callback, just
+called synchronously instead of asynchronously) and then txInput_,
+preserving the original "is this tx data new enough to reflect our
+request" freshness check (txData_.time_point_ns >= nextTxTimePointNs_).
+Also dropped waitForResponse()/sendRequestWaitForTxData()/
+sendRequestGetResponse()/getLastResponse() and the string-based
+InterfaceDb-bind start() overload: grepping every caller in this
+checkout (LpsSaJobMgrApp.cpp:289, LpsSaJobMgrScs.cpp:883,1243) shows
+only the pointer-based start(), sendRequest(), and waitForTxData() are
+ever actually used -- the rest were already dead code before this
+conversion, and porting them forward would just leave un-triggerable
+condition_variable waits (nothing will ever notify them) sitting in
+the tree as a future deadlock waiting to happen if anyone wired them
+up. getNextAppRequestId() (was a static method on the old
+LpsSaWeighReqstChannel Datum type, not present on the new plain-data
+message) was inlined as a private static atomic counter, identical
+logic to the original (LpsSaWeighReqstChannel.h:113-116).
+
+6.12  General rule for inline-constants vs. own-package .msg file vs.
+      cpm_common_interfaces promotion (asked explicitly, never written
+      down before -- derived from comparing TipOffTriggerType_t vs.
+      ReqPloadCtrlSysStat_t/ReqPloadOpMode_t, both in
+      LpsSaJobMgrTxChannel.h)
+----------------------------------------------------------------------
+ReqPloadCtrlSysStat_t and ReqPloadOpMode_t both got inlined as local
+named uint16 constants directly inside LpsSaJobMgrTxChannel.msg (not
+promoted anywhere), even though both names also appear in
+AutonomyConditionDiagnostics.cpp. Checked exactly how: that file does
+`static_cast<ReqPloadCtrlSysStat_t>(PidWrD10972)` / `static_cast<
+ReqPloadOpMode_t>(PidWrD10748)` -- decoding a raw J1939 PID value read
+from DataLinkData, entirely independent of LpsSaJobMgrTxChannel. Same
+C++ enum NAME reused in unrelated business logic, never the same DDS
+message crossing a channel boundary -- no other .msg file ever needs
+either type as a field, so nothing to gain from a shared file.
+TipOffTriggerType/TipOffState (same header, right next to the above)
+went to cpm_common_interfaces instead, because they're genuine
+struct-FIELD reuse across two different real channels: LpsSaJobMgrTxChannel
+(tip_off_trigger_type/tip_off_state/tip_off_state_cfg) and the separate
+LpsSaJobMgrReqstChannel (data_tipoff_trigger_type/data_tipoff_mode).
+StandbyState is carried by only ONE channel (LpsSaJobMgrTxChannel, a
+single field) -- unlike TipOffTriggerType's 2-channel reuse -- so its
+promotion needed separate verification, not an assumption from the
+TipOffTriggerType precedent. Traced the full chain (not just a grep
+name-hit, per the ReqPloadCtrlSysStat_t lesson): LpsSaJobMgrScs.cpp:
+1040/1043 `txOut.StandbyState = LPS_SA_JOB_MGR_STANDBY_ACTIVATED/
+_DEACTIVATED` (JobMgr publishes it); LpsSaWeighApp.h:256 declares
+WeighApp's OWN member of the identical real type
+(LpsSaJobMgrStandbyState_t, not a lookalike); LpsSaWeighApp.cpp:1236
+`LpsSaWeighInfoTbl.StandbyState = jobMgrIn.StandbyState;` -- copied
+straight off WeighApp's direct subscription to JobMgr's Tx channel
+("lps_sa_job_mgr_tx_channel"); LpsSaWeighApp.cpp:2117 branches on it in
+real business logic; LpsSaProcess.cpp:901 propagates it further. Real
+cross-app consumption, not a coincidentally-same-named local cast.
+DECISION -- the general rule, now written down precisely (corrected
+from an earlier pass that implied channel-COUNT was the deciding
+factor -- it isn't, StandbyState disproves that):
+  1. Inline as local constants in the one .msg field that needs them --
+     when the real type is a field in exactly one channel, AND any
+     other appearance of the same C++ name never actually crosses a
+     DDS boundary (ReqPloadCtrlSysStat_t's AutonomyConditionDiagnostics.cpp
+     use is a local cast of an unrelated raw PID value, not a channel
+     consumer).
+  2. Separate .msg file, but local to job_mgr_interfaces/
+     weigh_app_interfaces -- when a type is a field in 2+ channels
+     within the SAME app (one source of truth instead of duplicated
+     constant blocks) -- e.g. TipOffTriggerType/TipOffState.
+  3. Promote to cpm_common_interfaces -- whenever the value genuinely
+     crosses the JobMgr<->WeighApp app boundary and is read/compared/
+     propagated on the far side -- regardless of how many channels
+     carry it. One channel is enough if the OTHER app is a real
+     consumer of that field (StandbyState: one channel, but WeighApp
+     directly subscribes to it and acts on the value).
+The deciding question is never "how many .msg files reference this
+type" or "is this C++ name used in more than one file" -- it's "does
+the same real value cross the app boundary and get genuinely consumed
+on the far side, not just coincidentally share a C++ typedef name with
+something unrelated." That's the only test that survives both
+counterexamples (ReqPloadCtrlSysStat_t: same name, no boundary crossing,
+stays local; StandbyState: one channel, genuine boundary crossing,
+promoted).
+
+6.13  Full re-audit of all 25 cpm_common_interfaces files against 6.12's
+      rule -- one real fix found (WeighBktWtAccuracy demoted), one
+      near-miss caught before acting on it (TipOffTriggerType/TipOffState
+      are NOT over-promoted -- rule 6.12 was incomplete)
+----------------------------------------------------------------------
+Before auditing individual types, discovered a missing rule-0 check:
+TipOffTriggerType and TipOffState are direct FIELDS of
+LpsSaJobMgrReqstChannel.msg, which is itself one of the 4 genuinely
+cross-app direct-DDS channels (Step 6.1.4) and lives in
+cpm_common_interfaces by definition. Any type used as a field of one of
+those 4 channels (LpsSaWeighReqstChannel/RespChannel/TxChannel,
+LpsSaJobMgrReqstChannel) is STRUCTURALLY forced into cpm_common_interfaces
+regardless of what 6.12's business-logic test says -- cpm_common_interfaces
+depends on neither app-specific package (its own package.xml states this),
+so a field type used by one of its own channel messages has nowhere else
+it could live without breaking the one-way dependency graph. This almost
+became a real mistake: an earlier turn in this conversation concluded
+TipOffTriggerType should move to job_mgr_interfaces (based on 6.12's
+business-logic test alone, which correctly found zero cross-app business-
+logic hits) -- WRONG, because 6.12's test doesn't apply here at all; the
+type is pinned by the channel dependency graph, not by whether WeighApp's
+own code happens to read the value. Checked all 25 cpm_common_interfaces
+files against this: 4 are the channels themselves, 19 more are direct or
+transitive field dependencies of those 4 channels (ProdMeasureSensorStatus/
+LinkSensorCalLim included, via WeighPidData -> LpsSaWeighTxChannel) --
+structurally forced, no further audit needed or possible. That left
+exactly 2 files needing the real 6.12 business-logic test: StandbyState
+(re-confirmed correct, see 6.12) and WeighBktWtAccuracy.
+WeighBktWtAccuracy: real name LpsWeighBktWtAccuracy_t, used as a field in
+2 job_mgr_interfaces-local channels (LpsSaJobMgrTxChannel, LoadRecordSubtotal
+via LpsSaLoadRecordChannel) -- neither is one of the 4 structurally-forced
+channels. Its only appearance anywhere in WeighApp's real source
+(LpsSaCalibration.cpp:330, `static_cast<LpsWeighBktWtAccuracy_t>(temp)`)
+traces back to `rubyCfg.get("ZeroBktWtAccuracyLimit", temp)` -- a local
+calibration config-file read, not a channel drain. Exhaustively re-checked
+(grepped for the bare substring "BktWtAccuracy", not just the exact type
+name, across all of apps/LpsSaWeighApp/) -- confirmed no other reference
+exists anywhere. Same class of coincidental-reuse false positive as
+ReqPloadCtrlSysStat_t (6.12).
+CONTRADICTION FOUND AND RESOLVED: job_mgr_interfaces/CHANNEL_MAPPING.md
+(written earlier in the project, before 6.12's trace-back discipline was
+established) explicitly claimed WeighBktWtAccuracy WAS confirmed cross-app
+and belonged in cpm_common_interfaces -- based on the same
+LpsSaCalibration.cpp:330 hit, but without tracing where `temp` actually
+came from. That earlier pass was the mistake, not this one -- re-verified
+exhaustively before overriding a previously-written decision, not just
+picking whichever answer came first.
+FIX APPLIED: WeighBktWtAccuracy.msg moved from cpm_common_interfaces to
+job_mgr_interfaces (still its own file, not inlined -- reused across its
+own 2 job_mgr_interfaces channels, satisfying rule 2 of 6.12, just not
+rule 3). Updated both CMakeLists.txt, dropped the now-unnecessary
+`cpm_common_interfaces/` prefix on its 3 field references
+(LpsSaJobMgrTxChannel.msg x2, LoadRecordSubtotal.msg x1). No C++ source
+needed updating -- the type is never explicitly named in any .cpp/.h,
+only accessed via parent-message field access. Verified via a real
+colcon build in Docker (ros:jazzy-ros-base) that both cpm_common_interfaces
+and job_mgr_interfaces still compile, and that Dockerfile.stage1's image
+(which also builds cpm_common_interfaces) still builds clean. Corrected
+job_mgr_interfaces/CHANNEL_MAPPING.md's Part 2 and file-listing sections
+to remove the now-wrong claim and record the correction, rather than
+leave stale/contradictory documentation for a future reader.
+
+6.14  Reverse audit (under-promotion direction) -- found a whole
+      category of shared channels 6.12/6.13 never accounted for: BOTH
+      apps independently subscribing to a THIRD source's channel. Plus:
+      first real colcon build of weigh_app_interfaces ever, surfaced 2
+      unrelated pre-existing bugs
+----------------------------------------------------------------------
+6.13 audited cpm_common_interfaces for OVER-promotion (25 files, 1
+fix). This entry is the reverse direction: checking job_mgr_interfaces'
+26 remaining files for types that should have been promoted but
+weren't. Grep-based candidate search (batched, all real type names
+extracted from every .msg header comment in one pass, cross-referenced
+against apps/LpsSaWeighApp/ in one alternation-pattern grep) surfaced
+LpsSaUIDisplayState as a real hit -- traced to
+LpsSaScs.cpp:644 (`const LpsSaUIDisplayState& state = displayState.state;`,
+real accessor calls follow: isInVerificationMode(), getSettings(),
+getWeightInterval(), getWeightCapacity()). Checked the construction
+site (not just the accessor site, learning from 6.12/6.13's trace-back
+discipline): LpsSaWeighApp.cpp:519 constructs
+`job_mgr_interfaces::msg::LpsSaUIDisplayStateInterface` on topic
+"display_state" -- the EXACT SAME type and topic JobMgr's own
+LpsSaJobMgrApp.cpp:207 uses. Not a coincidental name reuse, not a
+JobMgr-publishes/WeighApp-reads relationship either -- both apps are
+INDEPENDENT direct subscribers to a channel actually published by a
+third source (UI/DisplayApp). This is a category 6.12's rule never
+named: it only ever framed cross-app reuse as "JobMgr's own code" vs
+"WeighApp's own code" via a channel one publishes to the other, not
+"both apps separately subscribe to someone else's channel." The
+distinguishing test that generalizes: does each app's own construction
+code build a wrapper on the identical topic string? If yes on both sides,
+it's shared, full stop, regardless of who's the real upstream publisher.
+Checked the other 3 channels WeighApp is already known to share JobMgr's
+exact topic strings for (established earlier this session when writing
+LpsSaWeighApp.cpp's wrapper construction) against this same test: all 3
+(AisJhm2TxChannel, AutonomyConditionDiagnosticsTxChannel, ShmClockInput)
+construct identically on both sides AND have real `->get()` drain
+loops in WeighApp's LpsSaScs.cpp (not dead plumbing) -- confirmed via
+grep, not assumed from the topic-string match alone.
+FIX APPLIED: moved 9 files from job_mgr_interfaces to
+cpm_common_interfaces (git mv, preserving history) -- the 4 channels
+themselves plus every direct/transitive field dependency of each
+(checked via the same field-type grep used in 6.13): AisJhm2TxChannel.msg
++ SimpleCalDataT.msg + TipoffWeightAdjustData.msg;
+AutonomyConditionDiagnosticsTxChannel.msg + SEA.msg (SEAStatusCodes
+stays inlined inside SEA.msg, it was never a separate file);
+ShmClockInput.msg (no nested deps); LpsSaUIDisplayStateInterface.msg +
+LpsSaUIDisplayState.msg + LpsSaUIDisplaySettings.msg
+(LpsSaUIDisplaySettings's own Units/Language/TimeFormat/DateFormat/
+KeyboardLayout enums stay inlined inside it, self-contained). Updated
+both CMakeLists.txt (dependency-ordered), 24 C++ namespace references
+(job_mgr_interfaces::msg::X -> cpm_common_interfaces::msg::X) and their
+#include paths across all 6 affected files in both apps (3 JobMgr + 3
+WeighApp) via scoped sed, verified zero old references remain
+afterward (grep, not assumed clean).
+SEPARATE FINDING, surfaced only because this was the first time
+weigh_app_interfaces was ever actually colcon-built (not just written --
+Stage 1's adapter only ever built cpm_common_interfaces; this reverse
+audit's verification step was the first real build of the whole set
+together): 2 unrelated pre-existing bugs, neither touched by this
+session's edits before now.
+  (a) weigh_app_interfaces/msg/DataLinkParam.msg had 2 invalid ROS2
+      constant names, UNITS_KPA_ and UNITS_MM_ (trailing underscore --
+      rosidl requires names matching ^[A-Z]([A-Z0-9_]?[A-Z0-9]+)*$).
+      Traced to the real source (DataLinkParamInfo.h's DlpUnits_t enum,
+      eta-ais/prod/machineCommon/.../CpmDataLinkData/) -- the REAL C++
+      enum itself has this exact trailing-underscore naming
+      (DATA_LINK_PARAM_CDL_UNITS_KPA_, _MM_), legal in C++, illegal in
+      ROS2, no further distinguishing comment or meaning available
+      anywhere in the real source. Renamed to UNITS_KPA2/UNITS_MM2 --
+      preserves "second, otherwise-identical value" honestly rather
+      than fabricating a meaning that isn't in the source. Confirmed no
+      real C++ source (either app) references either constant by name,
+      so no source-side fix needed.
+  (b) weigh_app_interfaces/package.xml had unescaped `<->` inside its
+      <description> ("JobMgr<->WeighApp"), making the XML not
+      well-formed (rosidl's package_xml_2_cmake.py failed to parse it).
+      Fixed to `&lt;-&gt;`. Checked the other 2 package.xml files for
+      the same pattern -- clean, isolated to this one file.
+VERIFIED: real `colcon build` in Docker (ros:jazzy-ros-base) of all 3
+message packages together -- this is the first time in the whole
+project all 3 have built successfully as a set. Also re-verified
+Dockerfile.stage1's image (depends on cpm_common_interfaces, which
+changed again here) still builds clean.
+job_mgr_interfaces/CHANNEL_MAPPING.md's Part 5 table and file-listing
+section were significantly stale (several types listed as
+job_mgr_interfaces-local had already moved to cpm_common_interfaces in
+earlier session work without the doc being updated) -- rewritten to
+match the actual current `ls` output, not carried forward from memory,
+and to name this newly-found "both apps independently subscribe to a
+third party's channel" category explicitly so it isn't missed again.
+
+Checked the mirror direction too, not assumed symmetric: does JobMgr
+ever reference `weigh_app_interfaces::` directly (grep, whole app
+folder) -- zero hits, no whole-channel case going the other way. Then
+ran the same batched type-name extraction against all 36
+weigh_app_interfaces files and cross-referenced every nested type name
+against apps/LpsSaJobMgrApp/ in one alternation-pattern grep -- also
+zero hits. Consistent with the architecture: weigh_app_interfaces'
+files are WeighApp's own specialized internals (calibration, printer
+config, NVM cal data, PWM channels) that JobMgr has no reason to touch,
+unlike job_mgr_interfaces which held several genuinely-central
+utility channels (AisJhm2, ShmClock, ACD, DisplayState) other apps
+commonly need. No fixes needed in weigh_app_interfaces beyond the 2
+build bugs already covered above.
+
+6.15  DataLinkData -- the one case where the user's independent
+      verification caught a real gap in this audit's own process, not
+      just a coincidental miss
+----------------------------------------------------------------------
+User independently re-derived the direct/shared-channel list straight
+from both apps' real .rb config files (LpsSaJobMgrApp.rb,
+LpsSaWeighApp.rb), pairing Interfaces keys by base name and Input/
+Output suffix -- a cleaner, more authoritative signal than grepping
+C++ source, since it's the actual AIS InterfaceDb binding manifest.
+Confirmed 4 of 5 "shared name, both sides Input" candidates were
+already correctly moved to cpm_common_interfaces in 6.14
+(AisJhm2TxChannel, DisplayState, ShmClock,
+AutonomyConditionDiagnosticsTxChannel) -- independent confirmation
+that pass was right. The 5th, DataLinkData, I had dismissed during
+6.14's batch grep -- not because the grep came back empty (it didn't;
+"DataLinkParam" was in that batch and DID return hits in
+apps/LpsSaWeighApp/), but because I trusted a MUCH earlier finding
+from long before this audit (recorded in this same conversation's
+history: "DataLinkParam:: not DataLinkParamInfo::, confirmed via
+grepping the real JobMgr source" -- concluding they were unrelated
+classes) instead of re-verifying it under 6.12/6.13's trace-back
+discipline. That earlier finding turned out to be incomplete, not
+wrong exactly -- it never found JobMgr's own real DataLinkParam header
+(interfaces/DataLinkData/ folder confirmed missing), so it never had
+the chance to compare the two classes directly.
+Both apps' `interfaces/DataLinkData/InterfaceTypes.h` include (same
+path, both apps) resolves to a real class pair, found this pass at
+eta-ais/prod/machineCommon/content/legacy/common/interfaces/
+CpmDataLinkData/: `class DataLinkParam : public DataLinkParamInfo`.
+Confirmed via structural comparison, not assumption: both apps' real
+drain functions (LpsSaJobMgrScsDataLinkDataRead(), LpsSaBmiRead()) have
+near-identical structure -- `DataLinkData dlData; while(X->get(dlData))
+{ for (auto& dlParam : dlData.GetParams()) { if
+(!dlParam.IsPIDDataReceived()) continue; ... } }` -- same method names,
+same top-level type name (`# DataLinkParam` is literally the header
+comment title in BOTH apps' already-existing .msg files, independently
+arrived at). WeighApp's local usage happens to route through the
+DataLinkParamInfo:: base-class enums for the identifier/units constants
+(inherited, so both names resolve to fields on the same real object);
+JobMgr's happens to reference DataLinkParam:: for the same constant.
+Genuinely the same real channel, not a coincidence.
+CONSEQUENCE OF the two apps having independently, separately done
+"usage-scoped partial reconstruction" of the same real struct (each
+missing the other's evidence): job_mgr_interfaces/DataLinkParam.msg
+and weigh_app_interfaces/DataLinkParam.msg disagree on 2 field types --
+last_value_dsi (job_mgr: uint32, weigh_app: uint16) and last_value_eng
+(job_mgr: float32, weigh_app: float64). Resolved authoritatively via
+the real header, not by picking a side: DataLinkParam.h:467
+`uint16_t GetLastValueDsi(void) const`, DataLinkParam.h:227/153
+`double GetLastValueEng(void)`/`GetLastGoodValueEng(void)` -- confirms
+weigh_app_interfaces' version was right on both, job_mgr_interfaces'
+was wrong on both.
+DECISION (user's explicit choice, offered full-merge vs. minimal-fix):
+minimal fix only -- job_mgr_interfaces/DataLinkParam.msg's 2 wrong
+field types corrected in place (uint32->uint16, float32->float64), NOT
+merged into cpm_common_interfaces. The two apps keep their separately-
+scoped .msg files, which remain misclassified per 6.12's own rule
+(the real class genuinely crosses the app boundary) -- a known,
+deliberate, recorded gap, not an oversight. Revisit as a full merge
+later if it matters (union of both apps' already-known fields plus
+whatever more DataLinkParamInfo.h/DataLinkParam.h now make available,
+same precedent as the earlier IMUCalResults merge) -- deferred because
+it touches already-committed business logic in both apps and needs
+DataLinkData.h's container structure plus the external
+cdl2_parameter_type_t enum investigated first, which wasn't done here.
+Checked LpsSaJobMgrScs.cpp's 2 real call sites reading the corrected
+fields (dlParam.last_value_dsi, dlParam.last_value_eng, lines 814-852)
+-- both are direct field access in comparisons/printf-style logging,
+no intermediate locally-typed variables, so the type correction needed
+no C++ source changes. Verified via colcon build in Docker that
+cpm_common_interfaces + job_mgr_interfaces still build clean.
+
+6.16  Stage 1 "harness" renamed to "adapter" (user's explicit choice);
+      the 5th direct leg (LpsSaJobMgrTxChannel's 4 cross-app fields,
+      found via the user's own .rb-based verification -- see the
+      LpsSaJobMgrTxChannel discussion above) added to it
+----------------------------------------------------------------------
+Naming: flagged that "test harness" is the more standard term for this
+component's actual role (test scaffolding exercising a system under
+test) versus "adapter" (classically: converting one interface into a
+different one, which isn't quite what these nodes do) -- but this was
+the user's explicit, repeated instruction, not a case of genuine
+ambiguity like ros2_wrapper's naming question earlier, so proceeded with
+the rename rather than re-litigate a second time.
+RENAMED (git mv, preserving history): direct_dds_test_harness/ ->
+direct_dds_test_adapter/, jobmgr_harness_node.cpp/weighapp_harness_node.cpp
+-> jobmgr_adapter_node.cpp/weighapp_adapter_node.cpp, node names
+"jobmgr_harness_node"/"weighapp_harness_node" -> "*_adapter_node" (both
+the rclcpp::Node name string and log text), Docker image
+cpm-stage1-harness -> cpm-stage1-adapter. Updated CMakeLists.txt,
+package.xml, Dockerfile.stage1, docker/run_stage1.sh, and the top-level
+run guide (renamed Stage1-Harness-Run-Guide.txt ->
+Stage1-Adapter-Run-Guide.txt) to match throughout.
+5th leg added: jobmgr_adapter_node now also constructs
+ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>
+on topic "lps_sa_job_mgr_tx_channel" (JobMgr's real topic/type for this
+channel) and publishes standby_state/tip_off_state/tip_off_state_cfg/
+tip_off_trigger_type every tick (standby_state toggling every ~2s,
+matching the existing lft_sealed toggle pattern, so the receiving side
+can prove it's seeing live changing data, not a one-shot default; the
+other 3 set to distinct non-default values so each field's identity is
+separately verifiable). weighapp_adapter_node subscribes and drains the
+same channel, logging just those 4 fields -- matching the real
+`jobMgrIn` drain in LpsSaWeighApp.cpp exactly, both which fields it
+touches and that it ignores the other ~96. This required adding
+job_mgr_interfaces as a new dependency of the adapter package (find_
+package + ament_target_dependencies + package.xml <depend>), and adding
+it to Dockerfile.stage1's COPY/colcon-build-packages-select lists --
+it was never needed before since Stage 1 only ever touched
+cpm_common_interfaces directly.
+VERIFIED (Docker build + run, this session): all 3 packages build
+clean; standby_state alternates 0/1 on the receiving side in step with
+JobMgr's own toggle log lines (checked via `docker logs | grep | uniq -c`
+showing genuine alternation over the run, not a one-shot value) with
+tip_off_state/tip_off_state_cfg/tip_off_trigger_type all matching the
+exact values published (1/0/1 respectively, distinguishable from each
+other and from the default-0 fields, confirming each field landed in
+the right place, not just that the 4-int-fields block round-tripped as
+a whole).
+Development-Plan.txt updated to match (this had been flagged as needed
+several turns earlier in the same conversation but not actually done
+until the user asked directly): SCOPE section and Step 6.1 now list 5
+channel-legs, not 4, with #5 documented in the same numbered-list/
+HYBRID format as #4 -- but a different SHAPE of hybrid, worth being
+precise about: #4 is two different publishers on one topic (WeighApp
+direct + legacy UI via Bridge); #5 is one publisher (JobMgr) on one
+topic either way, just with only 4 of its ~100 fields genuinely
+consumed on the direct side. Step 7.1's JobMgr-side Bridge channel
+count also corrected -- JobMgrTxChannelOutput was listed among the
+"12... pure-bridge (no direct DDS leg at all)" channels, which stopped
+being accurate; annotated it as hybrid (Step 6.1.5) alongside
+ReqstChannelInput's existing hybrid annotation, without changing the
+total counts (13 channel-legs, 16-3=13 arithmetic) since
+JobMgrTxChannelOutput was already counted in that 12/13, this is a
+label correction, not a recount.
+
+6.17  Real constructors' non-trivial default values -- a live bug
+      found (LpsSaWeighRespChannel's time_point_ns silently defaulting
+      to 0/epoch instead of "now"), caused by a general risk this
+      project hadn't previously checked systematically
+----------------------------------------------------------------------
+User noticed real channel struct constructors set explicit initial
+values (LpsSaWeighRespChannelStorage's ctor: appName(), appRequestId(0),
+timePoint(std::chrono::steady_clock::now()), command(Command::NONE),
+success(false), arg1()) and asked whether the ROS2 conversion needs to
+replicate this. The general rule: rosidl-generated C++ messages already
+zero-default every field (empty string, 0 for numerics/enums-as-uint8,
+false for bool) -- matching 5 of these 6 fields exactly, since
+appRequestId=0, success=false, and NONE=0 for the Command enum are all
+already what rosidl gives you with no extra work. The ONE field that's
+genuinely different is timePoint, defaulting to `now()` rather than the
+zero-equivalent (epoch/0). That's not cosmetic -- Part 3 of this file
+(and job_mgr_interfaces/CHANNEL_MAPPING.md's own Part 3) already
+flagged timePoint as "live" (used to detect whether fresh response/Tx
+data reflects the most recent request) specifically for
+LpsSaJobMgrTxChannel/LpsSaJobMgrRespChannel/LpsSaWeighRespChannel/
+LpsSaWeighTxChannel -- exactly the 4 channels we actually construct and
+publish (a 5th, AutonomyConditionDiagnosticsTxChannel, we only ever
+read, so no publish-side risk there).
+Checked all 4 real publish call sites this pass, not assumed clean from
+the earlier Part-3 finding: LpsSaJobMgrTxChannel (LpsSaJobMgrScs.cpp:994)
+and LpsSaJobMgrRespChannel (LpsSaJobMgrScs.cpp:647) both already
+explicitly set time_point_ns before publish -- correct. LpsSaWeighTxChannel
+(LpsSaScs.cpp:765, from the original big Tx conversion) also already
+correct. BOTH LpsSaWeighRespChannel-building overloads
+(LpsSaScs.cpp:411-430, 432-447) had a real bug: `// Default timepoint is
+now` comment left over from the original code's reliance on the real
+struct's constructor default, but response.time_point_ns was never
+actually assigned anywhere in either function -- meaning every response
+WeighApp has ever published (since this conversion happened) carries
+time_point_ns=0 instead of a real timestamp. This is functionally live,
+not cosmetic: LpsSaWeighAppInf::drainResponseInput() (6.11) sets
+`nextTxTimePointNs_ = response.time_point_ns;` on a matching response --
+with this bug, that line would have been resetting the freshness gate
+to the epoch instead of "now" every time, silently defeating the
+purpose of the gate 6.11 was built around.
+FIXED: both overloads now set response.time_point_ns via the same
+`std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::
+steady_clock::now().time_since_epoch()).count()` expression already
+proven working elsewhere in the same file (LpsSaScs.cpp:765) -- no new
+#include needed, chrono already reachable via the existing
+<chrono/tz.hpp> include.
+NOT YET DONE: a fully systematic sweep of every OTHER real channel
+constructor (beyond the 4 live-timePoint ones already checked) for
+other non-trivial (non-zero/non-empty) default values -- this pass was
+scoped to timePoint specifically, since that's the one pattern already
+flagged project-wide as recurring (Part 3). Whether other fields across
+other channels have similarly "special" defaults that got silently
+dropped during conversion is an open question, not yet checked.
+======================================================================
+
+7.1  cpm/ is not one repository
+----------------------------------------------------------------------
+Discovered the whole cpm/ checkout contains several separate,
+independently-broken submodule links (CPM-Loader-ais, CPM_Loader-ais-a,
+eta-ais, cyc_seg/*, lps_pass_tracker, and more) -- every .git file
+pointed at ../.git/modules/<name>, none of which existed, because the
+top-level superproject's own .git directory was never included in this
+checkout. Nothing here had real git history, a remote, or branch info.
+DECISION: initialized a fresh local repo scoped to just the files
+being touched, rather than trying to repair the broken submodule
+structure (which would require content not present in this checkout).
+
+7.2  Baseline/edit separation required an explicit main vs. ros2Project split
+----------------------------------------------------------------------
+The branch was originally set up by adding the 10 to-be-edited files
+directly on top of the working branch, then editing them in place --
+meaning there was no longer a clean "before" state to diff against on
+GitHub. Fixed by pushing pristine, re-copied (never-edited) versions
+of the same 10 files to main, so main vs. ros2Project is now a real,
+comparable before/after diff.
+
+7.3  Push rejected mid-session -- concurrent edit, not a real conflict
+----------------------------------------------------------------------
+A push was rejected because someone uploaded ROS2_custom_Code.zip
+directly via GitHub's web UI while local work was in progress. Not an
+actual content conflict (different files entirely) -- resolved with a
+plain merge, no force-push, both sides' work preserved.
