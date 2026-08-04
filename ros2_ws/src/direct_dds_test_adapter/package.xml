@@ -9,7 +9,7 @@
     plus LpsSaJobMgrTxChannel's 4 genuinely cross-app fields --
     standby_state, tip_off_state, tip_off_state_cfg,
     tip_off_trigger_type). Reuses the real, AIS-free ros2_wrapper headers
-    and LpsSaWeighAppInf.hpp directly from CPM-Loader-ais -- no AIS SDK
+    and DDSWeighAppInf.hpp directly from CPM-Loader-ais -- no AIS SDK
     dependency anywhere in this package.
   </description>
   <maintainer email="aawara.sunny@gmail.com">Sunny</maintainer>

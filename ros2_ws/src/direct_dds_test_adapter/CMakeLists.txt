@@ -14,8 +14,10 @@ find_package(job_mgr_interfaces REQUIRED)
 # Real, already-converted, AIS-free production headers reused directly:
 #   - CPM-Loader-ais/prod/common/ros2_wrapper/*.h            (wrapper layer)
 #   - CPM-Loader-ais/prod/common/interfaces/LpsSaWeighReqstChannel/
-#     LpsSaWeighAppInf.hpp                                (JobMgr's real
-#     direct-DDS wrapper -- see Challenges-And-Decisions.txt 6.11)
+#     DDSWeighAppInf.hpp                                  (JobMgr's real
+#     direct-DDS wrapper -- see Challenges-And-Decisions.txt 6.11. NOT
+#     LpsSaWeighAppInf.hpp, which stays untouched -- see that file's
+#     own header comment for why)
 # Neither has any AIS SDK dependency, which is what makes this adapter
 # buildable without lps_common/ais_task/etc.
 set(AIS_REPO_COMMON "${CMAKE_CURRENT_SOURCE_DIR}/../../../CPM-Loader-ais/prod/common")

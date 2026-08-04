@@ -193,6 +193,13 @@ bool LpsSaJobMgrApp::initialize( )
        Topic names are the original SCS channel name in snake_case, minus
        the redundant Input/Output suffix (direction is already implied by
        which wrapper type is used). */
+    // rclcpp::init() must run once, before any Node is constructed -- this
+    // app builds as its own standalone process (SConscript Program()
+    // target, one task per process), so there's no risk of double-init
+    // from another task sharing this process.
+    if (!rclcpp::ok()) {
+        rclcpp::init(0, nullptr);
+    }
     rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
     executor_.add_node(rosNode_);
 
@@ -495,6 +502,9 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaJobMgrApp::cleanup( ) {
     AIS_LOG_INFO("LpsSaJobMgrApp::cleanup");
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
 
     // Wait for possible write to robot file
     sleep(2);

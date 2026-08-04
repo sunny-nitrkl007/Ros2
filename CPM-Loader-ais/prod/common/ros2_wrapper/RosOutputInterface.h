@@ -50,8 +50,6 @@ public:
         catch (const std::exception&)
         {
             // Mirrors the real OutputInterface<T>::publish() contract: callers
-            // (e.g. LpsSaJobMgrScs.cpp:930) check the bool return value rather
-            // than expecting an exception to propagate.
             return false;
         }
     }

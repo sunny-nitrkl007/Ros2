@@ -11,6 +11,8 @@
 !/Dockerfile.stage1
 !/docker/
 !/docker/**
+!/DDSWeighAppInf-vs-LpsSaWeighAppInf.diff.txt
+!/Shared-Wrapper-Class-Audit.txt
 
 # colcon build artifacts (left on disk by interactive/mounted builds --
 # never appear from a plain `docker build`, which only COPYs src/)

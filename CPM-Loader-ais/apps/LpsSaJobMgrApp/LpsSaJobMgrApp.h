@@ -47,7 +47,15 @@ DESCRIPTION:
 #include <interfaces/AutonomyConditionDiagnostics/TxInterfaceInputChannel.h>
 #include <interfaces/EventDiagnosticData/InterfaceTypes.h>
 
-#include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
+// weighAppInf_ uses DDSWeighAppInf, NOT LpsSaWeighAppInf.hpp -- that header
+// is shared common/interfaces code, and at least one other real component
+// (AisJhm2RequestProcessor, legacy UI infrastructure, still SCS-only) holds
+// its own instance and depends on its original raw-SCS-typed API. Editing
+// it in place would break that unrelated caller once this tree is copied
+// back over the original repo. DDSWeighAppInf is a new, separate class
+// with only the 3 methods LpsSaJobMgrApp actually calls (confirmed via
+// LpsSaJobMgrScs.cpp) -- LpsSaWeighAppInf.hpp itself is untouched.
+#include <interfaces/LpsSaWeighReqstChannel/DDSWeighAppInf.hpp>
 
 // ---- ROS2/DDS wrapper layer (Development-Plan.txt Step 4.1) ----------------
 // NOTE: the interface-type includes above are KEPT, not removed -- they
@@ -180,7 +188,8 @@ private:
     ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
-    LpsSaWeighAppInf weighAppInf_; // WeighApp Interface -- converted Step 6.1, see Challenges-And-Decisions.txt 6.11
+    DDSWeighAppInf weighAppInf_; // WeighApp Interface -- converted Step 6.1, see Challenges-And-Decisions.txt 6.11.
+                                  // DDSWeighAppInf, not LpsSaWeighAppInf -- see include comment above.
 
     ros2_wrapper::RosInputInterface<job_mgr_interfaces::msg::SwitchInputScs>               *LpsSaSwitchInput;
     ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::OutputChannel>               *LpsSaOutputChannelOut;

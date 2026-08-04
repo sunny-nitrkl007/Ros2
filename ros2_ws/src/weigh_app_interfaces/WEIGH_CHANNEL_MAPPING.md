@@ -163,7 +163,9 @@ status as JobMgr's equivalent Step 4.5-4.7.
 are wired native DDS-to-DDS, no Bridge involved on either side:
 `LpsSaWeighReqstChannel` (JobMgr publishes/WeighApp subscribes),
 `LpsSaWeighRespChannel` and `LpsSaWeighTxChannel` (WeighApp
-publishes/JobMgr subscribes, via the redesigned `LpsSaWeighAppInf`,
+publishes/JobMgr subscribes, via the new `DDSWeighAppInf` class
+(NOT a redesign of `LpsSaWeighAppInf`, which stays untouched --
+AisJhm2RequestProcessor depends on its original form),
 see Challenges-And-Decisions.txt 6.11), and the hybrid
 `LpsSaJobMgrReqstChannel` leg (WeighApp publishes onto the same
 `lps_sa_job_mgr_reqst_channel` topic JobMgr already subscribes to for

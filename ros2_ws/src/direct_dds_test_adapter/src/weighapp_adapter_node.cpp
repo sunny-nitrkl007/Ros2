@@ -6,7 +6,7 @@
 // topic names. NOT the real business logic (that needs the full AIS-linked
 // build) -- a canned responder that echoes requests and publishes
 // plausible tx heartbeats, just enough to exercise the wire format and
-// the real LpsSaWeighAppInf logic on the other end. No AIS SDK anywhere
+// the real DDSWeighAppInf logic on the other end. No AIS SDK anywhere
 // in this file.
 
 #include <chrono>

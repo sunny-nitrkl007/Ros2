@@ -507,6 +507,13 @@ bool LpsSaWeighApp::initialize( )
        LpsSaJobMgrTxChannel, AisJhm2TxChannel, AutonomyConditionDiagnostics
        TxChannel, ShmClockInput), the exact same topic name JobMgr itself
        uses, since these are the same live DDS topic on both sides. */
+    // rclcpp::init() must run once, before any Node is constructed -- this
+    // app builds as its own standalone process (SConscript Program()
+    // target, one task per process), so there's no risk of double-init
+    // from another task sharing this process.
+    if (!rclcpp::ok()) {
+        rclcpp::init(0, nullptr);
+    }
     rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
     executor_.add_node(rosNode_);
 
@@ -2050,6 +2057,9 @@ RETURN VALUE:
 void  LpsSaWeighApp::cleanup( )
 {
     AIS_LOG_INFO("LpsSaWeighApp::cleanup");
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
 
     // If oel hasn't booted up, then writing the nvm won't work.
     if (FALSE == OelBootupFlag) {

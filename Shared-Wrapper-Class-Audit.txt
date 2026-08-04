@@ -1,0 +1,185 @@
+======================================================================
+Shared Wrapper-Class Risk Audit -- JobMgr/WeighApp channels
+======================================================================
+Date: 2026-08-04 (session date)
+Scope: every channel used by LpsSaJobMgrApp/LpsSaWeighApp (~29 channels,
+see list below), cross-checked against the FULL reference tree
+(ssp-CPM_Loader-ais\ssp-CPM_Loader-ais\CPM-Loader-ais\), not just the
+working copy (CPM-Loader-ais\).
+
+Why this audit exists: LpsSaWeighReqstChannel had a shared, stateful
+wrapper class (LpsSaWeighAppInf.hpp) that got edited in place during the
+DDS conversion. That broke a real, unrelated component --
+AisJhm2RequestProcessor -- which held its own separate instance of that
+exact class and called methods (sendRequestGetResponse(), etc.) that got
+dropped. The original miss happened because the search for other callers
+was scoped only to the working copy, not the full company codebase. Fix
+was DDSWeighAppInf.hpp: a new, separate class with only the 3 methods
+LpsSaJobMgrApp actually uses; LpsSaWeighAppInf.hpp restored byte-identical
+to the original. This audit re-runs that same "does anything else in the
+FULL reference tree depend on this shared file's original shape" check
+for every other channel, to catch any other landmines before they
+happen.
+
+Method: for each channel directory under prod\common\interfaces\<Channel>\
+in the reference tree, classify every top-level .h/.hpp file as either
+plain-data (structs/enums/csvable serialization only, no connection
+lifecycle) or stateful-wrapper-class (constructor/destructor with
+start()/stop(), task::InterfaceDb::bind(), sendRequest()/waitForResponse()
+-style methods, its own member state). For every wrapper-class file found,
+grep the ENTIRE reference tree for other real components that instantiate
+it as a member/local variable, not just JobMgr/WeighApp.
+
+======================================================================
+HEADLINE FINDING
+======================================================================
+AisJhm2RequestProcessor.h (prod\infrastructure\aisJhm\aisJhm2\
+AisJhm2RequestProcessor\) holds FOUR of these wrapper-class instances
+side by side -- not just the one (weighAppInf_) already fixed:
+
+  Line 373: LpsSaWeighAppInf weighAppInf_;
+            -> LpsSaWeighReqstChannel -- ALREADY FIXED (DDSWeighAppInf.hpp)
+
+  Line 367: LpsSaJobMgrRequestHelper jobMgrHelper_;
+            -> LpsSaJobMgrReqstChannel -- RISK (latent)
+
+  Line 370: AutonomyConditionDiagnosticsRequestHelper
+            autonomyConditionDiagnosticsHelper_;
+            -> AutonomyConditionDiagnostics -- RISK (latent)
+
+  Line 314: LpsSaTotalsRequestHelper totalsRequestHelper_;
+            -> LpsSaTotals -- RISK (latent)
+
+All four classes share an identical shape: constructor, virtual
+~X(){stop();}, start()/stop(), task::InterfaceDb::bind(), sendRequest(),
+waitForTxData(), waitForResponse(), sendRequestWaitForTxData() -- clearly
+the same author/pattern applied to four different channels. jobMgrHelper_
+alone is called at 25+ real call sites in AisJhm2RequestProcessor.cpp
+(.start(), .sendRequest(), .sendRequestWaitForTxData(), .stop(), etc.) --
+this is live, real code, not dead.
+
+Why these are "latent" and not active bugs right now:
+  - JobMgr's working copy talks to LpsSaJobMgrReqstChannel directly via
+    LpsSaJobMgrScsReqstIn (a raw ros2_wrapper channel), NOT through
+    LpsSaJobMgrRequestHelper. That shared file has never been touched.
+  - WeighApp only reads the plain-data parts of LpsSaTotals and
+    AutonomyConditionDiagnostics (PrinterCnfgInterface, TxInterface) --
+    never the RequestHelper.hpp classes.
+  - Confirmed structurally: the working copy (CPM-Loader-ais\) contains
+    only ONE prod\common\interfaces\<Channel>\ directory at all --
+    LpsSaWeighReqstChannel (with LpsSaWeighAppInf.hpp + DDSWeighAppInf.hpp).
+    No other channel's shared interfaces directory exists in the working
+    copy, so none of them have been edited in place -- by construction,
+    not just by inspection.
+
+RULE GOING FORWARD: if a future stage of this migration ever needs to
+convert JobMgr's request-serving side, or WeighApp's use of
+LpsSaTotals/AutonomyConditionDiagnostics beyond current plain-data reads,
+do NOT edit LpsSaJobMgrRequestHelper.hpp / RequestHelper.hpp (either
+copy) in place. Apply the same fix as DDSWeighAppInf: leave the original
+file byte-identical, add a new sibling class with only the methods the
+new caller needs.
+
+======================================================================
+FULL PER-CHANNEL VERDICT TABLE
+======================================================================
+Verdict key:
+  CLEAR              -- plain data/type headers only, no wrapper class,
+                         no risk.
+  WRAPPER-BUT-SAFE   -- a wrapper class exists, but only JobMgr/WeighApp
+                         (or neither) instantiate it -- no other real
+                         component does -- no landmine.
+  RISK (latent)       -- a wrapper class exists AND at least one other
+                         real component also instantiates it. Not
+                         currently edited by the working copy, but will
+                         repeat the LpsSaWeighAppInf mistake if ever
+                         converted without the same split-class fix.
+  NOT FOUND           -- no matching directory anywhere in this reference
+                         checkout; likely exists in a sibling repo not
+                         included here. Unresolved, not "safe."
+
+Channel                          | Verdict            | Notes
+----------------------------------|---------------------|---------------------------------------------------------------
+LpsSaWeighReqstChannel            | FIXED (out of scope)| Already resolved via DDSWeighAppInf.hpp -- see
+                                   |                     | DDSWeighAppInf-vs-LpsSaWeighAppInf.diff.txt
+LpsSaJobMgrReqstChannel           | RISK (latent)       | LpsSaJobMgrRequestHelper.hpp -> jobMgrHelper_ in
+                                   |                     | AisJhm2RequestProcessor.h:367 (25+ real call sites)
+AutonomyConditionDiagnostics      | RISK (latent)       | RequestHelper.hpp -> autonomyConditionDiagnosticsHelper_ in
+                                   |                     | AisJhm2RequestProcessor.h:370. TxInterface.hpp (plain data,
+                                   |                     | what JobMgr/WeighApp actually use) is separate and safe.
+LpsSaTotals                       | RISK (latent)       | RequestHelper.hpp -> totalsRequestHelper_ in
+                                   |                     | AisJhm2RequestProcessor.h:314. PrinterCnfgInterface.hpp
+                                   |                     | (plain data, what WeighApp actually uses) is separate and safe.
+LpsSaJobMgrDebugChannel           | CLEAR               | LpsSaJobMgrDebugChannelStorage : public csvable, data only
+LpsSaJobMgrTxChannel              | CLEAR               | LpsSaJobMgrTxChannelStorage, data only (shared with
+                                   |                     | AisJhm2RequestProcessor/CycleSeg as data type -- harmless)
+LpsSaJobMgrRespChannel            | CLEAR               | LpsSaJobMgrRespChannelStorage, data only
+SwitchInputScs                    | NOT FOUND           | No directory in reference tree; appears to be a new,
+                                   |                     | no-legacy-equivalent hardware-input channel
+OutputChannel                     | NOT FOUND           | No standalone directory; "OutputChannel" only appears as
+                                   |                     | boilerplate codegen filenames inside other channels
+AisJhm2TxChannel                  | CLEAR               | AisJhm2TxChannelStorage : public csvable, data only
+LpsSaLoadRecordChannel            | CLEAR               | LpsSaLoadRecordChannelStorage + plain structs, data only
+                                   |                     | (also read by LpsSaTotalsApp as data -- harmless)
+LpsSaUI                           | WRAPPER-BUT-SAFE    | LpsSaUIDisplayState/DisplaySettings ARE stateful, and ARE
+                                   |                     | shared (AutonomyConditionDiagnostics.h:239, AisJhm2DisplayState.cpp)
+                                   |                     | but JobMgr/WeighApp only hold a channel POINTER, never an
+                                   |                     | instance of the class itself -- safe
+ShmClock                          | NOT FOUND           | No directory in this checkout, but IS referenced by
+                                   |                     | AisJhm2RequestProcessor.h too -- exists somewhere, just not
+                                   |                     | in this checkout. Follow up when full source available.
+DataLinkData                      | NOT FOUND           | Not a prod\common\interfaces\ folder; exists only as
+                                   |                     | apps\DemoApp\DataLinkDataPublish.* and
+                                   |                     | AutonomyConditionDiagnostics's DataLinkDataScsRx.cpp. Also
+                                   |                     | referenced by AisJhm2RequestProcessor.h -- follow up.
+EventDiagnosticData               | NOT FOUND           | Same as ShmClock/DataLinkData -- referenced by both JobMgr
+                                   |                     | and AisJhm2RequestProcessor.h but directory absent here.
+DemoAppTxChannel                  | CLEAR               | DemoAppTxChannelStorage : public csvable, data only
+LpsSaWeighRespChannel             | CLEAR               | LpsSaWeighRespChannelStorage, data only
+LpsSaWeighTxChannel               | CLEAR               | LpsSaWeighTxChannelStorage, data only (also read by CycleSeg,
+                                   |                     | AisJhm2RequestProcessor as data -- harmless)
+LpsSaWeighInitDebugChannel        | CLEAR               | Data-only Storage class
+LpsSaWeighDebugChannel            | CLEAR               | Data-only Storage class
+PwmInputChannels                  | NOT FOUND           | No directory; likely new-for-DDS hardware channel, no legacy
+                                   |                     | equivalent (not referenced by AisJhm2RequestProcessor.h either)
+Machine                           | CLEAR               | MachineStorage : public csvable, data only
+LpsSaNvmCalDataChannel            | CLEAR               | Data-only Storage class
+LpsSaNvmCalOnTheFlyDataChannel    | CLEAR               | Data-only Storage class
+CalMgrCmdReqst                    | NOT FOUND           | No directory in reference tree
+CalMgrCmdResp                     | NOT FOUND           | No directory in reference tree
+PartNumbers                       | NOT FOUND           | No directory, but referenced by AisJhm2RequestProcessor.h
+                                   |                     | too -- follow up.
+SystemHardwareHealth              | NOT FOUND           | No directory in reference tree
+SystemHardwareHealthRequest       | NOT FOUND           | No directory in reference tree
+ReadyToFlashStatus                | NOT FOUND           | No directory in reference tree
+TipoffModelTestPoints             | CLEAR               | TipoffModelTestPointsStorage : public csvable, data only;
+(used by adv\TipoffAssist.cpp)    |                     | not referenced anywhere else in the whole reference tree
+
+======================================================================
+BOTTOM LINE
+======================================================================
+1. Three more channels (LpsSaJobMgrReqstChannel, AutonomyConditionDiagnostics,
+   LpsSaTotals) have the identical shared-wrapper-class shape that caused
+   the LpsSaWeighAppInf bug, all converging on AisJhm2RequestProcessor.h.
+   None are actively broken today (their shared files aren't touched by
+   the working copy at all), but any future work that converts them must
+   use the same "new sibling class, leave original byte-identical"
+   pattern as DDSWeighAppInf.hpp -- not an in-place edit.
+
+2. 18 real channels + TipoffModelTestPoints are plain csvable data
+   classes with no connection lifecycle -- safe to share, no landmine
+   possible.
+
+3. LpsSaUI has real shared stateful classes, but JobMgr/WeighApp never
+   instantiate them directly (pointer to a channel only) -- safe.
+
+4. 12 of the 29 audited names have no matching directory anywhere in this
+   reference checkout (SwitchInputScs, OutputChannel, ShmClock,
+   DataLinkData, EventDiagnosticData, PwmInputChannels, CalMgrCmdReqst,
+   CalMgrCmdResp, PartNumbers, SystemHardwareHealth,
+   SystemHardwareHealthRequest, ReadyToFlashStatus). Four of these
+   (ShmClock, DataLinkData, EventDiagnosticData, PartNumbers) are also
+   referenced by AisJhm2RequestProcessor.h's own includes, meaning they
+   genuinely exist somewhere -- just not in this checkout (likely a
+   sibling repo alongside ssp-CPM_Loader-ais). These are UNRESOLVED, not
+   cleared -- re-audit once that source is available, e.g. at site 2.

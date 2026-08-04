@@ -3,9 +3,12 @@
 //
 // Builds the same 3 wrapper objects LpsSaJobMgrApp.cpp really builds for
 // legs 1-3 (LpsSaWeighReqstChannel/RespChannel/TxChannel), on the exact
-// same topic names, and hands them to a real `LpsSaWeighAppInf` instance
+// same topic names, and hands them to a real `DDSWeighAppInf` instance
 // -- the actual production class (Challenges-And-Decisions.txt 6.11),
-// #include'd directly rather than mocked. Plus a 4th subscription for the
+// #include'd directly rather than mocked. NOT LpsSaWeighAppInf -- that
+// class is shared common/interfaces code another real, unrelated
+// component (AisJhm2RequestProcessor) depends on in its original form;
+// DDSWeighAppInf is the new, separate, DDS-typed class instead. Plus a 4th subscription for the
 // hybrid LpsSaJobMgrReqstChannel leg (Step 6.1.4), and a 5th leg
 // (Step 6.1 / 6.14) publishing LpsSaJobMgrTxChannel -- WeighApp only
 // consumes 4 of its ~100 fields (standby_state, tip_off_state,
@@ -22,7 +25,7 @@
 
 #include <ros2_wrapper/RosInputInterface.h>
 #include <ros2_wrapper/RosOutputInterface.h>
-#include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
+#include <interfaces/LpsSaWeighReqstChannel/DDSWeighAppInf.hpp>
 
 #include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
 #include <job_mgr_interfaces/msg/lps_sa_job_mgr_tx_channel.hpp>
@@ -47,7 +50,7 @@ int main(int argc, char** argv)
     auto* jobMgrTxOut = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrTxChannel>(
             node, "lps_sa_job_mgr_tx_channel");
 
-    LpsSaWeighAppInf weighAppInf;
+    DDSWeighAppInf weighAppInf;
     if (!weighAppInf.start("jobmgr_adapter", requestOutput, responseInput, txInput)) {
         RCLCPP_ERROR(node->get_logger(), "weighAppInf.start() failed");
         return 1;
