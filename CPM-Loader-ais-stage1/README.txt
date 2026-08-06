@@ -143,8 +143,15 @@ of LpsSaWeighTxChannel itself, not scope creep) appear anywhere in the
 WeighApp files -- no other channel's converted type leaked in.
 
 Also required, not part of this file set (already covered separately):
-  - colcon build of cpm_common_interfaces + job_mgr_interfaces (only
-    these 2 -- legs 1-3 use no weigh_app_interfaces types)
+  - colcon build of cpm_common_interfaces ONLY. Verified via grep across
+    every real file in this folder: nothing here references
+    job_mgr_interfaces:: or weigh_app_interfaces:: at all -- the only
+    "job_mgr" string anywhere is the rclcpp::Node NAME "job_mgr_node"
+    in LpsSaJobMgrApp.cpp, unrelated to the interfaces package.
+    (CORRECTION: this used to also list job_mgr_interfaces as required
+    -- that was wrong for this narrow Stage 1 cut; job_mgr_interfaces
+    is only needed once legs 4-5 or other job_mgr_interfaces-typed
+    channels are converted, which Stage 1 doesn't touch.)
   - SConscript wiring (see Stage1-Real-Build-SConscript-Steps.txt)
 
 CORRECTION 1 (found by re-reading this file against DDSWeighAppInf.hpp's

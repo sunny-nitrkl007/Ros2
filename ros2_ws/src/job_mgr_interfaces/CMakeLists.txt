@@ -19,6 +19,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/J1939Name.msg"
   "msg/Diagnostic.msg"
   "msg/EventDiagnosticData.msg"
+  "msg/STG.msg"
   "msg/SwitchInputScs.msg"
   "msg/OutputCmd.msg"
   "msg/OutputChannel.msg"
