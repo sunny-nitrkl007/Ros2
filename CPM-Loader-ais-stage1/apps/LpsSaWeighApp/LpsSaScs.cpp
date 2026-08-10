@@ -52,8 +52,8 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
         case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RESET_BEST_BUCKET_WEIGHT):
         case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CAPTURE_CYLINDER_EXTENSION_REFERENCE):
         case (cpm_common_interfaces::msg::WeighReqstChannelCommand::CLEAR_REWEIGH_WARNING): {
-            // These commands are handled later. request_ stays on its real
-            // old type (needs .reInit()), so convert field-by-field.
+            // These commands are handled later.
+            // old type so convert field-by-field.
             request_.command = static_cast<LpsSaWeighReqstChannel::Command>(request.command.value);
             request_.appName = request.app_name;
             request_.appRequestId = request.app_request_id;
@@ -420,7 +420,7 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1) {
     // Build the response
-    cpm_common_interfaces::msg::LpsSaWeighRespChannel response;
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; //Default timepoint is now
     response.app_name = request.app_name;
     response.app_request_id = request.app_request_id;
     response.command = request.command;
@@ -758,16 +758,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count();
 
-        // EventState/DiagState/InfoState/ProdMeasureWeighStatus are real
-        // std::bitset<N> in the original code (confirmed via
-        // LpsSaWeighTxChannel.h's ACDEventPopUp/ACDDiagPopUp/ACDInfoPopUp/
-        // ACDWeighStatus namespaces), used here with real bitset operations
-        // (.none()/.reset()/operator[]) -- kept as real bitset locals for
-        // that logic, converted to the new message's raw bit fields only
-        // at the very end, right before publish.
-        auto eventStateBits = LpsSaWeighInfoTbl.EventState;
-        auto diagStateBits = LpsSaWeighInfoTbl.DiagState;
-        auto infoStateBits = LpsSaWeighInfoTbl.InfoState;
+        // ProdMeasureWeighStatus is a std::bitset<N>
         ACDWeighStatus::type prodMeasureWeighStatusBits;
 
         txOut.dig_stat = LpsSaWeighInfoTbl.DigStat;
@@ -877,18 +868,18 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.pid_data.hyd_oil_temp_enabled = cnfg_.hydOilTempEnabled;
         txOut.pid_data.audible_weight_enabled = cnfg_.audibleWeightEnabled;
 
-        prodMeasureWeighStatusBits[ACDWeighStatus::LOWER_STALL] = infoStateBits[ACDInfoPopUp::PAYLOAD_LOWER_STALL];
-        prodMeasureWeighStatusBits[ACDWeighStatus::RAISE_STALL] = infoStateBits[ACDInfoPopUp::PAYLOAD_RAISE_STALL];
+        prodMeasureWeighStatusBits[ACDWeighStatus::LOWER_STALL] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_LOWER_STALL];
+        prodMeasureWeighStatusBits[ACDWeighStatus::RAISE_STALL] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_RAISE_STALL];
         prodMeasureWeighStatusBits[ACDWeighStatus::INSUFFICIENT_DATA] = false;
-        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_PRESSURE_CHANGING] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_PRESSURE_CHANGING];
-        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_INCONSISTENT] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_INCONSISTENT];
-        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_SPEED_CHANGING] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_SPEED_CHANGING];
+        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_PRESSURE_CHANGING] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_PRESSURE_CHANGING];
+        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_INCONSISTENT] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_INCONSISTENT];
+        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_SPEED_CHANGING] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_SPEED_CHANGING];
         prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_NOT_RACKED_EXCESSIVE_PITCH] =
-                infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_NOT_RACKED] ||
-                infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_EXCESSIVE_PITCH];
-        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_STOPPED_IN_RANGE] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_STOPPED_IN_RANGE];
-        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_LIFT_TOO_SLOW] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_LIFT_TOO_SLOW];
-        prodMeasureWeighStatusBits[ACDWeighStatus::INSUFFICIENT_DATA] = infoStateBits[ACDInfoPopUp::PAYLOAD_REWEIGH_WARMUP_LIFT];
+                LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_NOT_RACKED] ||
+                LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_EXCESSIVE_PITCH];
+        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_STOPPED_IN_RANGE] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_STOPPED_IN_RANGE];
+        prodMeasureWeighStatusBits[ACDWeighStatus::REWEIGH_LIFT_TOO_SLOW] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_LIFT_TOO_SLOW];
+        prodMeasureWeighStatusBits[ACDWeighStatus::INSUFFICIENT_DATA] = LpsSaWeighInfoTbl.InfoState[ACDInfoPopUp::PAYLOAD_REWEIGH_WARMUP_LIFT];
         /* send audible tone command */
         txOut.pid_data.audible_weight_command = getAudibleCommand();
 
@@ -910,6 +901,10 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.tilt_valve_command.val = LpsSaWeighInfoTbl.TiltValveCommand.Val;
         txOut.zero_weight = payloadCalNvmTbl_.data.ZeroWeight;
         txOut.simple_cal_adjust = payloadCalNvmTbl_.data.CalAdjust;
+
+        auto eventStateBits = LpsSaWeighInfoTbl.EventState;
+        auto diagStateBits = LpsSaWeighInfoTbl.DiagState;
+        auto infoStateBits = LpsSaWeighInfoTbl.InfoState;
 
         if (diagStateBits.none()) {
             // No diagnostics, check battery voltage events and imu w/lft
