@@ -16,25 +16,14 @@
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 #include <cpm_common_interfaces/msg/weigh_reqst_channel_command.hpp>
 
-// New, separate class -- deliberately NOT a change to LpsSaWeighAppInf.hpp
-// itself, which stays byte-for-byte identical to the original. That file is
-// shared common/interfaces code; at least one other real component
-// (AisJhm2RequestProcessor, part of the legacy UI infrastructure, still
-// SCS-only) holds its own LpsSaWeighAppInf instance and calls methods
-// (sendRequestGetResponse(), waitForResponse(), etc.) that LpsSaJobMgrApp
-// itself never uses. Editing the shared header in place -- even just
-// retyping requestOutput_/responseInput_/txInput_ -- would break that
-// unrelated caller as soon as this changed tree is copied back over the
-// original repo. So: leave the original alone, and give LpsSaJobMgrApp its
-// own class with only the 3 methods it actually calls (confirmed via
-// LpsSaJobMgrScs.cpp: start(), sendRequest(), waitForTxData() -- nothing
-// else). Same design/threading reasoning as LpsSaWeighAppInf.hpp would have
-// needed if it were being converted for real: RosInputInterface<T> has no
-// callback/notification mechanism (poll-only via get()), so there is no
-// background thread left to wake a blocking waiter -- waitForTxData() is a
-// single-shot poll of whatever executor_.spin_some() already delivered this
-// tick, not a real wait. See LpsSaJobMgrApp.cpp's executive() for where
-// spin_some() runs (always before this class's methods, same thread).
+// New, separate class -- deliberately not a change to the shared
+// LpsSaWeighAppInf header, which stays unchanged. Other components still
+// hold their own instance of that class and call methods this app never
+// needs, so editing it in place would break those callers. This class
+// instead exposes only what's actually used: start(), sendRequest(),
+// waitForTxData(). Threading note: RosInputInterface<T> is poll-only (no
+// callback mechanism), so waitForTxData() is a single-shot poll of whatever
+// the executor already delivered this tick, not a real blocking wait.
 class DDSWeighAppInf {
 public:
     static constexpr std::chrono::milliseconds timeoutDurationDefault() { return std::chrono::milliseconds(250); }

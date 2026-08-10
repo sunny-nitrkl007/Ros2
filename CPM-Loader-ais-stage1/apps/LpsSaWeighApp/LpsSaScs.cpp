@@ -401,10 +401,6 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
     }
 
     // request_ is the old raw SCS type; the 3-arg new-type overload below
-    // only ever reads app_name/app_request_id/command off its request
-    // parameter (same 3 fields this used to convert into a response
-    // directly) -- so a partial new-type request with just those 3 fields
-    // populated is enough to route through it, same end result.
     cpm_common_interfaces::msg::LpsSaWeighReqstChannel newRequest;
     newRequest.app_name = request_.appName;
     newRequest.app_request_id = request_.appRequestId;
@@ -420,7 +416,7 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1) {
     // Build the response
-    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; //Default timepoint is now
+    cpm_common_interfaces::msg::LpsSaWeighRespChannel response; // Default timepoint is now
     response.app_name = request.app_name;
     response.app_request_id = request.app_request_id;
     response.command = request.command;
@@ -758,7 +754,6 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count();
 
-        // ProdMeasureWeighStatus is a std::bitset<N>
         ACDWeighStatus::type prodMeasureWeighStatusBits;
 
         txOut.dig_stat = LpsSaWeighInfoTbl.DigStat;
@@ -902,6 +897,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.zero_weight = payloadCalNvmTbl_.data.ZeroWeight;
         txOut.simple_cal_adjust = payloadCalNvmTbl_.data.CalAdjust;
 
+        // EventState/DiagState/InfoState/ProdMeasureWeighStatus are std::bitset<N>
         auto eventStateBits = LpsSaWeighInfoTbl.EventState;
         auto diagStateBits = LpsSaWeighInfoTbl.DiagState;
         auto infoStateBits = LpsSaWeighInfoTbl.InfoState;

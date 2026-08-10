@@ -550,8 +550,8 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    // ROS2/DDS shared node (Stage 1 scope: legs 1-3 only). One node for
-    // the whole app; spin_some() in executive() drives its callbacks.
+    // ROS2/DDS shared node. One node for the whole app; spin_some() in
+    // executive() drives its callbacks.
     // rclcpp::init() must run once, before any Node is constructed -- this
     // app builds as its own standalone process (SConscript Program()
     // target, one task per process), so there's no risk of double-init

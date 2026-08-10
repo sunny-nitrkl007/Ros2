@@ -383,7 +383,7 @@ private:
     ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
     ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
 
-    // ---- ROS2/DDS shared node + executor (Stage 1) ----
+    // ROS2/DDS shared node + executor
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;
 

@@ -47,27 +47,10 @@ DESCRIPTION:
 #include <interfaces/AutonomyConditionDiagnostics/TxInterfaceInputChannel.h>
 #include <interfaces/EventDiagnosticData/InterfaceTypes.h>
 
-// Kept: LpsSaJobMgrScsSendCmd() below still takes the real
-// LpsSaWeighReqstChannel::Command type (that function is outside Stage 1's
-// converted scope), which this include supplies transitively via
-// interfaces/LpsSaWeighReqstChannel/InterfaceTypes.h. The LpsSaWeighAppInf
-// class it also declares is NOT what weighAppInf_ uses below -- see
-// DDSWeighAppInf.hpp include and comment just after this one.
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
-// weighAppInf_ uses DDSWeighAppInf, NOT LpsSaWeighAppInf -- that class is
-// shared common/interfaces code, and at least one other real component
-// (AisJhm2RequestProcessor, legacy UI infrastructure, still SCS-only) holds
-// its own instance and depends on its original raw-SCS-typed API. Editing
-// LpsSaWeighAppInf.hpp in place would break that unrelated caller once this
-// tree is copied back over the original repo. DDSWeighAppInf is a new,
-// separate class with only the 3 methods LpsSaJobMgrApp actually calls.
+/*Additional ROS2 interfaces*/
 #include <interfaces/LpsSaWeighReqstChannel/DDSWeighAppInf.hpp>
-
-// ---- ROS2/DDS wrapper layer (Stage 1 scope: legs 1-3 only, via
-// weighAppInf_) -- DDSWeighAppInf builds its 3 wrapper objects on
-// rosNode_; these includes back that, plus the 3 message types it uses.
-// No other channel in this file changes for Stage 1. ---
 #include <rclcpp/rclcpp.hpp>
 #include <ros2_wrapper/RosInputInterface.h>
 #include <ros2_wrapper/RosOutputInterface.h>
@@ -169,12 +152,9 @@ private:
     LpsSaJobMgrRespChannelOutput      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
-    DDSWeighAppInf weighAppInf_; // WeighApp Interface -- legs 1-3, converted for Stage 1 (see DDSWeighAppInf.hpp)
+    DDSWeighAppInf weighAppInf_; // WeighApp Interface
 
-    // ---- ROS2/DDS shared node + executor (Stage 1) -- only needed
-    // because weighAppInf_'s 3 wrapper objects live on this node.
-    // spin_some() must run once per executive() tick so their callbacks
-    // fire; see executive() in the .cpp. ----
+    // ---- ROS2/DDS shared node + executor
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;
 

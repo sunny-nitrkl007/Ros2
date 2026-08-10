@@ -257,21 +257,13 @@ bool LpsSaJobMgrApp::initialize( )
         everythingOk = false;
     }
 
-    // ROS2/DDS shared node (Stage 1 scope: legs 1-3 only, via weighAppInf_).
-    // One node for the whole app; spin_some() in executive() drives its
-    // callbacks. rclcpp::init() must run once, before any Node is
-    // constructed -- this app builds as its own standalone process
-    // (SConscript Program() target, one task per process), so there's no
-    // risk of double-init from another task sharing this process.
     if (!rclcpp::ok()) {
         rclcpp::init(0, nullptr);
     }
     rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
     executor_.add_node(rosNode_);
 
-    { // Initialize the WeighApp interface -- pure direct DDS, no Bridge
-      // (Development-Plan.txt Step 6.1.1/6.1.2/6.1.3). Topic names must
-      // match WeighApp's own construction of these 3 wrappers exactly.
+    { // Initialize the WeighApp interface
         ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
                 new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
         ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
@@ -416,8 +408,6 @@ bool LpsSaJobMgrApp::executive( )
     getLogger().log_debug( "Executing JobManager Task" );
 
     // ROS2/DDS: drain pending callbacks for weighAppInf_'s 3 wrapper
-    // objects (Stage 1 scope). Must run before weighAppInf_.waitForTxData()/
-    // sendRequest() below -- same thread, synchronous, no mutex needed.
     executor_.spin_some();
 
     if (nullptr != autonomyConditionDiagnosticsTxInputChannel_) {
