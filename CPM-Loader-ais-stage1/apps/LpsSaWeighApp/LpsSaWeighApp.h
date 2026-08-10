@@ -428,14 +428,8 @@ private:
     void LpsSaScsSendZeroRqst();
 
     bool LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command command, bool success);
-    bool LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorage& request, bool success, const std::string& arg1 = "");
-    // Was missing entirely -- LpsSaScsChkForReqst()'s LpsSaScsSendReqstResponse(request, ...)
-    // calls (request is cpm_common_interfaces::msg::LpsSaWeighReqstChannel) had no matching
-    // overload without this declaration; would not have compiled. Matches the full working
-    // copy's LpsSaWeighApp.h.
     bool LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1 = "");
-    // Shared tail (build timestamp, publish, log, return) for the 2 overloads above that
-    // build a response -- both were duplicating this verbatim; factored out.
+    // Shared tail (build timestamp, publish, log, return) for the overload above.
     bool publishWeighResponse(cpm_common_interfaces::msg::LpsSaWeighRespChannel& response, bool success);
     void LpsSaScsChkForReqst();
     LpsSaInitErrorType_t LpsSaInit(void);

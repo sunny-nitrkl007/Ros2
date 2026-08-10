@@ -400,23 +400,22 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
         return false;
     }
 
-    bool rVal = LpsSaScsSendReqstResponse(request_, success);
+    // request_ is the old raw SCS type; the 3-arg new-type overload below
+    // only ever reads app_name/app_request_id/command off its request
+    // parameter (same 3 fields this used to convert into a response
+    // directly) -- so a partial new-type request with just those 3 fields
+    // populated is enough to route through it, same end result.
+    cpm_common_interfaces::msg::LpsSaWeighReqstChannel newRequest;
+    newRequest.app_name = request_.appName;
+    newRequest.app_request_id = request_.appRequestId;
+    newRequest.command.value = static_cast<uint8_t>(request_.command);
+
+    bool rVal = LpsSaScsSendReqstResponse(newRequest, success);
 
     // Clear out the request since it has been handled.
     request_.reInit();
 
     return rVal;
-}
-
-bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const LpsSaWeighReqstChannelStorage& request, bool success, const std::string& arg1) {
-    // Build the response
-    cpm_common_interfaces::msg::LpsSaWeighRespChannel response;
-    response.app_name = request.appName;
-    response.app_request_id = request.appRequestId;
-    response.command.value = static_cast<uint8_t>(request.command);
-    response.arg1 = arg1;
-
-    return publishWeighResponse(response, success);
 }
 
 bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1) {
