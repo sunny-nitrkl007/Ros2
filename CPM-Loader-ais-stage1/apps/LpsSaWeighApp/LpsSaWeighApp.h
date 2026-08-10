@@ -16,9 +16,7 @@ DESCRIPTION:
 
 #include <ais/task/Task.h>
 
-// ---- ROS2/DDS wrapper layer (Stage 1 scope: legs 1-3 only --
-// LpsSaWeighScsReqstIn/RespOut/TxOut). No other channel in this file
-// changes for Stage 1. ----
+// ---- ROS2/DDS wrapper layer 
 #include <rclcpp/rclcpp.hpp>
 #include <ros2_wrapper/RosInputInterface.h>
 #include <ros2_wrapper/RosOutputInterface.h>
@@ -429,8 +427,6 @@ private:
 
     bool LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command command, bool success);
     bool LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::LpsSaWeighReqstChannel& request, bool success, const std::string& arg1 = "");
-    // Shared tail (build timestamp, publish, log, return) for the overload above.
-    bool publishWeighResponse(cpm_common_interfaces::msg::LpsSaWeighRespChannel& response, bool success);
     void LpsSaScsChkForReqst();
     LpsSaInitErrorType_t LpsSaInit(void);
     LpsSaUpdtErrorType_t LpsSaUpdt(void);

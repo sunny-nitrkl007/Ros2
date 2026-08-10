@@ -182,3 +182,10 @@ reducible, unlike the overloads' own existence (both still needed).
 Factored into a new private helper, publishWeighResponse(), called by
 both. Neither overload's own signature changed, so LpsSaProcess.cpp's
 real call to the 2-arg Command-typed overload is unaffected.
+
+UPDATE: the old-type response-building overload was later removed
+entirely (the Command-typed overload now builds a small partial new-type
+request and routes through the new-type overload instead) -- see git
+history. With only one caller left, publishWeighResponse() no longer had
+a real duplication to avoid, so it was inlined back into the one
+remaining overload.

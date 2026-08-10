@@ -426,15 +426,6 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::
     response.command = request.command;
     response.arg1 = arg1;
 
-    return publishWeighResponse(response, success);
-}
-
-// Shared by both overloads above -- timestamp, success flag, publish, log,
-// return. Only the app_name/app_request_id/command fields differ between
-// callers (populated by each overload before calling this), since those
-// come from two different source types (old raw SCS struct vs new ROS2
-// .msg type).
-bool LpsSaWeighApp::publishWeighResponse(cpm_common_interfaces::msg::LpsSaWeighRespChannel& response, bool success) {
     response.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
     response.success = success;
