@@ -16,11 +16,15 @@ DESCRIPTION:
 
 #include <ais/task/Task.h>
 
-// ---- ROS2/DDS plumbing (Stage 1 scope: legs 1-3 only --
-// LpsSaWeighScsReqstIn/RespOut/TxOut) pulled into its own class -- see
-// LpsSaWeighAppRosChannels.h. No other channel in this file changes for
-// Stage 1. ----
-#include "LpsSaWeighAppRosChannels.h"
+// ---- ROS2/DDS wrapper layer (Stage 1 scope: legs 1-3 only --
+// LpsSaWeighScsReqstIn/RespOut/TxOut). No other channel in this file
+// changes for Stage 1. ----
+#include <rclcpp/rclcpp.hpp>
+#include <ros2_wrapper/RosInputInterface.h>
+#include <ros2_wrapper/RosOutputInterface.h>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 
 #include <interfaces/LpsSaUI/DisplayStateInterfaceInputChannel.h>
 #include <interfaces/LpsSaWeighReqstChannel/InterfaceTypes.h>
@@ -377,13 +381,13 @@ private:
     } tzInfo_;
 
     DemoAppTxChannel demoInputs_;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
 
-    // ---- ROS2/DDS plumbing (Stage 1 scope: legs 1-3 only), pulled into
-    // its own class -- see LpsSaWeighAppRosChannels.h. Replaces what used
-    // to be 5 separate members here (LpsSaWeighScsReqstIn/RespOut/TxOut,
-    // rosNode_, executor_). Call sites use rosChannels_.LpsSaWeighScsXxx
-    // instead of LpsSaWeighScsXxx directly. ----
-    LpsSaWeighAppRosChannels rosChannels_;
+    // ---- ROS2/DDS shared node + executor (Stage 1) ----
+    rclcpp::Node::SharedPtr rosNode_;
+    rclcpp::executors::SingleThreadedExecutor executor_;
 
     LpsSaJobMgrReqstChannelOutput* LpsSaJobMgrScsReqstOut;
     ReadyToFlashStatusOutput *ReadyToFlashStatusOutput;

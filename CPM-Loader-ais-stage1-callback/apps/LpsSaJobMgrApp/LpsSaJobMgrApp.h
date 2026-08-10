@@ -13,6 +13,7 @@ DESCRIPTION:
 #include <string>
 #include <deque>
 #include <chrono>
+#include <thread>
 
 #include <boost/filesystem.hpp>
 
@@ -47,20 +48,21 @@ DESCRIPTION:
 #include <interfaces/AutonomyConditionDiagnostics/TxInterfaceInputChannel.h>
 #include <interfaces/EventDiagnosticData/InterfaceTypes.h>
 
-// Kept: LpsSaJobMgrScsSendCmd() below still takes the real
-// LpsSaWeighReqstChannel::Command type (that function is outside Stage 1's
-// converted scope), which this include supplies transitively via
-// interfaces/LpsSaWeighReqstChannel/InterfaceTypes.h. The LpsSaWeighAppInf
-// class it also declares is NOT what rosChannels_.weighAppInf uses -- see
-// LpsSaJobMgrRosChannels.h (includes DDSWeighAppInf.hpp) and its comment.
+// Kept for the same reason as the poll-based Stage 1 folder: LpsSaJobMgrScsSendCmd()
+// still takes the real LpsSaWeighReqstChannel::Command type, and
+// AisJhm2RequestProcessor still depends on this header's original form.
 #include <interfaces/LpsSaWeighReqstChannel/LpsSaWeighAppInf.hpp>
 
-// ---- ROS2/DDS plumbing (Stage 1 scope: legs 1-3 only, via
-// rosChannels_.weighAppInf) -- pulled into its own class rather than
-// inlined here/in the .cpp. See LpsSaJobMgrRosChannels.h: it owns the
-// node, the executor, and weighAppInf (which itself owns the 3 wrapper
-// objects). No other channel in this file changes for Stage 1. ----
-#include "LpsSaJobMgrRosChannels.h"
+// weighAppInf_ uses DDSWeighAppInfCb (callback + background-thread, real
+// blocking waits), not LpsSaWeighAppInf or DDSWeighAppInf.
+#include <interfaces/LpsSaWeighReqstChannel/DDSWeighAppInfCb.hpp>
+
+#include <rclcpp/rclcpp.hpp>
+#include <ros2_wrapper/RosInputInterfaceCb.h>
+#include <ros2_wrapper/RosOutputInterface.h>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 
 #include "LpsSaJobMgrTasks.h"
 #include "LpsSaJobMgrCnfg.h"
@@ -156,13 +158,16 @@ private:
     LpsSaJobMgrRespChannelOutput      *LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
+    DDSWeighAppInfCb weighAppInf_; // WeighApp Interface -- legs 1-3, callback/blocking-wait variant
 
-    // ---- ROS2/DDS plumbing (Stage 1 scope: legs 1-3), pulled into its own
-    // class -- see LpsSaJobMgrRosChannels.h. Replaces what used to be 3
-    // separate members here (weighAppInf_, rosNode_, executor_). Call
-    // sites use rosChannels_.weighAppInf.<method>() instead of
-    // weighAppInf_.<method>(). ----
-    LpsSaJobMgrRosChannels rosChannels_;
+    // ---- ROS2/DDS shared node + executor + background spin thread
+    // (Stage 1 scope). spinThread_ keeps executor_ spinning continuously
+    // so weighAppInf_'s callbacks fire independently of executive()'s own
+    // tick -- see initialize()/cleanup() in the .cpp for where it's
+    // started/stopped. ----
+    rclcpp::Node::SharedPtr rosNode_;
+    rclcpp::executors::SingleThreadedExecutor executor_;
+    std::thread spinThread_;
 
     SwitchInputScsInput               *LpsSaSwitchInput;
     OutputChannelOutput             *LpsSaOutputChannelOut;

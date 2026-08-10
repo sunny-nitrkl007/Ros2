@@ -846,7 +846,7 @@ void LpsSaJobMgrApp::LpsSaWeighScsTxParamRead( )
 {
     bool dataReceived = weighAppTxDataReceived_;
     cpm_common_interfaces::msg::LpsSaWeighTxChannel rxParam;
-    bool newData = rosChannels_.weighAppInf.waitForTxData(rxParam);
+    bool newData = weighAppInf_.waitForTxData(rxParam);
 
     if (newData) {
         // Indicate that we have received data at least once.
@@ -1165,7 +1165,7 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command comma
     }
     }
 
-    if (!rosChannels_.weighAppInf.sendRequest(request)) {
+    if (!weighAppInf_.sendRequest(request)) {
         AIS_LOG_ERROR("Failed to send weigh app request.");
     }
 }

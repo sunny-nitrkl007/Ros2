@@ -46,7 +46,7 @@ void LpsSaWeighApp::LpsSaScsChkForReqst()
     cpm_common_interfaces::msg::LpsSaWeighReqstChannel request;
 
     /* Retrieve SCS channel data */
-    while (rosChannels_.LpsSaWeighScsReqstIn->get(request)) {
+    while (LpsSaWeighScsReqstIn->get(request)) {
         switch (request.command.value) {
         case (cpm_common_interfaces::msg::WeighReqstChannelCommand::ZERO):
         case (cpm_common_interfaces::msg::WeighReqstChannelCommand::RESET_BEST_BUCKET_WEIGHT):
@@ -441,8 +441,8 @@ bool LpsSaWeighApp::publishWeighResponse(cpm_common_interfaces::msg::LpsSaWeighR
     response.success = success;
 
     /* send response SCS channel */
-    if (rosChannels_.LpsSaWeighScsRespOut) {
-        if (rosChannels_.LpsSaWeighScsRespOut->publish(response)) {
+    if (LpsSaWeighScsRespOut) {
+        if (LpsSaWeighScsRespOut->publish(response)) {
             AIS_LOG_INFO("Published response, command=%d, success=%d", response.command.value , success);
             return true;
         }
@@ -762,7 +762,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
 {
     bool scsCmdRet = false;
 
-    if (nullptr != rosChannels_.LpsSaWeighScsTxOut) {
+    if (nullptr != LpsSaWeighScsTxOut) {
         cpm_common_interfaces::msg::LpsSaWeighTxChannel txOut;
 
         txOut.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1036,7 +1036,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         txOut.pid_data.prod_measure_weigh_status = static_cast<uint16_t>(prodMeasureWeighStatusBits.to_ulong());
 
         /* Broadcasting Weighing App elements */
-        scsCmdRet = rosChannels_.LpsSaWeighScsTxOut->publish(txOut);
+        scsCmdRet = LpsSaWeighScsTxOut->publish(txOut);
     }
 
     if (!scsCmdRet) {

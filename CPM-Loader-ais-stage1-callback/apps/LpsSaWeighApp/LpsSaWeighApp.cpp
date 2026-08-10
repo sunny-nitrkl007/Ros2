@@ -117,7 +117,11 @@ LpsSaWeighApp::LpsSaWeighApp( const std::string& taskName ):
     serviceHourMeter_(0),
     tzInfo_{0, -1},
     demoInputs_(),
-    rosChannels_(),
+    LpsSaWeighScsReqstIn(nullptr),
+    LpsSaWeighScsRespOut(nullptr),
+    LpsSaWeighScsTxOut(nullptr),
+    rosNode_(nullptr),
+    executor_(),
     LpsSaJobMgrScsReqstOut(nullptr),
     ReadyToFlashStatusOutput(nullptr),
     PwmIn(nullptr),
@@ -546,15 +550,27 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    // ROS2/DDS plumbing (Stage 1 scope: legs 1-3 only) -- moved into
-    // LpsSaWeighAppRosChannels; see that file for what init() does
-    // (rclcpp::init() guard, node/executor setup, all 3 wrapper objects --
-    // including what used to be LpsSaWeighScsReqstIn's separate
-    // construction further down -- constructed together here instead.
-    // Harmless reorder: nothing between the old construction points
-    // depends on the order these 3 get created in).
-    if (!rosChannels_.init("weigh_app_node")) {
-        AIS_LOG_ERROR("Failed to start ROS2 channels.");
+    // ROS2/DDS shared node (Stage 1 scope: legs 1-3 only). One node for
+    // the whole app; spin_some() in executive() drives its callbacks.
+    // rclcpp::init() must run once, before any Node is constructed -- this
+    // app builds as its own standalone process (SConscript Program()
+    // target, one task per process), so there's no risk of double-init
+    // from another task sharing this process.
+    if (!rclcpp::ok()) {
+        rclcpp::init(0, nullptr);
+    }
+    rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
+    executor_.add_node(rosNode_);
+
+    LpsSaWeighScsTxOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+    if (!LpsSaWeighScsTxOut) {
+         AIS_LOG_ERROR("Interface LpsSaWeighTxChannelOutput not configured.");
+         return false;
+    }
+
+    LpsSaWeighScsRespOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+    if (!LpsSaWeighScsRespOut) {
+        AIS_LOG_ERROR("Interface LpsSaWeighRespChannelOutput not configured.");
         return false;
     }
 
@@ -568,6 +584,12 @@ bool LpsSaWeighApp::initialize( )
 
     if (!task::InterfaceDb::bind("LpsSaWeighDebugChannelOutput", LpsSaWeighScsDebugOut)) {
         AIS_LOG_ERROR("Interface LpsSaWeighDebugChannelOutput not configured.");
+        return false;
+    }
+
+    LpsSaWeighScsReqstIn = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+    if (!LpsSaWeighScsReqstIn) {
+        AIS_LOG_ERROR("Interface LpsSaWeighReqstChannelInput not configured.");
         return false;
     }
 
@@ -645,7 +667,7 @@ bool LpsSaWeighApp::executive( )
     // ROS2/DDS: drain pending callbacks for the 3 Stage-1 wrapper objects.
     // Must run before their get()/publish() call sites below -- same
     // thread, synchronous, no mutex needed.
-    rosChannels_.spinSome();
+    executor_.spin_some();
 
     static bool cal_data_published = false;
     if  (!cal_data_published) {
@@ -1975,7 +1997,9 @@ RETURN VALUE:
 void  LpsSaWeighApp::cleanup( )
 {
     AIS_LOG_INFO("LpsSaWeighApp::cleanup");
-    rosChannels_.shutdown();
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
 
     // If oel hasn't booted up, then writing the nvm won't work.
     if (FALSE == OelBootupFlag) {

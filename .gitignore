@@ -6,7 +6,7 @@
 
 !/CPM-Loader-ais/
 !/CPM-Loader-ais-stage1/
-!/CPM-Loader-ais-stage1-rosChannels/
+!/CPM-Loader-ais-stage1-callback/
 !/ros2_ws/
 !/ROS2_Service_Discovery.zip
 !/.gitignore

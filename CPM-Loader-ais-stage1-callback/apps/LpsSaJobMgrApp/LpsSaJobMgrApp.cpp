@@ -69,8 +69,8 @@ RETURN VALUE:
 *******************************************************************************/
 LpsSaJobMgrApp::LpsSaJobMgrApp(const std::string& taskName):
     Task(taskName), LpsJobMgrJobTrackerInfoTbl(),
-    LpsSaJobMgrScsTxOut(nullptr), LpsSaJobMgrScsReqstIn(nullptr), LpsSaJobMgrScsDebugOut(nullptr), LpsSaJobMgrRespChannelOutput_(nullptr), weighAppTxDataReceived_(false),
-    rosChannels_(),
+    LpsSaJobMgrScsTxOut(nullptr), LpsSaJobMgrScsReqstIn(nullptr), LpsSaJobMgrScsDebugOut(nullptr), LpsSaJobMgrRespChannelOutput_(nullptr), weighAppTxDataReceived_(false), weighAppInf_(),
+    rosNode_(nullptr), executor_(), spinThread_(),
     LpsSaSwitchInput(nullptr), LpsSaOutputChannelOut(nullptr), AisJhm2TxInputScs(nullptr), displayStateInput_(nullptr),
     ShmClockInputScs(nullptr), dataLinkDataInput_(nullptr), loadRecordOutputChannel_(nullptr),
     tasks_(), config_(), stats_(), simpleCal_(), storageRoot_(DEFAULT_STORAGE_ROOT), defaultTargetWeight_(0.0),
@@ -257,17 +257,43 @@ bool LpsSaJobMgrApp::initialize( )
         everythingOk = false;
     }
 
-    // ROS2/DDS plumbing (Stage 1 scope: legs 1-3 only) -- moved into
-    // LpsSaJobMgrRosChannels; see that file for what init() does
-    // (rclcpp::init() guard, node/executor setup, weighAppInf.start() with
-    // its 3 wrapper objects, matching Development-Plan.txt Step
-    // 6.1.1/6.1.2/6.1.3's topic names).
-    if (!rosChannels_.init("job_mgr_node", getTaskName())) {
-        AIS_LOG_ERROR("Failed to start weigh app interface.");
-        everythingOk = false;
+    // ROS2/DDS shared node (Stage 1 scope: legs 1-3 only, via weighAppInf_).
+    // rclcpp::init() must run once, before any Node is constructed -- this
+    // app builds as its own standalone process (SConscript Program()
+    // target, one task per process), so there's no risk of double-init
+    // from another task sharing this process.
+    if (!rclcpp::ok()) {
+        rclcpp::init(0, nullptr);
+    }
+    rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
+    executor_.add_node(rosNode_);
+
+    { // Initialize the WeighApp interface -- pure direct DDS, no Bridge
+      // (Development-Plan.txt Step 6.1.1/6.1.2/6.1.3). Topic names must
+      // match WeighApp's own construction of these 3 wrappers exactly.
+        ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =
+                new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>(rosNode_, "lps_sa_weigh_reqst_channel");
+        ros2_wrapper::RosInputInterfaceCb<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* responseInput =
+                new ros2_wrapper::RosInputInterfaceCb<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+        ros2_wrapper::RosInputInterfaceCb<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* txInput =
+                new ros2_wrapper::RosInputInterfaceCb<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+
+        if (!weighAppInf_.start(getTaskName(), requestOutput, responseInput, txInput)) {
+            AIS_LOG_ERROR("Failed to start weigh app interface.");
+            everythingOk = false;
+        }
+
+        weighAppTxDataReceived_ = false;
     }
 
-    weighAppTxDataReceived_ = false;
+    // Real background spin, not spin_some(): weighAppInf_'s callbacks
+    // (notifyResponseInput()/notifyTxInput()) need a thread that keeps
+    // calling the executor independently of this task's own executive()
+    // tick -- that's what makes waitForResponse()/getLastResponse() real
+    // blocking calls instead of a single poll.
+    spinThread_ = std::thread([this]{
+        executor_.spin();
+    });
 
     // Get the load record output channel
     loadRecordOutputChannel_ = dynamic_cast<LpsSaLoadRecordChannelOutputChannel*>(InterfaceDb::fetch("LoadRecordOutput"));
@@ -397,11 +423,9 @@ bool LpsSaJobMgrApp::executive( )
 {
     getLogger().log_debug( "Executing JobManager Task" );
 
-    // ROS2/DDS: drain pending callbacks for rosChannels_.weighAppInf's 3
-    // wrapper objects (Stage 1 scope). Must run before
-    // rosChannels_.weighAppInf.waitForTxData()/sendRequest() below -- same
-    // thread, synchronous, no mutex needed.
-    rosChannels_.spinSome();
+    // No spin_some() here -- spinThread_ keeps the executor spinning on
+    // its own, continuously, so weighAppInf_'s callbacks fire
+    // independently of this tick.
 
     if (nullptr != autonomyConditionDiagnosticsTxInputChannel_) {
         AutonomyConditionDiagnosticsTxInterface txData;
@@ -482,7 +506,17 @@ RETURN VALUE:
 *******************************************************************************/
 void LpsSaJobMgrApp::cleanup( ) {
     AIS_LOG_INFO("LpsSaJobMgrApp::cleanup");
-    rosChannels_.shutdown();
+
+    // executor_.cancel() makes the blocking spin() call in spinThread_
+    // return, so the thread can be joined instead of leaking or blocking
+    // process exit.
+    executor_.cancel();
+    if (spinThread_.joinable()) {
+        spinThread_.join();
+    }
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
 
     // Wait for possible write to robot file
     sleep(2);
