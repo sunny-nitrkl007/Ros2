@@ -420,11 +420,11 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::
     response.app_name = request.app_name;
     response.app_request_id = request.app_request_id;
     response.command = request.command;
+    response.success = success;
     response.arg1 = arg1;
 
     response.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
-    response.success = success;
 
     /* send response SCS channel */
     if (LpsSaWeighScsRespOut) {
@@ -909,6 +909,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
                 txOut.show_exclamation_point = true;
                 txOut.bucket_fully_racked = true;
                 txOut.excessive_pitch = false;
+                AIS_LOG_ERROR("Input status not good, suppressing payload availability.");
             }
             else {
                 txOut.show_exclamation_point = false;
@@ -919,6 +920,59 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
         }
         else {
             // We have at least one diagnostic.
+            AIS_LOG_ERROR("Diagnostics present, suppressing payload availability. DiagState: %d", diagStateBits);
+            if (diagStateBits[ACDDiagPopUp::HYDRAULIC_OIL_TEMP_BAD]) {
+                AIS_LOG_ERROR("Diagnostic: HYDRAULIC_OIL_TEMP_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::LIFT_HE_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_HE_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_HE_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: LIFT_HE_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::LIFT_RE_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_RE_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_RE_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: LIFT_RE_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::TILT_HE_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_HE_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_HE_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: TILT_HE_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::TILT_RE_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_RE_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_RE_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: TILT_RE_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::MACHINE_MODEL_NOT_SET]) {
+                AIS_LOG_ERROR("Diagnostic: MACHINE_MODEL_NOT_SET");
+            }
+            if (diagStateBits[ACDDiagPopUp::PAYLOAD_SYSTEM_NOT_INSTALLED]) {
+                AIS_LOG_ERROR("Diagnostic: PAYLOAD_SYSTEM_NOT_INSTALLED");
+            }
+            if (diagStateBits[ACDDiagPopUp::PAYLOAD_SYSTEM_OUT_OF_CAL]) {
+                AIS_LOG_ERROR("Diagnostic: PAYLOAD_SYSTEM_OUT_OF_CAL");
+            }
+            if (diagStateBits[ACDDiagPopUp::PAYLOAD_SYSTEM_OUT_OF_CAL]) {
+                AIS_LOG_ERROR("Diagnostic: PAYLOAD_SYSTEM_OUT_OF_CAL");
+            }
+            if (diagStateBits[ACDDiagPopUp::LIFT_LINK_OUT_OF_CAL]) {
+                AIS_LOG_ERROR("Diagnostic: LIFT_LINK_OUT_OF_CAL");
+            }
+            if (diagStateBits[ACDDiagPopUp::TILT_LINK_OUT_OF_CAL]) {
+                AIS_LOG_ERROR("Diagnostic: TILT_LINK_OUT_OF_CAL");
+            }
+            if (diagStateBits[ACDDiagPopUp::LIFT_LINK_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_LINK_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::LIFT_LINK_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: LIFT_LINK_BAD");
+            }
+            if (diagStateBits[ACDDiagPopUp::TILT_LINK_FREQ_ABNORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_LINK_VOLTAGE_ABOVE_NORMAL] ||
+                diagStateBits[ACDDiagPopUp::TILT_LINK_VOLTAGE_BELOW_NORMAL]) {
+                AIS_LOG_ERROR("Diagnostic: TILT_LINK_BAD");
+            }
+
             txOut.show_exclamation_point = true;
             txOut.bucket_fully_racked = true;
             txOut.excessive_pitch = false;
