@@ -1,0 +1,483 @@
+Jan  1 00:00:07 arm64_guest syslog.info syslogd started: BusyBox v1.37.0
+Jan  1 00:00:07 arm64_guest kern.notice kernel: klogd started: BusyBox v1.37.0 (2026-03-18 10:08:07 CDT)
+Jan  1 00:00:07 arm64_guest daemon.info acpid: starting up with netlink and the input layer
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Booting Linux on physical CPU 0x0000000000 [0x411fd080]
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.000000] Linux version 6.18.17-00001-g7dc4c2c2f9a9 (abrahj1@c002120002.linux.cat.com) (aarch64-linux-gcc.br_real (Buildroot ARM64_GUEST_OS_2026.1.0) 15.2.0, GNU ld (GNU Binutils) 2.44) #1 SMP PREEMPT_DYNAMIC Wed Mar 18 11:
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] KASLR enabled
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.000000] random: crng init done
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Machine model: linux,dummy-virt
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] efi: UEFI not found.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] NODE_DATA(0) allocated [mem 0x5fef8080-0x5fefb7bf]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Zone ranges:
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000]   DMA      [mem 0x0000000040000000-0x000000005fffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000]   DMA32    empty
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000]   Normal   empty
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000]   Device   empty
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Movable zone start for each node
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Early memory node ranges
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000]   node   0: [mem 0x0000000040000000-0x000000005fffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Initmem setup node 0 [mem 0x0000000040000000-0x000000005fffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] cma: Reserved 32 MiB at 0x000000005d600000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] psci: probing for conduit method from DT.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] psci: PSCIv1.3 detected in firmware.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] psci: Using standard PSCI v0.2 function IDs
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] psci: Trusted OS migration not required
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] psci: SMC Calling Convention v1.1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] smccc: KVM: hypervisor services detected (0x00000000 0x00000000 0x00000000 0x00000003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] percpu: Embedded 23 pages/cpu s54616 r8192 d31400 u94208
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.000000] pcpu-alloc: s54616 r8192 d31400 u94208 alloc=23*4096
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.000000] pcpu-alloc: [0] 0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Detected PIPT I-cache on CPU0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: GICv3 CPU interface
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: Spectre-v3a
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: Spectre-BHB
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: kernel page table isolation forced ON by KASLR
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: Kernel page table isolation (KPTI)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: ARM erratum 1742098
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] CPU features: detected: ARM errata 1165522, 1319367, or 1530923
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] alternatives: applying boot alternatives
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.000000] Kernel command line: root=/dev/vda ro quiet preempt=voluntary swiotlb=1 zram.num_devices=1 time.hostsync=1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Dynamic Preempt: voluntary
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] printk: log buffer data + meta data: 131072 + 458752 = 589824 bytes
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Dentry cache hash table entries: 65536 (order: 7, 524288 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Inode-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] software IO TLB: area num 1.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] software IO TLB: mapped [mem 0x000000005d5c0000-0x000000005d600000] (0MB)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Fallback order for Node 0: 0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Policy zone: DMA
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu: Preemptible hierarchical RCU implementation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu:   RCU event tracing is enabled.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu:   RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=1.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: 256 SPIs implemented
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: 0 Extended SPIs implemented
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] Root IRQ handler: gic_handle_irq
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: GICv3 features: 16 PPIs, DirectLPI
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: GICD_CTLR.DS=1, SCR_EL3.FIQ=0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: CPU0: found redistributor 0 region 0:0x00000000080a0000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] ITS [mem 0x08080000-0x0809ffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] ITS@0x0000000008080000: allocated 8192 Devices @41840000 (indirect, esz 8, psz 64K, shr 1)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] ITS@0x0000000008080000: allocated 8192 Interrupt Collections @41850000 (flat, esz 8, psz 64K, shr 1)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: using LPI property table @0x0000000041860000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] GICv3: CPU0: using allocated LPI pending table @0x0000000041870000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] arch_timer: cp15 timer running at 200.00MHz (virt).
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] clocksource: arch_sys_counter: mask: 0x3ffffffffffffff max_cycles: 0x2e2049d3e8, max_idle_ns: 440795210634 ns
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000000] sched_clock: 58 bits at 200MHz, resolution 5ns, wraps every 4398046511102ns
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000114] arm-pv: using stolen time PV
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000797] Console: colour dummy device 80x25
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.000824] printk: legacy console [tty0] enabled
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.001017] Calibrating delay loop (skipped), value calculated using timer frequency.. 400.00 BogoMIPS (lpj=800000)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.001025] pid_max: default: 32768 minimum: 301
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.001219] LSM: initializing lsm=capability
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.001554] Mount-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.001592] Mountpoint-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.warn kernel: [    0.004702] cacheinfo: Unable to detect cache hierarchy for CPU 0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.006354] rcu: Hierarchical SRCU implementation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.006372] rcu:   Max phase no-delay instances is 1000.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007293] EFI services will not be available.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007462] smp: Bringing up secondary CPUs ...
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007513] smp: Brought up 1 node, 1 CPU
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007517] SMP: Total of 1 processors activated.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007521] CPU: All CPU(s) started at EL1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007548] CPU features: detected: 32-bit EL0 Support
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007552] CPU features: detected: 32-bit EL1 Support
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007558] CPU features: detected: CRC32 instructions
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007578] CPU features: detected: PMUv3
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.007622] alternatives: applying system-wide alternatives
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.009697] Memory: 457228K/524288K available (12800K kernel code, 1130K rwdata, 4160K rodata, 1600K init, 732K bss, 32148K reserved, 32768K cma-reserved)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.010626] devtmpfs: initialized
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013163] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013189] posixtimers hash table entries: 512 (order: 1, 8192 bytes, linear)
+Jan  1 00:00:07 arm64_guest daemon.info acpid: 1 rule loaded
+Jan  1 00:00:07 arm64_guest daemon.info acpid: waiting for events: event logging is off
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013294] futex hash table entries: 256 (16384 bytes on 1 NUMA nodes, total 16 KiB, linear).
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013684] 2G module region forced by RANDOMIZE_MODULE_REGION_FULL
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013699] 0 pages in range for non-PLT usage
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.013702] 519120 pages in range for PLT usage
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.014032] pinctrl core: initialized pinctrl subsystem
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.014945] DMI not present or invalid.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.015618] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.017005] DMA: preallocated 128 KiB GFP_KERNEL pool for atomic allocations
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.017571] DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.018114] DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.018153] audit: initializing netlink subsys (disabled)
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.018605] audit: type=2000 audit(0.016:1): state=initialized audit_enabled=0 res=1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019161] thermal_sys: Registered thermal governor 'step_wise'
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019166] thermal_sys: Registered thermal governor 'power_allocator'
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019202] cpuidle: using governor menu
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019303] hw-breakpoint: found 6 breakpoint and 4 watchpoint registers.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019335] ASID allocator initialised with 32768 entries
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.019536] Serial: AMBA PL011 UART driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.024249] 9000000.pl011: ttyAMA0 at MMIO 0x9000000 (irq = 13, base_baud = 0) is a PL011 rev1
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.024591] printk: console [ttyAMA0] enabled
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026301] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026325] HugeTLB: 0 KiB vmemmap can be freed for a 1.00 GiB page
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026337] HugeTLB: registered 32.0 MiB page size, pre-allocated 0 pages
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026345] HugeTLB: 0 KiB vmemmap can be freed for a 32.0 MiB page
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026354] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026370] HugeTLB: 0 KiB vmemmap can be freed for a 2.00 MiB page
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026379] HugeTLB: registered 64.0 KiB page size, pre-allocated 0 pages
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.026387] HugeTLB: 0 KiB vmemmap can be freed for a 64.0 KiB page
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.028311] ACPI: Interpreter disabled.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.028746] iommu: Default domain type: Translated
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.028762] iommu: DMA domain TLB invalidation policy: strict mode
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.029212] SCSI subsystem initialized
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.029572] libata version 3.00 loaded.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.029922] usbcore: registered new interface driver usbfs
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.029996] usbcore: registered new interface driver hub
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030030] usbcore: registered new device driver usb
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030250] pps_core: LinuxPPS API ver. 1 registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030264] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030289] PTP clock support registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030331] EDAC MC: Ver: 3.0.0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.030714] scmi_core: SCMI protocol bus registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.031147] Advanced Linux Sound Architecture Driver Initialized.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.032315] vgaarb: loaded
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.032592] clocksource: Switched to clocksource arch_sys_counter
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.033717] VFS: Disk quotas dquot_6.6.0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.033779] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.034650] pnp: PnP ACPI: disabled
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.039745] NET: Registered PF_INET protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.040432] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.041310] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.041353] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.041479] TCP established hash table entries: 4096 (order: 3, 32768 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.041655] TCP bind hash table entries: 4096 (order: 5, 131072 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.042162] TCP: Hash tables configured (established 4096 bind 4096)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.042488] UDP hash table entries: 256 (order: 2, 16384 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.042596] UDP-Lite hash table entries: 256 (order: 2, 16384 bytes, linear)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.042940] NET: Registered PF_UNIX/PF_LOCAL protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.043029] PCI: CLS 0 bytes, default 64
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.043412] kvm [1]: HYP mode not available
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.043985] Initialise system trusted keyrings
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.044254] workingset: timestamp_bits=42 max_order=17 bucket_order=0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.044688] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.044895] fuse: init (API version 7.45)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.045049] 9p: Installing v9fs 9p2000 file system support
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.065013] Key type asymmetric registered
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.065081] Asymmetric key parser 'x509' registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.065226] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 247)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.065262] io scheduler mq-deadline registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.065273] io scheduler kyber registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.065339] io scheduler bfq registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.066764] pl061_gpio 9030000.pl061: PL061 GPIO chip registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067287] pci-host-generic 4010000000.pcie: host bridge /pcie@10000000 ranges:
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067336] pci-host-generic 4010000000.pcie:       IO 0x003eff0000..0x003effffff -> 0x0000000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067414] pci-host-generic 4010000000.pcie:      MEM 0x0010000000..0x003efeffff -> 0x0010000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067436] pci-host-generic 4010000000.pcie:      MEM 0x8000000000..0xffffffffff -> 0x8000000000
+Jan  1 00:00:07 arm64_guest kern.warn kernel: [    0.067515] pci-host-generic 4010000000.pcie: Memory resource size exceeds max for 32 bits
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067577] pci-host-generic 4010000000.pcie: ECAM at [mem 0x4010000000-0x401fffffff] for [bus 00-ff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067732] pci-host-generic 4010000000.pcie: PCI host bridge to bus 0000:00
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067774] pci_bus 0000:00: root bus resource [bus 00-ff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067792] pci_bus 0000:00: root bus resource [io  0x0000-0xffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067810] pci_bus 0000:00: root bus resource [mem 0x10000000-0x3efeffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067827] pci_bus 0000:00: root bus resource [mem 0x8000000000-0xffffffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.067978] pci 0000:00:00.0: [1b36:0008] type 00 class 0x060000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.069243] pci 0000:00:01.0: [1af4:1002] type 00 class 0x00ff00 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.069641] pci 0000:00:01.0: BAR 0 [io  0x0000-0x003f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.069707] pci 0000:00:01.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.070604] pci 0000:00:02.0: [1af4:105a] type 00 class 0x018000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.071007] pci 0000:00:02.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.071065] pci 0000:00:02.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.072024] pci 0000:00:03.0: [1af4:1053] type 00 class 0x078000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.072424] pci 0000:00:03.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.072479] pci 0000:00:03.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.073312] pci 0000:00:04.0: [10e8:8406] type 00 class 0xff0000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.073692] pci 0000:00:04.0: BAR 0 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.073719] pci 0000:00:04.0: BAR 1 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.073743] pci 0000:00:04.0: BAR 2 [io  0x0000-0x0007]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.074086] pci 0000:00:05.0: [10e8:8406] type 00 class 0xff0000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.074465] pci 0000:00:05.0: BAR 0 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.074490] pci 0000:00:05.0: BAR 1 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.074514] pci 0000:00:05.0: BAR 2 [io  0x0000-0x0007]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.074849] pci 0000:00:06.0: [1760:ff00] type 00 class 0x0c0900 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.075236] pci 0000:00:06.0: BAR 0 [mem 0x00000000-0x00007fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.075265] pci 0000:00:06.0: BAR 1 [mem 0x00000000-0x0000ffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.075634] pci 0000:00:07.0: [10e8:8406] type 00 class 0xff0000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.076043] pci 0000:00:07.0: BAR 0 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.076071] pci 0000:00:07.0: BAR 1 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.076095] pci 0000:00:07.0: BAR 2 [io  0x0000-0x0007]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.076571] pci 0000:00:08.0: [1af4:1000] type 00 class 0x020000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.076999] pci 0000:00:08.0: BAR 0 [io  0x0000-0x001f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.077028] pci 0000:00:08.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.077084] pci 0000:00:08.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.077111] pci 0000:00:08.0: ROM [mem 0x00000000-0x0003ffff pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.078266] pci 0000:00:09.0: [1af4:1000] type 00 class 0x020000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.078673] pci 0000:00:09.0: BAR 0 [io  0x0000-0x001f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.078701] pci 0000:00:09.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.078756] pci 0000:00:09.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.078784] pci 0000:00:09.0: ROM [mem 0x00000000-0x0003ffff pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.079803] pci 0000:00:0a.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.080200] pci 0000:00:0a.0: BAR 0 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.080229] pci 0000:00:0a.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.080283] pci 0000:00:0a.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.081264] pci 0000:00:0b.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.081708] pci 0000:00:0b.0: BAR 0 [io  0x0000-0x007f]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.081740] pci 0000:00:0b.0: BAR 1 [mem 0x00000000-0x00000fff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.081803] pci 0000:00:0b.0: BAR 4 [mem 0x00000000-0x00003fff 64bit pref]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083208] pci 0000:00:08.0: ROM [mem 0x10000000-0x1003ffff pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083249] pci 0000:00:09.0: ROM [mem 0x10040000-0x1007ffff pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083264] pci 0000:00:06.0: BAR 1 [mem 0x10080000-0x1008ffff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083311] pci 0000:00:06.0: BAR 0 [mem 0x10090000-0x10097fff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083351] pci 0000:00:01.0: BAR 4 [mem 0x8000000000-0x8000003fff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083456] pci 0000:00:02.0: BAR 4 [mem 0x8000004000-0x8000007fff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083565] pci 0000:00:03.0: BAR 4 [mem 0x8000008000-0x800000bfff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083673] pci 0000:00:08.0: BAR 4 [mem 0x800000c000-0x800000ffff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083770] pci 0000:00:09.0: BAR 4 [mem 0x8000010000-0x8000013fff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083866] pci 0000:00:0a.0: BAR 4 [mem 0x8000014000-0x8000017fff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.083959] pci 0000:00:0b.0: BAR 4 [mem 0x8000018000-0x800001bfff 64bit pref]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084051] pci 0000:00:02.0: BAR 1 [mem 0x10098000-0x10098fff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084097] pci 0000:00:03.0: BAR 1 [mem 0x10099000-0x10099fff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084136] pci 0000:00:08.0: BAR 1 [mem 0x1009a000-0x1009afff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084174] pci 0000:00:09.0: BAR 1 [mem 0x1009b000-0x1009bfff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084213] pci 0000:00:0a.0: BAR 1 [mem 0x1009c000-0x1009cfff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084254] pci 0000:00:0b.0: BAR 1 [mem 0x1009d000-0x1009dfff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084296] pci 0000:00:04.0: BAR 0 [io  0x1000-0x107f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084340] pci 0000:00:04.0: BAR 1 [io  0x1080-0x10ff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084384] pci 0000:00:05.0: BAR 0 [io  0x1100-0x117f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084430] pci 0000:00:05.0: BAR 1 [io  0x1180-0x11ff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084477] pci 0000:00:07.0: BAR 0 [io  0x1200-0x127f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084516] pci 0000:00:07.0: BAR 1 [io  0x1280-0x12ff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084555] pci 0000:00:0a.0: BAR 0 [io  0x1300-0x137f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084628] pci 0000:00:0b.0: BAR 0 [io  0x1380-0x13ff]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084671] pci 0000:00:01.0: BAR 0 [io  0x1400-0x143f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084710] pci 0000:00:08.0: BAR 0 [io  0x1440-0x145f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084750] pci 0000:00:09.0: BAR 0 [io  0x1460-0x147f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084788] pci 0000:00:04.0: BAR 2 [io  0x1480-0x1487]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084825] pci 0000:00:05.0: BAR 2 [io  0x1488-0x148f]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084889] pci 0000:00:07.0: BAR 2 [io  0x1490-0x1497]: assigned
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084937] pci_bus 0000:00: resource 4 [io  0x0000-0xffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084952] pci_bus 0000:00: resource 5 [mem 0x10000000-0x3efeffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.084964] pci_bus 0000:00: resource 6 [mem 0x8000000000-0xffffffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.091544] virtio-pci 0000:00:01.0: enabling device (0000 -> 0003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.096249] virtio-pci 0000:00:02.0: enabling device (0000 -> 0002)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.101530] virtiofs virtio1: discovered new tag: verity_dir
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.104474] virtiofs virtio1: virtio_fs_setup_dax: No cache capability
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.106621] virtio-pci 0000:00:03.0: enabling device (0000 -> 0002)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.110657] virtio-pci 0000:00:08.0: enabling device (0000 -> 0003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.115770] virtio-pci 0000:00:09.0: enabling device (0000 -> 0003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.120576] virtio-pci 0000:00:0a.0: enabling device (0000 -> 0003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.126662] virtio-pci 0000:00:0b.0: enabling device (0000 -> 0003)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.132736] Free page reporting enabled
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.135137] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.143363] loop: module loaded
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.143807] virtio_blk virtio5: 1/0/0 default/read/poll queues
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.146580] virtio_blk virtio5: [vda] 1048576 512-byte logical blocks (537 MB/512 MiB)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.149958] virtio_blk virtio6: 1/0/0 default/read/poll queues
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.152022] virtio_blk virtio6: [vdb] 4194304 512-byte logical blocks (2.15 GB/2.00 GiB)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.155248] zram: Added device: zram0
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.156054] physmap-flash 0.flash: physmap platform flash device: [mem 0x00000000-0x03ffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.160977] 0.flash: Found 2 x16 devices at 0x0 in 32-bit bank. Manufacturer ID 0x000000 Chip ID 0x000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.161087] Intel/Sharp Extended Query Table at 0x0031
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.165073] Using buffer write method
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.165150] erase region 0: offset=0x0,size=0x40000,blocks=256
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.165225] physmap-flash 0.flash: physmap platform flash device: [mem 0x04000000-0x07ffffff]
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.169166] 0.flash: Found 2 x16 devices at 0x0 in 32-bit bank. Manufacturer ID 0x000000 Chip ID 0x000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.169362] Intel/Sharp Extended Query Table at 0x0031
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.172561] Using buffer write method
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.172673] erase region 0: offset=0x0,size=0x40000,blocks=256
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.172706] Concatenating MTD devices:
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.172718] (0): "0.flash"
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.172729] (1): "0.flash"
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.172736] into device "0.flash"
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.175514] tun: Universal TUN/TAP device driver, 1.6
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.183342] CAN device driver interface
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.183615] ctucanfd_pci 0000:00:06.0: enabling device (0000 -> 0002)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.184985] ctucanfd_pci 0000:00:06.0: ctucan BAR0 0x10090000 0x00008000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.185013] ctucanfd_pci 0000:00:06.0: ctucan BAR1 0x10080000 0x00010000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.185102] ctucanfd_pci 0000:00:06.0: ctucan_id 0xc0000001
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.185816] ctucanfd_pci 0000:00:06.0: cra_a2p_ie 0x00000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.185866] ctucanfd_pci 0000:00:06.0: cra_a2p_ie 0x00000000
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.186139] kvaser_pci 0000:00:04.0: initializing device 10e8:8406
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.186176] kvaser_pci 0000:00:04.0: enabling device (0000 -> 0001)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.189456] kvaser_pci 0000:00:04.0: reg_base=000000000b5d566e conf_addr=000000008256a04b irq=21
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.190098] kvaser_pci 0000:00:04.0: xilinx version=13 number of channels=0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.190292] kvaser_pci 0000:00:05.0: initializing device 10e8:8406
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.190330] kvaser_pci 0000:00:05.0: enabling device (0000 -> 0001)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.192375] kvaser_pci 0000:00:05.0: reg_base=00000000e328bd73 conf_addr=00000000173bb125 irq=15
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.193014] kvaser_pci 0000:00:05.0: xilinx version=13 number of channels=0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.193187] kvaser_pci 0000:00:07.0: initializing device 10e8:8406
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.193221] kvaser_pci 0000:00:07.0: enabling device (0000 -> 0001)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.195174] kvaser_pci 0000:00:07.0: reg_base=000000000be586ea conf_addr=00000000aebda676 irq=20
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.195839] kvaser_pci 0000:00:07.0: xilinx version=13 number of channels=0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.195941] sja1000 CAN netdevice driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196069] e1000: Intel(R) PRO/1000 Network Driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196087] e1000: Copyright (c) 1999-2006 Intel Corporation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196178] e1000e: Intel(R) PRO/1000 Network Driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196201] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196247] igb: Intel(R) Gigabit Ethernet Network Driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196269] igb: Copyright (c) 2007-2014 Intel Corporation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196311] igbvf: Intel(R) Gigabit Virtual Function Network Driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196337] igbvf: Copyright (c) 2009 - 2012 Intel Corporation.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196426] usbcore: registered new interface driver asix
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196467] usbcore: registered new interface driver ax88179_178a
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196529] usbcore: registered new interface driver cdc_ether
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196568] usbcore: registered new interface driver net1080
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196691] usbcore: registered new interface driver cdc_subset
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196731] usbcore: registered new interface driver zaurus
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196790] usbcore: registered new interface driver cdc_ncm
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.196854] usbcore: registered new interface driver r8153_ecm
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.197216] VFIO - User Level meta-driver version: 0.3
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.197701] usbcore: registered new interface driver option
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.197751] usbserial: USB Serial support registered for GSM modem (1-port)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.198717] rtc-pl031 9010000.pl031: registered as rtc0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.198795] rtc-pl031 9010000.pl031: setting system clock to 1970-01-01T00:00:07 UTC (7)
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.198946] i2c_dev: i2c /dev entries driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.199875] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.214684] usbcore: registered new interface driver usbhid
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.214725] usbhid: USB HID core driver
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.245461] hw perfevents: enabled with armv8_pmuv3 PMU driver, 7 (0,8000003f) counters available
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.246442] NET: Registered PF_INET6 protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248086] Segment Routing with IPv6
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248127] In-situ OAM (IOAM) with IPv6
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248352] NET: Registered PF_PACKET protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248367] can: controller area network core
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248534] NET: Registered PF_CAN protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248550] can: raw protocol
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.248664] 9pnet: Installing 9P2000 support
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.248832] Key type dns_resolver registered
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.249012] NET: Registered PF_VSOCK protocol family
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.262487] registered taskstats version 1
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.262538] Loading compiled-in X.509 certificates
+Jan  1 00:00:07 arm64_guest kern.notice kernel: [    0.268936] Loaded X.509 cert 'Build time autogenerated kernel key: 1a4f8f53b4968081be032b7fa9a8eca385934c8a'
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.275647] Demotion targets for Node 0: null
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.277048] input: gpio-keys as /devices/platform/gpio-keys/input/input0
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.278100] clk: Disabling unused clocks
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.278163] PM: genpd: Disabling unused power domains
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.278240] ALSA device list:
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.278276]   No soundcards found.
+Jan  1 00:00:07 arm64_guest kern.warn kernel: [    0.278919] check access for rdinit=/init failed: -2, ignoring
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.283191] EXT4-fs (vda): mounted filesystem 71c027f7-a335-4c8d-a9ef-e1fa3436f37f ro without journal. Quota mode: none.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.283301] VFS: Mounted root (ext4 filesystem) readonly on device 254:0.
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.284163] devtmpfs: mounted
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.285374] Freeing unused kernel memory: 1600K
+Jan  1 00:00:07 arm64_guest kern.info kernel: [    0.285591] Run /sbin/init as init process
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.285617]   with arguments:
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.285625]     /sbin/init
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.285633]   with environment:
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.285653]     HOME=/
+Jan  1 00:00:07 arm64_guest kern.debug kernel: [    0.285661]     TERM=linux
+Jan  1 00:00:07 arm64_guest daemon.info kernel: [    0.547625] udevd[89]: starting version 3.2.14
+Jan  1 00:00:07 arm64_guest daemon.info kernel: [    0.624015] udevd[89]: starting eudev-3.2.14
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    0.980545] EXT4-fs (vdb): mounted filesystem ee6b52ec-5ec3-4666-a78a-2d85b5bde6bc r/w with ordered data mode. Quota mode: none.
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: Bringing up interfaces
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: Interface:middleware IP:172.16.102.7 MacAddr:02:01:01:01:02:07
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.042978] virtio_net virtio4 middleware: renamed from eth1
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: Interface configured: middleware
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: Interface:securityApp IP:172.16.101.7 MacAddr:02:01:01:01:01:07
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.086382] virtio_net virtio3 securityApp: renamed from eth0
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: Interface configured: securityApp
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.116173] kvaser_pci 0000:00:07.0 tmpcan3: renamed from can3
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.123660] kvaser_pci 0000:00:05.0 tmpcan2: renamed from can2
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.131281] kvaser_pci 0000:00:04.0 tmpcan1: renamed from can1
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.138322] ctucanfd_pci 0000:00:06.0 tmpcan0: renamed from can0
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.170055] kvaser_pci 0000:00:07.0 tmpcan3: setting BTR0=0x01 BTR1=0x1c
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.170205] kvaser_pci 0000:00:07.0 can3: renamed from tmpcan3
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: CAN Interface configured: can3 with bitrate 250000
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.211149] kvaser_pci 0000:00:05.0 tmpcan2: setting BTR0=0x00 BTR1=0x1c
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.211247] kvaser_pci 0000:00:05.0 can1: renamed from tmpcan2
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: CAN Interface configured: can1 with bitrate 500000
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.244264] kvaser_pci 0000:00:04.0 tmpcan1: setting BTR0=0x01 BTR1=0x1c
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.244365] kvaser_pci 0000:00:04.0 can0: renamed from tmpcan1
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: CAN Interface configured: can0 with bitrate 250000
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.273418] ctucanfd_pci 0000:00:06.0 can2: renamed from tmpcan0
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.277341] ctucanfd_pci 0000:00:06.0 can2: ctu_can_fd device registered
+Jan  1 00:00:08 arm64_guest user.notice S21net_init: CAN Interface configured: can2 with bitrate 500000 dbitrate 2000000
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.286792] zram0: detected capacity change from 0 to 262144
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.294178] Adding 131068k swap on /dev/zram0.  Priority:-2 extents:1 across:131068k SS
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: Starting Verity Mount
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: Working on File CPM_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: Trying to mount CPM_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.630573] loop1: detected capacity change from 0 to 1023088
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: losetup /dev/loop1 CPM_A7H4_ADV_6839995_01_T04.verity - 0
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: HASH 0 1015080 verity 1 /dev/loop1 /dev/loop1 4096 4096 126885 126885 sha256 50c472ac6b4a13a34c0f5cd649568604e431aa1788a07dc28cc9c94427eed27a -^M
+Jan  1 00:00:08 arm64_guest kern.info kernel: [    1.685719] device-mapper: verity: sha256 using "sha256-lib"
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: dmsetup - 0
+Jan  1 00:00:08 arm64_guest user.notice S36verity_mnt: Mounting CPM
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.706685] EXT4-fs (dm-0): mounting ext2 file system using the ext4 subsystem
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.707450] EXT4-fs (dm-0): mounted filesystem a3d8cb83-138a-40f7-bef5-39c34974ce6e ro without journal. Quota mode: none.
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: mount /dev/mapper/CPM_verity /opt/CPM - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: CPM is mounted but has no content to launch
+Jan  1 00:00:09 arm64_guest daemon.err kernel: [    1.723690] udevd[99]: conflicting device node '/dev/mapper/CPM_verity' found, link to '/dev/dm-0' will not be created
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Working on File ossSoftware_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Trying to mount ossSoftware_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.847005] loop2: detected capacity change from 0 to 164768
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: losetup /dev/loop2 ossSoftware_A7H4_ADV_6839995_01_T04.verity - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: HASH 0 163464 verity 1 /dev/loop2 /dev/loop2 4096 4096 20433 20433 sha256 09675c8fcd2d0d032c46c949e69921fd058b9ce2900bb82cee099ad4704ed27e -^M
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.880556] device-mapper: verity: sha256 using "sha256-lib"
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: dmsetup - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Mounting ossSoftware
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.898842] EXT4-fs (dm-1): mounting ext2 file system using the ext4 subsystem
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    1.901712] EXT4-fs (dm-1): mounted filesystem 1803997f-0aea-4eca-b5d1-e8ef53211a5b ro without journal. Quota mode: none.
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: mount /dev/mapper/ossSoftware_verity /opt/ossSoftware - 0
+Jan  1 00:00:09 arm64_guest daemon.err kernel: [    1.918145] udevd[99]: conflicting device node '/dev/mapper/ossSoftware_verity' found, link to '/dev/dm-1' will not be created
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Running ossSoftware
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Working on File zzDevTools_ARM64_Guest_2026021101_TestVM1.verity
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Trying to mount zzDevTools_ARM64_Guest_2026021101_TestVM1.verity
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.091217] loop3: detected capacity change from 0 to 57816
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: losetup /dev/loop3 zzDevTools_ARM64_Guest_2026021101_TestVM1.verity - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: HASH 0 57352 verity 1 /dev/loop3 /dev/loop3 4096  4096 7169 7169 sha256 dd27d87e4241986f399ffd596ae765a2fd9ae5a1b610f2d7b447ac7c3801000d -^M
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.122406] device-mapper: verity: sha256 using "sha256-lib"
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: dmsetup - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Mounting zzDevTools
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.143733] EXT4-fs (dm-2): mounting ext2 file system using the ext4 subsystem
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.146776] EXT4-fs (dm-2): mounted filesystem fb248dad-c410-4841-8174-fe751082c841 ro without journal. Quota mode: none.
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: mount /dev/mapper/zzDevTools_verity /opt/zzDevTools - 0
+Jan  1 00:00:09 arm64_guest daemon.err kernel: [    2.159518] udevd[99]: conflicting device node '/dev/mapper/zzDevTools_verity' found, link to '/dev/dm-2' will not be created
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Running zzDevTools
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Setting library path for zzDevTools
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Working on File zzzAutostart_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Trying to mount zzzAutostart_A7H4_ADV_6839995_01_T04.verity
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: losetup /dev/loop4 zzzAutostart_A7H4_ADV_6839995_01_T04.verity - 0
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.378530] loop4: detected capacity change from 0 to 1752
+Jan  1 00:00:09 arm64_guest auth.info sshd[488]: Server listening on :: port 22.
+Jan  1 00:00:09 arm64_guest auth.info sshd[488]: Server listening on 0.0.0.0 port 22.
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: HASH 0 1728 verity 1 /dev/loop4 /dev/loop4 4096 4096 216 216 sha256 37521b8e228a034c8a6a817bdeef3ba653f51838aea2877455c96f30c2f12efd -^M
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.417283] device-mapper: verity: sha256 using "sha256-lib"
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: dmsetup - 0
+Jan  1 00:00:09 arm64_guest daemon.err kernel: [    2.430550] udevd[99]: conflicting device node '/dev/mapper/zzzAutostart_verity' found, link to '/dev/dm-3' will not be created
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Mounting zzzAutostart
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.442058] EXT4-fs (dm-3): mounting ext2 file system using the ext4 subsystem
+Jan  1 00:00:09 arm64_guest kern.info kernel: [    2.443489] EXT4-fs (dm-3): mounted filesystem f2b2d281-1fd9-4782-97eb-4ebf60244100 ro without journal. Quota mode: none.
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: mount /dev/mapper/zzzAutostart_verity /opt/zzzAutostart - 0
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Running zzzAutostart
+Jan  1 00:00:09 arm64_guest user.notice S36verity_mnt: Done with verity mounting
+Jan  1 00:00:09 arm64_guest cron.info crond[531]: crond (busybox 1.37.0) started, log level 8
+Jan  1 00:00:09 arm64_guest daemon.info : starting pid 538, tty '/dev/console': '/sbin/getty -L  console 0 vt100 '
+Jan  1 00:00:10 arm64_guest kern.info kernel: [    2.792707] EXT4-fs (vdb): re-mounted ee6b52ec-5ec3-4666-a78a-2d85b5bde6bc.
+Jan  1 00:00:23 arm64_guest auth.info sshd-session[754]: Accepted publickey for root from 172.16.102.1 port 35178 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 00:00:23 arm64_guest auth.info sshd-session[754]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:00:23 arm64_guest auth.info sshd-session[754]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:00:31 arm64_guest user.err bmiJ1939:  hal_canv3_port_socket.c,1155 [ERROR]: hal_canv3_port_socket_set_btrt: bitrate setting failed. Requested 250000 but set to 500000.
+Jan  1 00:00:38 arm64_guest user.err autonomyConditionDiagnostics:  hal_canv3_port_socket.c,1155 [ERROR]: hal_canv3_port_socket_set_btrt: bitrate setting failed. Requested 250000 but set to 500000.
+Jan  1 00:23:33 arm64_guest auth.info sshd-session[772]: Received disconnect from 172.16.102.1 port 35178:11: disconnected by user
+Jan  1 00:23:33 arm64_guest auth.info sshd-session[772]: Disconnected from user root 172.16.102.1 port 35178
+Jan  1 00:23:43 arm64_guest auth.info sshd-session[1169]: Accepted publickey for root from 172.16.102.1 port 40938 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 00:23:43 arm64_guest auth.info sshd-session[1169]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:23:43 arm64_guest auth.info sshd-session[1169]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:34:26 arm64_guest auth.info sshd-session[1172]: Received disconnect from 172.16.102.1 port 40938:11: disconnected by user
+Jan  1 00:34:26 arm64_guest auth.info sshd-session[1172]: Disconnected from user root 172.16.102.1 port 40938
+Jan  1 00:45:18 arm64_guest auth.info sshd-session[1432]: Accepted publickey for root from 172.16.102.1 port 53036 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 00:45:18 arm64_guest auth.info sshd-session[1432]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:45:18 arm64_guest auth.info sshd-session[1432]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 00:53:20 arm64_guest auth.info sshd-session[1434]: Received disconnect from 172.16.102.1 port 53036:11: disconnected by user
+Jan  1 00:53:20 arm64_guest auth.info sshd-session[1434]: Disconnected from user root 172.16.102.1 port 53036
+Jan  1 01:22:44 arm64_guest auth.info sshd-session[1859]: Accepted publickey for root from 172.16.102.1 port 42124 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 01:22:44 arm64_guest auth.info sshd-session[1859]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 01:22:44 arm64_guest auth.info sshd-session[1859]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 01:32:49 arm64_guest auth.info sshd-session[1862]: Received disconnect from 172.16.102.1 port 42124:11: disconnected by user
+Jan  1 01:32:49 arm64_guest auth.info sshd-session[1862]: Disconnected from user root 172.16.102.1 port 42124
+Jan  1 01:35:45 arm64_guest auth.info sshd-session[2024]: Accepted publickey for root from 172.16.102.1 port 33040 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 01:35:45 arm64_guest auth.info sshd-session[2024]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 01:35:45 arm64_guest auth.info sshd-session[2024]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 02:57:56 arm64_guest auth.info sshd-session[2027]: Connection closed by 172.16.102.1 port 33040
+Jan  1 03:52:24 arm64_guest auth.info sshd-session[3509]: Accepted publickey for root from 172.16.102.1 port 60146 ssh2: ED25519 SHA256:aa426e8uRbpz1tbZygC+4l3hFcBXiL6lKTTHKTrjBiI
+Jan  1 03:52:24 arm64_guest auth.info sshd-session[3509]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
+Jan  1 03:52:24 arm64_guest auth.info sshd-session[3509]: lastlog_openseek: Couldn't stat /var/log/lastlog: No such file or directory
