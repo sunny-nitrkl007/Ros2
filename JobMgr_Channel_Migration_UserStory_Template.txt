@@ -1,16 +1,127 @@
 JobMgr SCS->ROS2 Channel Migration -- Jira User Story Template
 =============================================================================
-Reusable template for the 13 remaining JobMgr channels (16 total, 3 done --
-see Full_ROS2_Migration_Analysis.txt and MsgFile-Completion-Status.txt).
-.msg conversion is already complete for all channels; this template covers
-the remaining per-channel work only. Same shape every time -- duplicate
-this block once per channel, filling in [CHANNEL_NAME] / [DIRECTION] /
-[Type] / [topic_name].
+Covers the 13 remaining JobMgr channels (16 total, 3 done -- see
+Full_ROS2_Migration_Analysis.txt and MsgFile-Completion-Status.txt).
+.msg conversion is already complete for all channels; this covers the
+remaining C++-side work only (type, binding, call sites).
+
+CURRENT APPROACH: ONE user story for the whole effort, with generic,
+reusable tasks (parameterized by complexity tier, not by channel name)
+scheduled across the 4-week sprint. A per-channel story template is also
+kept further below for reference, but is NOT the approach in use.
 
 
 =============================================================================
-USER STORY TEMPLATE (one per channel)
+USER STORY (one, covers the whole effort)
 =============================================================================
+
+Title:
+Migrate JobMgr's remaining SCS channels to ROS2/DDS transport
+
+Description:
+JobMgr has 16 total channels; 3 (LpsSaWeighReqstChannel/RespChannel/
+TxChannel) are already migrated to ros2_wrapper. This story covers
+converting the remaining 13 channels from SCS InterfaceDb-bound objects
+to ROS2/DDS wrappers, using the same conversion pattern already proven
+on the 3 completed channels. .msg generation is already done for all 16
+-- this story covers only the C++ side (type, binding, call sites).
+
+Definition of Ready (DoR):
+- .msg file for each channel already generated (confirmed in
+  MsgFile-Completion-Status.txt)
+- Topic names agreed for all 13 remaining channels
+- Any hardware/PID constants a channel depends on are confirmed, not
+  placeholders (affects OutputChannel, DataLinkData specifically)
+- Complexity tier assigned per channel (XL/L/M/S) so day allocation is
+  known before work starts
+
+Acceptance Criteria (short):
+- All 13 channels' members retyped from raw SCS pointer to
+  ros2_wrapper::Ros{Output,Input}Interface<msg::T>*
+- Zero remaining InterfaceDb::bind() calls anywhere in JobMgr
+- All read/write call sites use generated .msg snake_case fields, not
+  old SCS getters/field names
+- Code builds clean with zero references to any old SCS channel type
+- All 16 channels (13 new + 3 already done) verified live together in
+  one integration pass, not just individually
+- No regression in the 3 already-completed channels
+
+Definition of Done (DoD):
+- All 13 channels merged, reviewed, building clean
+- Full 16-channel integration pass completed and signed off
+- Challenges-And-Decisions.txt updated with anything non-obvious found
+  during conversion
+- Story closed only after Week 4's integration task passes, not
+  per-channel
+
+
+=============================================================================
+TASKS (generic, reusable -- apply to whichever channel is slotted that day)
+=============================================================================
+
+Reusable task template (the actual sub-steps, same every time):
+- Retype channel member: SCS pointer -> ros2_wrapper wrapper class
+- Replace InterfaceDb::bind() with wrapper construction (rosNode_, topic
+  name)
+- Convert all read/write call sites to .msg field names
+- Remove unused SCS interface-type include (only if nothing else needs
+  it)
+- Build
+- Smoke-test this channel in isolation
+
+Scheduled by week/day (task titles stay generic -- swap in whichever
+channel is assigned to that slot):
+
+WEEK 1
+Day 1-4   Task: Convert XL-complexity channel #1 (full template above)
+Day 5     Task: Convert XL-complexity channel #2 -- begin (retype +
+          bind replacement)
+
+WEEK 2
+Day 1-2   Task: Convert XL-complexity channel #2 -- finish (call sites +
+          build + test)
+Day 3-4   Task: Convert L-complexity channel #1 (full template)
+Day 5     Task: Convert L-complexity channel #2 -- begin
+
+WEEK 3
+Day 1     Task: Convert L-complexity channel #2 -- finish
+Day 2     Task: Convert M-complexity channel #1 (full template)
+Day 3     Task: Convert M-complexity channel #2 (full template)
+Day 4     Task: Convert M-complexity channel #3 (full template)
+Day 5     Task: Convert M-complexity channel #4 (full template)
+
+WEEK 4
+Day 1     Task: Convert S-complexity channel #1 (full template)
+Day 2     Task: Convert S-complexity channel #2 (full template) + #3
+          (full template)
+Day 3     Task: Convert S-complexity channel #4 (full template) + #5
+          (full template)
+Day 4-5   Task: Full 16-channel integration & regression pass
+
+Same one story the whole sprint; these 13 "Convert [tier]-complexity
+channel" tasks (plus the final integration task) are its subtasks --
+note which real channel name fills each slot when assigning it, without
+baking the name into the task title itself.
+
+
+=============================================================================
+REMAINING 13 CHANNELS -- which real channel fills which slot
+=============================================================================
+(complexity / estimate reference: see Full_ROS2_Migration_Analysis.txt)
+
+XL:  LpsSaJobMgrReqstChannel, LpsSaJobMgrTxChannel
+L:   DataLinkData, LoadRecordOutput
+M:   EventDiagnosticData, LpsSaJobMgrRespChannel,
+     AutonomyConditionDiagnosticsTxChannel, ShmClockInput
+S:   LpsSaJobMgrDebugChannel, SwitchInputScs, OutputChannel,
+     DisplayState, AisJhm2TxChannel
+
+
+=============================================================================
+REFERENCE ONLY -- per-channel story template (not the approach in use)
+=============================================================================
+Kept for reference in case per-channel stories are wanted later instead
+of the single-story/generic-task approach above.
 
 Title:
 Migrate [CHANNEL_NAME] from SCS to ROS2/DDS (JobMgr)
@@ -67,10 +178,7 @@ Tasks (copy-paste as sub-tasks):
 6. Verify alongside already-converted channels (no cross-channel
    regression)
 
-
-=============================================================================
-WORKED EXAMPLE -- fully filled in (LpsSaJobMgrReqstChannel)
-=============================================================================
+Worked example (fully filled in -- LpsSaJobMgrReqstChannel):
 
 Title:
 Migrate LpsSaJobMgrReqstChannel from SCS to ROS2/DDS (JobMgr)
@@ -115,17 +223,3 @@ Tasks:
 5. Remove unused SCS include if safe
 6. Build + smoke-test all ~25 commands individually
 7. Joint verification with LpsSaJobMgrRespChannel
-
-
-=============================================================================
-REMAINING 13 CHANNELS -- apply the template to each
-=============================================================================
-(complexity / estimate reference: see Full_ROS2_Migration_Analysis.txt and
-the 4-week distribution already discussed)
-
-XL:  LpsSaJobMgrReqstChannel, LpsSaJobMgrTxChannel
-L:   DataLinkData, LoadRecordOutput
-M:   EventDiagnosticData, LpsSaJobMgrRespChannel,
-     AutonomyConditionDiagnosticsTxChannel, ShmClockInput
-S:   LpsSaJobMgrDebugChannel, SwitchInputScs, OutputChannel,
-     DisplayState, AisJhm2TxChannel
