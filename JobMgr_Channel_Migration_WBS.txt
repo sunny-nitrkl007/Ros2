@@ -1,0 +1,120 @@
+JobMgr SCS->ROS2 Channel Migration -- Work Breakdown Structure
+=============================================================================
+Matches the WS4_2026_PI2_Sprint3 / M3_CPM_Planning sheet columns:
+No | Work Break Down | Description/Sub Activities | Efforts | Owner |
+Start Date | End Date
+
+Covers the 13 remaining JobMgr channels (16 total, 3 already done -- see
+Full_ROS2_Migration_Analysis.txt and MsgFile-Completion-Status.txt).
+.msg conversion is already complete for all channels; this WBS covers the
+remaining C++-side work only. Dates assume ONE owner working sequentially
+from 24-Aug at 8h/day -- halve the spans if two people split the work in
+parallel.
+
+Grouping logic (13 channels -> 4 tasks, balanced by hours, not a strict
+"3 each" -- see JobMgr_Channel_Migration_UserStory_Template.txt for the
+per-channel/per-tier hour source data):
+- Task 1 pairs Reqst+Resp deliberately (response must be verified jointly
+  with request) and rounds out with the cheap AisJhm2TxChannel.
+- Task 2/3 each land at 36h by pairing one large channel with two small
+  ones.
+- Task 4 takes the 4 remaining M/S-tier channels -- slightly over "2-3"
+  channels but keeps hours balanced against the other three tasks.
+- Total: 148h across 4 tasks = 13 channels.
+
+
+=============================================================================
+US1
+=============================================================================
+No:              US1
+Work Break Down: Conversion of Job Manager channels into ROS2 interface
+                  (existing row, unchanged)
+Owner:            Sunny
+Start Date:       24-Aug
+
+
+=============================================================================
+Task 1
+=============================================================================
+No:               Task 1
+Work Break Down:  LpsSaJobMgrReqstChannel, LpsSaJobMgrRespChannel,
+                   AisJhm2TxChannel
+Description/Sub Activities:
+  1. Retype channel member (SCS pointer -> ros2_wrapper wrapper class)
+  2. Replace InterfaceDb::bind() with wrapper construction (rosNode_,
+     topic name)
+  3. Convert all read/write call sites to .msg field names
+  4. Remove unused SCS interface-type include (if safe)
+  5. Build
+  6. Smoke-test each channel in isolation
+Efforts:           42h
+Owner:             TBD
+Start Date:        24-Aug
+End Date:          31-Aug
+
+
+=============================================================================
+Task 2
+=============================================================================
+No:               Task 2
+Work Break Down:  LpsSaJobMgrTxChannel, LpsSaJobMgrDebugChannel,
+                   SwitchInputScs
+Description/Sub Activities:
+  1. Retype channel member (SCS pointer -> ros2_wrapper wrapper class)
+  2. Replace InterfaceDb::bind() with wrapper construction (rosNode_,
+     topic name)
+  3. Convert all read/write call sites to .msg field names
+  4. Remove unused SCS interface-type include (if safe)
+  5. Build
+  6. Smoke-test each channel in isolation
+Efforts:           36h
+Owner:             TBD
+Start Date:        01-Sep
+End Date:          07-Sep
+
+
+=============================================================================
+Task 3
+=============================================================================
+No:               Task 3
+Work Break Down:  DataLinkData, LoadRecordOutput, OutputChannel
+Description/Sub Activities:
+  1. Retype channel member (SCS pointer -> ros2_wrapper wrapper class)
+  2. Replace InterfaceDb::bind() with wrapper construction (rosNode_,
+     topic name)
+  3. Convert all read/write call sites to .msg field names
+  4. Remove unused SCS interface-type include (if safe)
+  5. Build
+  6. Smoke-test each channel in isolation
+Efforts:           36h
+Owner:             TBD
+Start Date:        08-Sep
+End Date:          14-Sep
+
+
+=============================================================================
+Task 4
+=============================================================================
+No:               Task 4
+Work Break Down:  EventDiagnosticData, AutonomyConditionDiagnosticsTxChannel,
+                   ShmClockInput, DisplayState
+Description/Sub Activities:
+  1. Retype channel member (SCS pointer -> ros2_wrapper wrapper class)
+  2. Replace InterfaceDb::bind() with wrapper construction (rosNode_,
+     topic name)
+  3. Convert all read/write call sites to .msg field names
+  4. Remove unused SCS interface-type include (if safe)
+  5. Build
+  6. Smoke-test each channel in isolation
+Efforts:           34h
+Owner:             TBD
+Start Date:        15-Sep
+End Date:          21-Sep
+
+
+=============================================================================
+NOT YET ADDED -- optional Task 5
+=============================================================================
+Full 16-channel integration & regression pass (all 13 new + 3 already
+done, verified live together). 12-16h. Would follow Task 4, starting
+22-Sep if added.
