@@ -1,0 +1,157 @@
+Full ROS2 Migration (Remove AIS Framework Entirely) -- Scope & Cost Analysis
+=============================================================================
+Scope of the question: what would it take to migrate JobMgr and WeighApp to
+pure ROS2 -- not just swapping the SCS transport for DDS (already done for
+the 5 direct JobMgr<->WeighApp channels), but removing task::Task,
+scheduling, logging, and config entirely, so there is no AIS dependency
+left at all.
+
+
+ALREADY ON RECORD: this exact question was asked and answered before
+-----------------------------------------------------------------------
+See Challenges-And-Decisions.txt, section 1.1 ("Full rewrite vs.
+communication-only migration"). Full rewrite was investigated and
+REJECTED for four concrete, named costs:
+  - loss of native OEL real-time scheduling
+  - WeighApp's independent task_1x() OEL background task (NVM read/write)
+    has no equivalent in a pure-node design
+  - watchdog servicing built into task::Task has no automatic replacement
+  - a live launch/supervision mechanism would need building from scratch
+    (currently solved for free by staying on the AIS task supervisor)
+DECISION on record: communication-only. Logic, scheduling, and NVM usage
+stay exactly as-is; only the transport changes.
+Nothing in the work done since that decision has closed any of these four
+gaps -- they are exactly as open today as when the decision was made.
+
+
+WHAT "NO AIS DEPENDENCY" MEANS REMOVING, PIECE BY PIECE
+-----------------------------------------------------------------------
+
+1. task::Task base class + cycleRate_hz scheduling
+   Today:       executive() called on a fixed-rate timer by the AIS
+                scheduler (10Hz JobMgr, 50Hz WeighApp).
+   Replacement: class LpsSaJobMgrApp : public rclcpp::Node, with
+                create_wall_timer() driving the executive()-equivalent.
+   Effort/risk: Mechanical, but every method that assumed "the framework
+                calls me" now needs the class to BE the node, not sit
+                beside it.
+
+2. Ruby config (.rb Parameters/Interfaces)
+   Today:       cycleRate_hz, scheduler, schedulerPriority, storageRoot,
+                etc. loaded once at startup via the AIS Ruby config
+                loader.
+   Replacement: ROS2 parameters -- a YAML params file +
+                declare_parameter<T>() per value.
+   Effort/risk: Mechanical, small, per-app.
+
+3. AIS_LOG_* macros
+   Today:       Backed by logger::SingletonLogger, a completely separate
+                logging stack from ROS2's own (rclcpp logging is
+                spdlog-based).
+   Replacement: RCLCPP_INFO(this->get_logger(), ...) etc. -- printf-style
+                args carry over almost 1:1.
+   Effort/risk: Mechanical but LARGE SURFACE AREA -- every log call site
+                in both apps, and every call site needs the node object
+                reachable (no longer a free function call).
+
+4. Real-time scheduling (SCHED_RR, schedulerPriority)
+   Today:       OEL sets actual OS thread scheduling policy/priority for
+                the task.
+   Replacement: Nothing built into rclcpp/executors for this. Would need
+                pthread_setschedparam()/chrt at launch, entirely outside
+                ROS2's control.
+   Effort/risk: GENUINELY HARD. This is the first of the four named costs
+                from 1.1, and it is real: ROS2 does not manage real-time
+                priority for you.
+
+5. Process watchdog / supervision
+   Today:       task::Task framework services a watchdog; the AIS task
+                supervisor restarts the process on failure/hang.
+   Replacement: No ROS2-native equivalent. Options: a systemd unit with
+                Restart=on-failure (loses in-process HANG detection, only
+                restarts on crash/exit), or a hand-built heartbeat +
+                external monitor.
+   Effort/risk: GENUINELY HARD, and a behavior change either way -- you
+                are trading a known, working mechanism for one that would
+                need to be designed and validated from scratch.
+
+6. WeighApp's independent task_1x() OEL background task
+   Today:       A second scheduling context inside WeighApp doing NVM
+                read/write off the main cycle.
+   Replacement: No direct ROS2 equivalent -- would become a second
+                thread, or a ROS2 timer/callback group with its own
+                execution context, hand-built.
+   Effort/risk: HARD, and easy to get subtly wrong -- timing/locking
+                assumptions are baked into the current split.
+
+7. InterfaceDb / raw SCS channel objects (channels not yet ported)
+   Today:       Config-driven registry + dynamic_cast lookup.
+   Replacement: Direct RosOutputInterface<T>/native create_publisher<T>
+                per channel.
+   Effort/risk: Depends entirely on how many channels are STILL SCS-only
+                -- see "remaining channel scope" below.
+
+8. The ros2_wrapper::RosInputInterface / RosOutputInterface shim classes
+   Today:       Deliberately reproduce the old SCS get()/publish() call
+                syntax so existing call sites did not have to change.
+   Replacement: In a full rewrite these become unnecessary scaffolding --
+                native create_subscription() with a real callback instead
+                of polling a queue via get().
+   Effort/risk: Low risk per site, but touches every call site currently
+                doing `while (channel->get(x))` -- a real rewrite, not a
+                rename.
+
+9. Boost::serialization NVM persistence (simpleCal_, tasks_.save(), etc.)
+   Today:       Plain file-based serialization -- not really an "AIS"
+                thing per se.
+   Replacement: Stays as-is; nothing ROS2-specific to replace here.
+   Effort/risk: Low risk, likely untouched either way.
+
+
+REMAINING CHANNEL SCOPE (even for "just swap the transport")
+-----------------------------------------------------------------------
+Everything migrated so far covers the 5 DIRECT JobMgr<->WeighApp channels.
+WeighApp alone still declares roughly a dozen more SCS-only channels that
+were never in that scope:
+  DemoAppTxChannel, LpsSaNvmCalDataChannel, PwmInputChannels, MachineInput,
+  CalMgrCmdReqst, CalMgrCmdResp, TipoffModelTestPoints, PartNumbers,
+  PrinterCnfg, SystemHardwareHealth, SystemHardwareHealthRequest,
+  ReadyToFlashStatus
+JobMgr's own remaining SCS-only channels:
+  SwitchInputScs, OutputChannel, LoadRecord, EventDiagnosticData
+A "complete" migration needs every one of these to either become a real
+DDS topic too, or go through the shared Bridge process (per the
+architecture already chosen in Challenges-And-Decisions.txt 1.3/1.4) --
+real, additive work independent of the AIS-framework-removal question.
+
+
+WHAT TO VERIFY BEFORE CALLING IT DONE
+-----------------------------------------------------------------------
+- Timing fidelity: does LpsPtUpdate() or any weighing-critical path
+  actually depend on the real-time scheduling guarantee, or does default
+  Linux scheduling suffice? Needs a real measurement, not an assumption.
+- Crash/hang recovery parity: whatever replaces the watchdog needs to
+  catch the same failure modes the AIS supervisor currently catches
+  (hangs, not just crashes) -- a systemd restart-on-exit alone is a
+  downgrade if the current watchdog also detects hangs.
+- NVM data compatibility: same file formats/paths post-migration, no
+  silent data loss for simpleCal_/load records on the cutover.
+- Every remaining SCS channel verified end-to-end with a real
+  consumer/producer, not just "compiles."
+- Log continuity: whatever currently parses/monitors AIS_LOG_* output
+  (dashboards, field diagnostics tooling) needs to also understand
+  RCLCPP_* output, or an operational tool breaks silently.
+
+
+BOTTOM LINE
+-----------------------------------------------------------------------
+The team already ran this exact cost/benefit and picked communication-only
+specifically because of the scheduling/watchdog/task_1x gaps -- none of
+those three have gotten easier since that decision, and nothing done in
+this migration work so far has closed them. The real open question isn't
+"can it be done" (yes) -- it's whether the real-time scheduling and
+watchdog behavior the current AIS supervisor provides for free are things
+this application can actually live without, or need to be rebuilt to the
+same reliability bar before a full cutover is safe. That is a
+systems-engineering decision, not a coding task, and should be settled
+before scoping the code work in detail.

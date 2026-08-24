@@ -1,0 +1,131 @@
+JobMgr SCS->ROS2 Channel Migration -- Jira User Story Template
+=============================================================================
+Reusable template for the 13 remaining JobMgr channels (16 total, 3 done --
+see Full_ROS2_Migration_Analysis.txt and MsgFile-Completion-Status.txt).
+.msg conversion is already complete for all channels; this template covers
+the remaining per-channel work only. Same shape every time -- duplicate
+this block once per channel, filling in [CHANNEL_NAME] / [DIRECTION] /
+[Type] / [topic_name].
+
+
+=============================================================================
+USER STORY TEMPLATE (one per channel)
+=============================================================================
+
+Title:
+Migrate [CHANNEL_NAME] from SCS to ROS2/DDS (JobMgr)
+
+Description:
+As the JobMgr app, [CHANNEL_NAME] currently reads/writes through the old
+SCS InterfaceDb-bound object so that it can exchange data with its
+counterpart process. Convert it to the ROS2/DDS wrapper
+(ros2_wrapper::RosInputInterface / RosOutputInterface) so the channel no
+longer depends on InterfaceDb, matching the pattern already used for the
+3 completed WeighApp channels.
+
+Definition of Ready (DoR):
+- .msg file for this channel already exists and is generated (confirmed
+  in MsgFile-Completion-Status.txt)
+- Topic name for this channel agreed (snake_case convention, e.g.
+  lps_sa_job_mgr_tx_channel)
+- Any hardware/PID constants this channel depends on are confirmed, not
+  placeholders (only applies to OutputChannel, DataLinkData)
+- Reference "after" pattern available (an already-converted channel of
+  the same Input/Output shape to copy structure from)
+
+Acceptance Criteria (short):
+- Member type in LpsSaJobMgrApp.h changed from raw SCS pointer to
+  ros2_wrapper::Ros{Output,Input}Interface<msg::[Type]>*
+- InterfaceDb::bind(...) call removed; replaced with
+  new ros2_wrapper::Ros{Output,Input}Interface<...>(rosNode_, "[topic_name]")
+- All read/write call sites for this channel use generated .msg field
+  names (snake_case), not the old SCS field/getter names
+- Code builds with zero remaining references to the old SCS type for
+  this channel
+- ros2 topic echo [topic_name] (or equivalent) shows correct live data
+  during a manual run
+- No regression in any other already-converted channel
+
+Definition of Done (DoD):
+- Code merged, reviewed, and passes build
+- Manually verified against real/simulated data for this channel
+  specifically
+- Challenges-And-Decisions.txt updated if anything non-obvious was found
+  during conversion
+- Jira story moved to Done only after the Week's integration pass also
+  confirms this channel alongside the others (not just in isolation)
+
+Tasks (copy-paste as sub-tasks):
+1. Update LpsSaJobMgrApp.h: retype member to ros2_wrapper wrapper class
+2. Update LpsSaJobMgrApp.cpp initialize(): replace InterfaceDb::bind()
+   with wrapper construction
+3. Update all call sites in LpsSaJobMgrScs.cpp / LpsSaJobMgrProcess.cpp
+   to use .msg field names
+4. Remove now-unused SCS interface-type include (only if confirmed
+   nothing else in the file still needs it)
+5. Build and smoke-test this channel in isolation
+6. Verify alongside already-converted channels (no cross-channel
+   regression)
+
+
+=============================================================================
+WORKED EXAMPLE -- fully filled in (LpsSaJobMgrReqstChannel)
+=============================================================================
+
+Title:
+Migrate LpsSaJobMgrReqstChannel from SCS to ROS2/DDS (JobMgr)
+
+Description:
+As the JobMgr app, LpsSaJobMgrReqstChannel currently reads incoming
+UI/WeighApp requests through the old SCS InterfaceDb-bound
+LpsSaJobMgrScsReqstIn object. Convert it to
+ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>
+so it no longer depends on InterfaceDb.
+
+Definition of Ready (DoR):
+- LpsSaJobMgrReqstChannel.msg (cpm_common_interfaces) already generated
+- Topic name agreed: lps_sa_job_mgr_reqst_channel
+- No hardware constants involved -- not blocked
+
+Acceptance Criteria:
+- LpsSaJobMgrScsReqstIn retyped to
+  ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>*
+- InterfaceDb::bind("LpsSaJobMgrReqstChannelInput", ...) removed,
+  replaced with constructor call bound to lps_sa_job_mgr_reqst_channel
+- Every reqIn.<field> access in LpsSaJobMgrScsChkForReqst() (both the
+  top-level command switch and the "new-style requests" sub-loop) uses
+  .msg snake_case fields, e.g. reqIn.command.value, reqIn.data_target_type
+- sendReqstResponse() correctly reads from the converted reqIn type
+- Code builds with zero references to old LpsSaJobMgrReqstChannelInput type
+- Manually triggering each of the ~25 request commands produces the
+  expected LpsJobMgrJobTrackerInfoTbl/task state change
+
+Definition of Done (DoD):
+Merged, reviewed, builds, manually verified per-command, verified
+jointly with LpsSaJobMgrRespChannel (response mirrors request),
+Challenges-And-Decisions.txt updated with any surprises.
+
+Tasks:
+1. Update LpsSaJobMgrApp.h: retype LpsSaJobMgrScsReqstIn
+2. Update initialize(): replace bind with RosInputInterface construction
+   on lps_sa_job_mgr_reqst_channel
+3. Convert LpsSaJobMgrScsChkForReqst() field accesses (command switch +
+   new-style requests loop)
+4. Convert sendReqstResponse() to match
+5. Remove unused SCS include if safe
+6. Build + smoke-test all ~25 commands individually
+7. Joint verification with LpsSaJobMgrRespChannel
+
+
+=============================================================================
+REMAINING 13 CHANNELS -- apply the template to each
+=============================================================================
+(complexity / estimate reference: see Full_ROS2_Migration_Analysis.txt and
+the 4-week distribution already discussed)
+
+XL:  LpsSaJobMgrReqstChannel, LpsSaJobMgrTxChannel
+L:   DataLinkData, LoadRecordOutput
+M:   EventDiagnosticData, LpsSaJobMgrRespChannel,
+     AutonomyConditionDiagnosticsTxChannel, ShmClockInput
+S:   LpsSaJobMgrDebugChannel, SwitchInputScs, OutputChannel,
+     DisplayState, AisJhm2TxChannel
