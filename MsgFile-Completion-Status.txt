@@ -1,0 +1,60 @@
+======================================================================
+.msg FILE COMPLETION STATUS -- JobMgr and WeighApp Interfaces
+======================================================================
+JobMgr -- config/LpsSaJobMgrApp.rb -- 16
+======================================================================
+
+Config key                                    .msg file                                    Package
+----------------------------------------------------------------------------------------------------------------------
+LpsSaJobMgrTxChannelOutput                     LpsSaJobMgrTxChannel.msg                     job_mgr_interfaces
+LpsSaJobMgrReqstChannelInput                   LpsSaJobMgrReqstChannel.msg                  cpm_common_interfaces
+LpsSaJobMgrRespChannelOutput                   LpsSaJobMgrRespChannel.msg                   job_mgr_interfaces
+LpsSaJobMgrDebugChannelOutput                  LpsSaJobMgrDebugChannel.msg                  job_mgr_interfaces
+LpsSaWeighReqstChannelOutput                   LpsSaWeighReqstChannel.msg                   cpm_common_interfaces
+LpsSaWeighRespChannelInput                     LpsSaWeighRespChannel.msg                    cpm_common_interfaces
+LpsSaWeighTxChannelInput                       LpsSaWeighTxChannel.msg                      cpm_common_interfaces
+SwitchInputScsInput                            SwitchInputScs.msg                            job_mgr_interfaces
+OutputChannelOutput                            OutputChannel.msg                             job_mgr_interfaces
+AisJhm2TxChannelInput                          AisJhm2TxChannel.msg                         cpm_common_interfaces
+DisplayStateInput                              LpsSaUIDisplayStateInterface.msg             cpm_common_interfaces
+ShmClockInput                                  ShmClockInput.msg                            cpm_common_interfaces
+LoadRecordOutput                               LpsSaLoadRecordChannel.msg 			       job_mgr_interfaces
+DataLinkDataInput                              DataLinkData.msg 					       job_mgr_interfaces 
+AutonomyConditionDiagnosticsTxChannelInput     AutonomyConditionDiagnosticsTxChannel.msg    cpm_common_interfaces
+EventDiagnosticDataInput                       EventDiagnosticData.msg                      job_mgr_interfaces
+                                                
+
+======================================================================
+WeighApp -- config/LpsSaWeighApp.rb -- 25
+======================================================================
+
+Config key                                    .msg file                                    Package
+----------------------------------------------------------------------------------------------------------------------
+LpsSaWeighReqstChannelInput                    LpsSaWeighReqstChannel.msg                   cpm_common_interfaces
+LpsSaWeighRespChannelOutput                    LpsSaWeighRespChannel.msg                    cpm_common_interfaces
+LpsSaWeighInitDebugChannelOutput               LpsSaWeighInitDebugChannel.msg               weigh_app_interfaces
+LpsSaWeighDebugChannelOutput                   LpsSaWeighDebugChannel.msg                   weigh_app_interfaces
+LpsSaNvmCalDataChannelOutput                   LpsSaNvmCalDataChannel.msg 			        weigh_app_interfaces
+DemoAppTxChannelInput                          DemoAppTxChannel.msg                         weigh_app_interfaces
+LpsSaNvmCalOnTheFlyDataChannelOutput           LpsSaNvmCalOnTheFlyDataChannel.msg            weigh_app_interfaces
+LpsSaWeighTxChannelOutput                      LpsSaWeighTxChannel.msg                      cpm_common_interfaces
+PwmInputChannelsInput                          PwmInputChannels.msg                         weigh_app_interfaces
+LpsSaJobMgrTxChannelInput                      LpsSaJobMgrTxChannel.msg                      job_mgr_interfaces
+LpsSaJobMgrReqstChannelOutput                  LpsSaJobMgrReqstChannel.msg                   cpm_common_interfaces
+MachineInput                                   Machine.msg                                   weigh_app_interfaces
+CalMgrCmdReqstInput                            CalMgrCmdReqst.msg                            weigh_app_interfaces
+CalMgrCmdRespOutput                            CalMgrCmdResp.msg                             weigh_app_interfaces
+DataLinkDataInput                              DataLinkData.msg 					        weigh_app_interfaces 
+AisJhm2TxChannelInput                          AisJhm2TxChannel.msg                         cpm_common_interfaces
+AutonomyConditionDiagnosticsTxChannelInput     AutonomyConditionDiagnosticsTxChannel.msg    cpm_common_interfaces
+TipoffModelTestPointsOutput                    TipoffModelTestPoints.msg                     weigh_app_interfaces
+PartNumbersInput                               PartNumbers.msg                               weigh_app_interfaces
+DisplayStateInput                              LpsSaUIDisplayStateInterface.msg             cpm_common_interfaces
+PrinterCnfgInput                               LpsSaTotalsPrinterCnfg.msg                    weigh_app_interfaces
+ShmClockInput                                  ShmClockInput.msg                            cpm_common_interfaces
+SystemHardwareHealthInput                      SystemHardwareHealthStorage.msg               weigh_app_interfaces
+SystemHardwareHealthRequestOutput              SystemHardwareHealthRequest.msg               weigh_app_interfaces
+ReadyToFlashStatusOutput                       ReadyToFlashStatus.msg                        weigh_app_interfaces
+
+======================================================================
+
