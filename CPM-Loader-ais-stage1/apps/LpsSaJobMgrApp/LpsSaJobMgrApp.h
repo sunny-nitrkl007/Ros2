@@ -51,10 +51,10 @@ DESCRIPTION:
 
 /*Additional ROS2 interfaces*/
 #include <interfaces/LpsSaWeighReqstChannel/DDSWeighAppInf.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <ros2_wrapper/RosInputInterface.h>
-#include <ros2_wrapper/RosOutputInterface.h>
-#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "ros2wrapper/RosInputInterface.h"
+#include "ros2wrapper/RosOutputInterface.h"
+#include "cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp"
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 

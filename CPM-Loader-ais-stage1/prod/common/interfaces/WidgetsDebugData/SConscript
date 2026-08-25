@@ -1,0 +1,61 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) 2019
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+
+baseEnv.Append( CPPPATH = [
+                baseEnv[ 'SSP_DIR' ] + '/widgets/tire_rev_wl00/include',
+                baseEnv[ 'SSP_DIR' ] + '/widgets/dig_timer_wl00/include',
+                baseEnv[ 'SSP_DIR' ] + '/mach_prod_pcs-interface/include',
+                baseEnv[ 'SSP_DIR' ] + '/mach_prod_prodcore/include',
+                ] )
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='WidgetsDebugData.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='WidgetsDebugData.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+#ifaceRestorable = baseEnv.SharedLibraryWrapper(
+#    target='WidgetsDebugData.Restorable.so',
+#    source='Restorable/Restorable.cpp',
+#    LIBS = ['ais_serialization'],
+#)
+    
+# Build TypeTraits    
+#ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+#  target='WidgetsDebugData.TypeTraits.so',
+#  source=[
+#       'TypeTraits/csvable.cpp',
+#        'TypeTraits/textWritable.cpp',
+#   ],
+#   LIBS = ['ais_serialization'],
+#)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+#baseEnv.InstallLibrary( ifaceRestorable )
+#baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("WidgetsDebugData", "#lib/libWidgetsDebugData.Channel.Input.so")
+baseEnv.Alias("WidgetsDebugData", "#lib/libWidgetsDebugData.Channel.Output.so")
+#baseEnv.Alias("WidgetsDebugData", "#lib/libWidgetsDebugData.Restorable.so")
+#baseEnv.Alias("WidgetsDebugData", "#lib/libWidgetsDebugData.TypeTraits.so")

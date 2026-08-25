@@ -1,0 +1,59 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) 2017
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+baseEnv.Append(CPPPATH = [
+    baseEnv[ 'SSP_DIR'] + '/lps_common/include',
+    baseEnv[ 'SSP_DIR'] + '/lps_app_common/include',
+    baseEnv[ 'SSP_DIR'] + '/lps_pass_tracker/include'
+])
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaJobMgrDebugChannel.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaJobMgrDebugChannel.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+ifaceRestorable = baseEnv.SharedLibraryWrapper(
+    target='LpsSaJobMgrDebugChannel.Restorable.so',
+    source='Restorable/Restorable.cpp',
+    LIBS = ['ais_serialization'],
+)
+    
+# Build TypeTraits    
+ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+  target='LpsSaJobMgrDebugChannel.TypeTraits.so',
+  source=[
+       'TypeTraits/csvable.cpp',
+        'TypeTraits/textWritable.cpp',
+   ],
+   LIBS = ['ais_serialization'],
+)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+baseEnv.InstallLibrary( ifaceRestorable )
+baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("LpsSaJobMgrDebugChannel", "#lib/libLpsSaJobMgrDebugChannel.Channel.Input.so")
+baseEnv.Alias("LpsSaJobMgrDebugChannel", "#lib/libLpsSaJobMgrDebugChannel.Channel.Output.so")
+baseEnv.Alias("LpsSaJobMgrDebugChannel", "#lib/libLpsSaJobMgrDebugChannel.Restorable.so")
+baseEnv.Alias("LpsSaJobMgrDebugChannel", "#lib/libLpsSaJobMgrDebugChannel.TypeTraits.so")

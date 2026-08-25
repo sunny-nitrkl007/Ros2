@@ -400,7 +400,7 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(LpsSaWeighReqstChannel::Command co
         return false;
     }
 
-    // request_ is the old raw SCS type; the 3-arg new-type overload below
+    // request_ is the old raw SCS type
     cpm_common_interfaces::msg::LpsSaWeighReqstChannel newRequest;
     newRequest.app_name = request_.appName;
     newRequest.app_request_id = request_.appRequestId;
@@ -428,7 +428,16 @@ bool LpsSaWeighApp::LpsSaScsSendReqstResponse(const cpm_common_interfaces::msg::
 
     /* send response SCS channel */
     if (LpsSaWeighScsRespOut) {
+
+        /*Conversion to struct is required */
         if (LpsSaWeighScsRespOut->publish(response)) {
+            AIS_LOG_INFO("Published response, command=%d, success=%d", response.command.value , success);
+            //return true;
+        }
+    }
+     /* send response ROS2 topic */
+    if (LpsSaWeighScsRespOut_ROS2) {
+        if (LpsSaWeighScsRespOut_ROS2->publish(response)) {
             AIS_LOG_INFO("Published response, command=%d, success=%d", response.command.value , success);
             return true;
         }
@@ -748,15 +757,14 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
 {
     bool scsCmdRet = false;
 
-    if (nullptr != LpsSaWeighScsTxOut) {
+    if ((nullptr != LpsSaWeighScsTxOut) && (nullptr != LpsSaWeighScsTxOut_ROS2)) {
         cpm_common_interfaces::msg::LpsSaWeighTxChannel txOut;
 
+        txOut.dig_stat = LpsSaWeighInfoTbl.DigStat;
         txOut.time_point_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count();
 
         ACDWeighStatus::type prodMeasureWeighStatusBits;
-
-        txOut.dig_stat = LpsSaWeighInfoTbl.DigStat;
 
         if (GetPayloadMonSysCalStatus()) {
             txOut.cal_stat = LPS_WEIGH_SYSTEM_CALIBRATED;
@@ -1064,7 +1072,7 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
 
         txOut.test_status = static_cast<uint8_t>(testFixture_.getTestStatus());
 
-        // Resolve the real bitset locals into the new message's raw bit fields.
+        // Resolve the bitset locals into the new message's raw bit fields.
         txOut.event_state.bits = static_cast<uint32_t>(eventStateBits.to_ulong());
         txOut.diag_state.bits = static_cast<uint32_t>(diagStateBits.to_ulong());
         txOut.info_state.bits = static_cast<uint32_t>(infoStateBits.to_ulong());
@@ -1072,6 +1080,12 @@ bool LpsSaWeighApp::LpsSaWeighingScsTx()
 
         /* Broadcasting Weighing App elements */
         scsCmdRet = LpsSaWeighScsTxOut->publish(txOut);
+
+        /* Broadcasting Weighing App elements to ROS2 */
+        bool scsCmdRet_ROS2 = LpsSaWeighScsTxOut_ROS2->publish(txOut);
+        if (!scsCmdRet_ROS2) {
+        AIS_LOG_WARN("'LpsSaWeighingScsTx' function return code for ROS2 = %d", scsCmdRet_ROS2);
+        }
     }
 
     if (!scsCmdRet) {

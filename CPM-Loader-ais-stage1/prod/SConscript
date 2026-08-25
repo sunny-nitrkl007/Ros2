@@ -1,0 +1,23 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the src/ directory
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+baseEnv.buildit( 'common', ['suse'] )
+baseEnv.buildit( 'infrastructure', ['suse'] )
+
+# Temporary work-around to export environment for downstream users since we're bypassing #prod/machineCommon/SConscripts
+#machineCommonEnv = baseEnv.Clone();
+#Export( 'machineCommonEnv' )
+#baseEnv.buildit( 'machineCommon/content/prod/common/interfaces', ['suse'] )
+#baseEnv.buildit( 'machineCommon/content/prod/infrastructure', ['suse'] )

@@ -1,0 +1,250 @@
+###############################################################################
+## @file      SConscript
+## @brief     SConscript for the autonomyCondition diagnostics and events application.
+##
+## @attention COPYRIGHT (C) 2011 CATERPILLAR INC. ALL RIGHTS RESERVED.
+## @attention All rights reserved
+###############################################################################
+#Import('infEnv')
+#acEnv = infEnv.Clone();
+
+Import( 'testEnv' )
+acEnv = testEnv.Clone();
+
+# Include the super-project directory so that we can find lps_common
+# source files.
+Repository(acEnv['SSP_DIR'])
+
+targetAppVariant = acEnv.get('TARGET_APP_VARIANT', None)
+
+pluginDir = acEnv['TES_COMMON_DIR'] + '/prod/infrastructure/plugins/'
+
+# Please people, stop creating so many warnings!
+acEnv.Append(CCFLAGS = [
+    '-Werror', '-Wno-unused-function'
+])
+
+acEnv.Append(LIBPATH = [
+    acEnv['TES_COMMON_DIR'] + '/apps/lib/'
+])
+
+acEnv.Append(CPPPATH = [
+    '.',
+    acEnv['TES_COMMON_DIR'] + '/apps/include',
+    pluginDir + 'EthernetPortStatistics',
+])
+
+#Added so that the autonomyConditionDiagnostics task can use stuff from the mci lib
+#acEnv.Append(CPPPATH = ['#prod/infrastructure/mci']);
+#acEnv.Append(LIBPATH = ['#/prod/infrastructure/autonomyConditionDiagnostics/lib'])
+acEnv.Append(CPPPATH = ['#/prod/infrastructure/autonomyConditionDiagnostics/src_acdcalinf'])
+#acEnv.Append(CPPPATH = ['#/prod/infrastructure/autonomyConditionDiagnostics/include/lib_a4/scl'])
+acEnv.Append(CPPPATH = ['#prod/infrastructure/catdl']);
+
+# Include paths
+acEnv.Append(CPPPATH = [
+    '#/lps_common/include'
+])
+
+sourceFiles = [ 
+    # This file is built in various apps, so we need to give the object a unique path for this app.
+    acEnv.Object('LpsCommonWeight', '#/lps_common/src/LpsCommonWeight.c'),
+	'AutoDiagEvent.cpp',
+	'InhibitConditionList.cpp',
+	'DiagOutFileWriter.cpp',
+	'AutonomyConditionDiagnostics.cpp',
+	'src_app/task.c',
+	'src_app/app_rtos_config_posix.c',
+	'src_app/app_inits.c',
+	'src_catdl/app_disp_brightness.c',
+	'src_catdl/app_catdl_init.c',
+	'src_catdl/app_cdl_mod_globals.c',
+	'src_j1939/app_j1939_tables.c',
+	'src_j1939/app_can_init.c',
+	'src_j1939/app_et_j1939_support.cpp',
+	'src_j1939/app_j1939_map.c',
+	'src_j1939/app_health_j39.c',
+	'src_j1939/app_scl_dlinfo.c',
+	'src_j1939/scl_adt_j1939_config.c',
+	'src_j1939/app_scl_flex.c',
+	'src_hour/app_rtc_tz_pid.c',
+	'src_scl_info/app_scl_obd_es_config.c',
+	'src_nvm/app_nvm_file_cfg.c',
+	'src_nvm/app_nvm_file_init.c',
+	'src_acdcalinf/AcdCalCanInit.c',
+	'src_acdcalinf/AcdCalDeviceidUpdate.c',
+	'src_acdcalinf/AcdCalParamHndlr.c',
+	'src_acdcalinf/AcdCalMgrInf.c',
+	'src_acdcalinf/AcdCalScsInf.cpp',
+	'src_acdcalinf/CalInfConnect.cpp',
+	'src_hour/app_clock_init.c',
+	'src_prmsw/app_prmsw_config.c',
+	'src_prmsw/app_scl_fps_config.c',
+	'src_prmsw/app_scl_fps_j1939_config.c',
+	'src_prmsw/passwd_supt.c',
+	'src_prmsw/app_token_block0.c',
+	# Plugins
+	'plugins/PluginMgr.cpp',
+	 pluginDir + 'EthernetPortStatistics/scl_stat_db_config.c',
+	'src_pdb/app_pdb_tx_config.c',
+	'src_pgt_server/app_pgt_server_config.c',
+	'src_pgt_server/app_pgt.c',
+]
+
+# A7H4: exclude source files whose APIs are unavailable (CSF_PGT_SERVER_SUPPORTED=0)
+# and add cdl_fix.c stubs so libcdl_ (and hal_cdl_* hardware) are not needed
+if acEnv['PLATFORM'] == 'A7H4':
+    a7h4_exclude_sources = [
+        'src_pgt_server/app_pgt.c',               # calls csf_httpd_*/csf_pgt_server_init - unavailable
+        'src_pgt_server/app_pgt_server_config.c',  # CSF_PGT_SERVER_SUPPORTED=0 for A7H4
+    ]
+    sourceFiles = [s for s in sourceFiles if s not in a7h4_exclude_sources]
+    # Provide cdl_tx_msg_stat_reset/cdl_tx_msg_stat/cdl_enq_tx_msg stubs so that
+    # libcdl2_.a(cdl2_utils.o) symbols are satisfied without linking libcdl_
+    # (which would pull in hal_cdl_* hardware symbols unavailable on A7H4)
+    sourceFiles.append('src_catdl/cdl_fix.c')
+
+if targetAppVariant is not None:
+    sourceFiles += Glob(targetAppVariant + '/*.cpp')
+
+libsList = [
+            'autonomyTask',
+            'commTask',
+            'taskPluginMgr',
+            'cal',
+            'LoaderdiagnosticEventConfig',
+            'bdt',
+            'csf_pgt_server',
+            'csf_http_server',
+            'microServiceLib',
+            'grpc',
+            'gpr',
+            'grpc++',
+            'protobuf',
+            'csf_xml_build',
+            'scl_pdb',
+            'ipc',
+            'scl_eth_sc',
+            'scl_snmpd',
+            'scl_dlinfo',
+            'scl_dlinfo_mgr',
+            'scl_flex',
+            'scl_health_j39',
+            'scl_adt_j1939',
+            'scl_diag_pj1939',
+            'scl_diag_ai',
+            'scl_eddt',
+            'ci_es_info',
+            'scl_ci_es',
+            'passwd',
+            'scl_prmsw_dl',
+            'scl_prmsw',
+            'scl_security',
+            'scl_fps_am_1',
+            'scl_fps_j1939',
+            'scl_fps',
+            'scl_crypto',
+            'scl_j1939',
+            'scl_qr_j1939',
+            'scl_qr',
+            'scl_rw_j1939',
+            'scl_que',
+            'scl_rtc_j1939',
+            'scl_j1939',
+            'scl_tz_j1939',
+            'scl_rtc_j1939_auth',
+            'scl_tz_j1939_auth',
+            'scl_rtc_j1939_auth_keys',
+            'scl_tz_j1939_auth_keys',
+            'scl_crutil',
+            'escrypt',
+            'scl_synclk',
+            'synclk_ci',
+            'clock_realtime',
+            'time_mgr',
+            'fsa',
+            'cdl2_gen',
+            'cdl2_pit',
+            'cdl2_',
+            'cdl_',
+            'scl_obd_crit',
+            'scl_obd_es',
+            'scl_obd_common',
+            'scl_fm',
+            'scl_pgb_j1939',
+            'scl_flex',
+            'scl_util',
+            'clock_realtime',
+            'clock_integral',
+            'clock_',
+            'clock_nvm',
+            'clock_integral',
+            'clock_',
+            'clock_sync',
+            'scl_security',
+            'nvm',
+            'hal_canv3',
+            'hal_rand',
+            'hal_boot',
+            'hal_util',
+            'vsdp',
+            'hal_cdl_a6n2',
+            'scl_util',
+            '_util',
+            'hal_error',
+            'dbg_log',
+            'oel_',
+            'oel_u',
+            'oel_rtos_posix',
+            'oel_rtos',
+            'oel_timestamp',
+            'version',
+            'ais_task',
+            'ais_config',
+            'ais_log',
+            'ais_time',
+            'ais_simpleComms',
+            'ais_serialization',
+            'scl_stat_db',
+            'bdt',
+            'hal_eth_statistics',
+            'bcm89501',
+            'micrel_ksz8567',
+        ]
+
+# A7H4 (arm64_guest) does not have these A6N2/x86-specific libraries
+if acEnv['PLATFORM'] == 'A7H4':
+    a7h4_unavailable = [
+        'csf_pgt_server',    # CSF_PGT_SERVER_SUPPORTED=0 for A7H4
+        'csf_http_server',
+        'microServiceLib',
+        'grpc',
+        'gpr',
+        'grpc++',
+        'cdl2_gen',          # not built for tgt_gcc_arm64_guest
+        # NOTE: cdl2_ must stay - libcal.a(cal_interface_init.o) needs cdl2_transmit
+        # cdl2_utils.o stubs (cdl_tx_msg_stat etc.) provided by cdl_fix.c
+        'cdl_',              # legacy CDL - references hal_cdl_* unavailable on A7H4
+        'scl_stat_db',       # SCL_STAT_DB_SUPPORTED=0; config vars and hal_eth_statistics_* unavailable
+        'hal_util',          # not in tgt_gcc_arm64_guest (confirmed by bmiJ1939 SConscript)
+        'hal_cdl_a6n2',      # A6N2-specific HAL
+        'hal_error',         # not in tgt_gcc_arm64_guest (confirmed by bmiJ1939 SConscript)
+        'hal_eth_statistics', # HAL_ETH_STATISTICS_SUPPORTED=0 for A7H4
+        'bcm89501',
+        'micrel_ksz8567',
+    ]
+    libsList = [lib for lib in libsList if lib not in a7h4_unavailable]
+    # hal_boot -> hal_boot_read_location_code -> hal_pulsei_get_discrete -> hal_ipc_client
+    # hal_ipc_client needs ipc_client_init/ipc_client_send from libipc.a
+    # ipc appears early in libsList so must be repeated after hal_ipc_client for correct link order
+    libsList.append('hal_pulsei')
+    libsList.append('hal_ipc_client')
+    libsList.append('ipc')   # repeated: hal_ipc_client needs ipc_client_init/ipc_client_send
+
+autonomyConditionDiagnostics = acEnv.ProgramWrapper(
+        target = 'autonomyConditionDiagnostics',
+        source = sourceFiles,
+        LIBS = libsList
+    )
+
+acEnv.InstallBinary(autonomyConditionDiagnostics)

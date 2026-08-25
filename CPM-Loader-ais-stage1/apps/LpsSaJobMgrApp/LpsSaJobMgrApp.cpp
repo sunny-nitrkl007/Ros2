@@ -57,6 +57,8 @@ RETURN VALUE:
 *******************************************************************************/
 AbstractTaskCore* task::getTaskImplementation(void)
 {
+    rclcpp::init(0, nullptr);
+    std::cout<<"[ROS2][Initialized][JOB_MANAGER]";
     static LpsSaJobMgrApp thisTask("LpsSaJobMgrApp");
     return dynamic_cast<Task *>(&thisTask);
 }
@@ -407,7 +409,7 @@ bool LpsSaJobMgrApp::executive( )
 {
     getLogger().log_debug( "Executing JobManager Task" );
 
-    // ROS2/DDS: drain pending callbacks for weighAppInf_'s 3 wrapper
+    // ROS2/DDS: drain pending callbacks for weighAppInf_'s 3 channels
     executor_.spin_some();
 
     if (nullptr != autonomyConditionDiagnosticsTxInputChannel_) {

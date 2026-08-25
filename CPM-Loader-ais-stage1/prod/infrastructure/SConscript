@@ -1,0 +1,28 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the infrastructure directory.
+##
+## @attention COPYRIGHT (C) 2008 CATERPILLAR INC. ALL RIGHTS RESERVED.
+## @attention
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+infEnv = baseEnv.Clone();
+Export( 'infEnv' )
+
+# Target only apps
+if (not baseEnv[ 'PLATFORM' ] in [ 'x86_64-linux-gnu', 'OCS' ]):
+    infEnv.buildit( 'aisJhm', ['suse'] )
+    infEnv.buildit( 'autonomyConditionDiagnostics', ['suse'] )
+#    if baseEnv['PLATFORM'] not in ['A7H4']:
+#        infEnv.buildit( 'autonomyConditionDiagnostics', ['suse'] )  ## HAL ethernet stats not defined for A7H4
+
+
+#infEnv.buildit( 'acd2Task', ['suse'] )

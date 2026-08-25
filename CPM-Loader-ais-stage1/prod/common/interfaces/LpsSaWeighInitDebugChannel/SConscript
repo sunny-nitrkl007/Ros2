@@ -1,0 +1,58 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) 2017
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+baseEnv.Append(CPPPATH = ['#apps']);
+baseEnv.Append(CPPPATH = ['#apps/include',
+			  baseEnv[ 'SSP_DIR'] + '/lps_weighing/include',
+ 			]);
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighInitDebugChannel.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighInitDebugChannel.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+ifaceRestorable = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighInitDebugChannel.Restorable.so',
+    source='Restorable/Restorable.cpp',
+    LIBS = ['ais_serialization'],
+)
+    
+# Build TypeTraits    
+ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+  target='LpsSaWeighInitDebugChannel.TypeTraits.so',
+  source=[
+       'TypeTraits/csvable.cpp',
+        'TypeTraits/textWritable.cpp',
+   ],
+   LIBS = ['ais_serialization'],
+)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+baseEnv.InstallLibrary( ifaceRestorable )
+baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("LpsSaWeighInitDebugChannel", "#lib/libLpsSaWeighInitDebugChannel.Channel.Input.so")
+baseEnv.Alias("LpsSaWeighInitDebugChannel", "#lib/libLpsSaWeighInitDebugChannel.Channel.Output.so")
+baseEnv.Alias("LpsSaWeighInitDebugChannel", "#lib/libLpsSaWeighInitDebugChannel.Restorable.so")
+baseEnv.Alias("LpsSaWeighInitDebugChannel", "#lib/libLpsSaWeighInitDebugChannel.TypeTraits.so")

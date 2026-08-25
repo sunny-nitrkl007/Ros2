@@ -1,0 +1,21 @@
+/**
+@defgroup Autonomy Condition Diagnostics [Infrastructure]
+@section Description
+Process converting AutonomyConditionMessages into events and diagnostics
+
+@section Detailed Description
+Process converting AutonomyConditionMessages into events and diagnostics
+
+@section Flags
+- author=CAT
+- lastCodeReview=
+- exemptFromStyleStandards=no
+- frozen=no
+- jointDevelopment=No - Cat IP
+- background=Cat Internal
+- dateOfFirstDisclosure=
+- firstOptionStatus=N/A Cat Developed IP
+- relatedToInventions=[]
+- coreToInventions=[]
+*/
+

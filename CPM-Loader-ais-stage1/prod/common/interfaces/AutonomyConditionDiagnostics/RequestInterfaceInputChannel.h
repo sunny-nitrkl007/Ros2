@@ -1,0 +1,12 @@
+#ifndef AUTONOMYCONDITIONDIAGNOSTICS_REQUESTINTERFACEINPUTCHANNEL_H
+#define AUTONOMYCONDITIONDIAGNOSTICS_REQUESTINTERFACEINPUTCHANNEL_H
+
+#include <ais/interfaces/baseTypes/autogen_channel.h>
+
+#include "RequestInterface.hpp"
+
+// AutonomyConditionDiagnosticsRequestInterfaceInputChannel
+DefineInputChannel(_, AutonomyConditionDiagnosticsRequestInterface)
+
+#endif // AUTONOMYCONDITIONDIAGNOSTICS_REQUESTINTERFACEINPUTCHANNEL_H
+

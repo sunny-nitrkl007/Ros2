@@ -1,0 +1,3 @@
+--proto_path=.
+--proto_path=../../../../../../eta-ais/prod/platformCommon/content/include/lib_oss
+--cpp_out=.

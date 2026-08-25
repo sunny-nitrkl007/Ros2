@@ -17,10 +17,11 @@ DESCRIPTION:
 #include <ais/task/Task.h>
 
 // ---- ROS2/DDS wrapper layer 
-#include <rclcpp/rclcpp.hpp>
-#include <ros2_wrapper/RosInputInterface.h>
-#include <ros2_wrapper/RosOutputInterface.h>
-#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "RosInputInterface.h"
+#include "RosOutputInterface.h"
+
+#include "cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp"
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 
@@ -379,9 +380,12 @@ private:
     } tzInfo_;
 
     DemoAppTxChannel demoInputs_;
+
+    LpsSaWeighRespChannelOutput* LpsSaWeighScsRespOut;
+    LpsSaWeighTxChannelOutput* LpsSaWeighScsTxOut;
     ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* LpsSaWeighScsReqstIn;
-    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut;
-    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>* LpsSaWeighScsRespOut_ROS2;
+    ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>* LpsSaWeighScsTxOut_ROS2;
 
     // ROS2/DDS shared node + executor
     rclcpp::Node::SharedPtr rosNode_;
@@ -584,6 +588,6 @@ void AppUpdtCalNvmTbl(const LpsCalNvmTbl_t* pCalData);
 ** -- Data Declarations --
 *******************************************************************************/
 // This is the one and only one instance of this task.
-extern LpsSaWeighApp thisTask;
+LpsSaWeighApp *temp_thisTask;
 
 #endif

@@ -1,0 +1,123 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the testTask application.
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+import os
+import glob
+
+Import( 'testEnv' )
+myEnv = testEnv.Clone();
+
+# Please people, stop creating so many warnings!
+myEnv.Append(CCFLAGS = ['-Werror', '-Wno-unused-function'])
+
+# Include the super-project directory so that we can find lps_pass_tracker
+# source files.
+Repository('#/..')
+
+myEnv.Append(CPPPATH = [
+    myEnv[ 'SSP_DIR' ] + '/lps_common/include',
+    myEnv[ 'SSP_DIR' ] + '/lps_app_common/include',
+    myEnv[ 'SSP_DIR' ] + '/lps_pass_tracker/include'
+])
+
+#Addon------------------------------
+BASE_PATH = '/home/u_via/repo/ssp-CPM_Loader-ais'
+
+
+ros2_libs = []
+
+ros2_lib_dir = BASE_PATH + '/ros2_models/lib'
+
+for so in glob.glob(os.path.join(ros2_lib_dir, '*', 'lib*.so')):
+    ros2_libs.append(os.path.basename(so)[3:-3])
+
+print(ros2_libs)
+
+
+for d in glob.glob(BASE_PATH + '/ros2_jazzy_sdk/include/*'):
+    if os.path.isdir(d):
+        myEnv.Append(CPPPATH=[d])
+
+#ros2wrapper
+for d in glob.glob(BASE_PATH + '/CPM-Loader-ais/prod/common/*'):
+    if os.path.isdir(d):
+        myEnv.Append(CPPPATH=[d])
+         
+
+myEnv.Append(
+    CPPPATH=[
+        BASE_PATH + '/ros2_models/include'
+    ]
+)
+ 
+
+
+ROS_LIB_PATHS = [
+    BASE_PATH + '/ros2_jazzy_sdk/lib',
+    BASE_PATH + '/ros2_models/lib/cpm_common_interfaces',
+    BASE_PATH + '/ros2_models/lib/job_mgr_interfaces',
+    BASE_PATH + '/ros2_models/lib/weigh_app_interfaces',
+]
+
+myEnv.Append(LIBPATH=ROS_LIB_PATHS)
+
+myEnv.Append(
+    LINKFLAGS=[
+        flag
+        for p in ROS_LIB_PATHS
+        for flag in (
+            '-Wl,-rpath,' + p,
+            '-Wl,-rpath-link,' + p
+        )
+    ]
+)
+
+
+#------------------------------------------------------
+
+
+sourceFiles = \
+    Glob('*.cpp') + \
+    Glob(myEnv[ 'SSP_DIR' ] + '/lps_pass_tracker/src/*.c')
+
+base_libs = [    'ais_task',
+                 'ais_config',
+                 'ais_log',
+                 'rclcpp',
+                 'rcl',
+                 'rcutils',
+                 'rmw',
+                 'rmw_implementation',
+                 'rcl_yaml_param_parser',
+                 'rcl_logging_interface',
+                 'rcl_interfaces__rosidl_typesupport_cpp',
+                 'rosidl_typesupport_cpp',
+                 'rosidl_runtime_c',
+                 'tracetools',
+                 'ament_index_cpp',
+                 'rcpputils',
+                 File(BASE_PATH + '/ros2_jazzy_sdk/lib/liblibstatistics_collector.so'),
+                 'statistics_msgs__rosidl_typesupport_cpp',
+                 'rosgraph_msgs__rosidl_typesupport_cpp',
+                 'type_description_interfaces__rosidl_typesupport_c',
+                 'std_msgs__rosidl_typesupport_cpp' ]    
+
+LpsSaJobMgrApp = myEnv.Program( 
+        target = 'LpsSaJobMgrApp',
+        source = sourceFiles,
+        LIBS = base_libs + ros2_libs
+    )
+
+myEnv.InstallBinary( LpsSaJobMgrApp )
+myEnv.Alias("JobMgrApp", "#bin/LpsSaJobMgrApp")
+
+

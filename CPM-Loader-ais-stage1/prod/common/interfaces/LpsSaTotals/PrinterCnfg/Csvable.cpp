@@ -1,0 +1,14 @@
+#include <ais/serialization/TypeRestorer.h>
+#include <ais/interfaces/traits/csvable.h>
+
+#include "../PrinterCnfgInterface.hpp"
+
+extern "C"
+{
+    csvable *getCSVable(const void *blob, const unsigned int size)
+    {
+        TypeRestorer rest;
+        return rest.restoreAltType<LpsSaTotalsPrinterCnfgInterface, csvable*>(blob, size);
+    }
+}
+

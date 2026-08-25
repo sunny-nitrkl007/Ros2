@@ -1,0 +1,83 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) 2017
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+import os
+import glob
+
+Import( 'baseEnv' )
+baseEnv.Append( CPPPATH = [ '#/prod/infrastructure/autonomyConditionDiagnostics/include/lib_a4/scl' ] )
+                   #/home/u_via/repo/ssp-CPM_Loader-ais/CPM-Loader-ais/prod/common/ros2wrapper
+                   
+for d in glob.glob('/home/u_via/repo/ssp-CPM_Loader-ais/CPM-Loader-ais/prod/common/*'):
+    if os.path.isdir(d):
+        baseEnv.Append(CPPPATH=[d])
+
+# baseEnv.Program(
+#         LIBS = [ 'rclcpp',
+#                  'rcl',
+#                  'rcutils',
+#                  'rmw',
+#                  'rmw_implementation',
+#                  'rcl_yaml_param_parser',
+#                  'rcl_logging_interface',
+#                  'rcl_interfaces__rosidl_typesupport_cpp',
+#                  'rosidl_typesupport_cpp',
+#                  'rosidl_runtime_c',
+#                  'tracetools',
+#                  'ament_index_cpp',
+#                  'rcpputils',
+#                  File('/home/u_via/repo/ssp-CPM_Loader-ais/ros2_jazzy_sdk/lib/liblibstatistics_collector.so'),
+#                  'statistics_msgs__rosidl_typesupport_cpp',
+#                  'rosgraph_msgs__rosidl_typesupport_cpp',
+#                  'type_description_interfaces__rosidl_typesupport_c',
+#                  'std_msgs__rosidl_typesupport_cpp',   
+#         ])
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighReqstChannel.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighReqstChannel.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+ifaceRestorable = baseEnv.SharedLibraryWrapper(
+    target='LpsSaWeighReqstChannel.Restorable.so',
+    source='Restorable/Restorable.cpp',
+    LIBS = ['ais_serialization'],
+)
+
+# Build TypeTraits
+ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+  target='LpsSaWeighReqstChannel.TypeTraits.so',
+  source=[
+       'TypeTraits/csvable.cpp',
+        'TypeTraits/textWritable.cpp',
+   ],
+   LIBS = ['ais_serialization'],
+)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+baseEnv.InstallLibrary( ifaceRestorable )
+baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("LpsSaWeighReqstChannel", "#lib/libLpsSaWeighReqstChannel.Channel.Input.so")
+baseEnv.Alias("LpsSaWeighReqstChannel", "#lib/libLpsSaWeighReqstChannel.Channel.Output.so")
+baseEnv.Alias("LpsSaWeighReqstChannel", "#lib/libLpsSaWeighReqstChannel.Restorable.so")
+baseEnv.Alias("LpsSaWeighReqstChannel", "#lib/libLpsSaWeighReqstChannel.TypeTraits.so")

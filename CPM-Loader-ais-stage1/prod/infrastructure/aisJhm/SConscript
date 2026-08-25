@@ -1,0 +1,9 @@
+###############################################################################
+## @file      SConscript
+## @author    Josh Struble
+## @date      March 03, 2009
+## @brief     SConscript for the jcmTask application
+###############################################################################
+Import( 'infEnv' )
+
+infEnv.buildit( 'aisJhm2', ['suse'] )

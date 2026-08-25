@@ -1,0 +1,54 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) ${Year}
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='${DataType}.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='${DataType}.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+${UseRestorable}ifaceRestorable = baseEnv.SharedLibraryWrapper(
+${UseRestorable}    target='${DataType}.Restorable.so',
+${UseRestorable}    source='Restorable/Restorable.cpp',
+${UseRestorable}    LIBS = ['ais_serialization'],
+${UseRestorable})
+    
+# Build TypeTraits    
+${UseTypeTraits}ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+${UseTypeTraits}  target='${DataType}.TypeTraits.so',
+${UseTypeTraits}  source=[
+${UseCsvable}       'TypeTraits/csvable.cpp',
+${UseTextWritable}        'TypeTraits/textWritable.cpp',
+${UseTypeTraits}   ],
+${UseTypeTraits}   LIBS = ['ais_serialization'],
+${UseTypeTraits})
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+${UseRestorable}baseEnv.InstallLibrary( ifaceRestorable )
+${UseTypeTraits}baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("${DataType}", "#lib/lib${DataType}.Channel.Input.so")
+baseEnv.Alias("${DataType}", "#lib/lib${DataType}.Channel.Output.so")
+${UseRestorable}baseEnv.Alias("${DataType}", "#lib/lib${DataType}.Restorable.so")
+${UseTypeTraits}baseEnv.Alias("${DataType}", "#lib/lib${DataType}.TypeTraits.so")

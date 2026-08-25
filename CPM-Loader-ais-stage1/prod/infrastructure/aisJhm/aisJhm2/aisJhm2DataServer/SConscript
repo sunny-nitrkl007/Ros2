@@ -1,0 +1,39 @@
+###############################################################################
+## @file      SConscript
+## @author    Josh Struble
+## @date      March 08, 2013
+## @brief     SConscript for the jhm2DataServer application
+###############################################################################
+#!/usr/bin/python
+Import( 'aisJhm2Env' )
+
+sourceFiles = [
+    'aisJhm2DataServer.cpp'
+]
+
+aisJhm2DataServer = aisJhm2Env.ProgramWrapper(
+        target = 'aisJhm2DataServer',
+        source = sourceFiles,
+        LIBS = [
+            'ais_task', 
+            'ais_config', 
+            'ais_log', 
+            'ais_time', 
+            'ais_simpleComms', 
+            'hub_base',
+            'hub_compression', 
+            'dbg_log',
+            aisJhm2Env['BOOST_SIGNALS'],
+            aisJhm2Env['BOOST_SERIALIZATION'],
+            aisJhm2Env['BOOST_SYSTEM'],  
+            aisJhm2Env['RUBY'],
+            'aisJhm2RequestProc',
+            'jhm2IpcServer',
+            'jhm2RequestProc',
+            'CPMOperatorIdList',
+            'socketCanBase',
+            'version',
+        ]
+    )
+
+aisJhm2Env.InstallBinary( aisJhm2DataServer )

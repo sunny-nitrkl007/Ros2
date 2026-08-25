@@ -1,0 +1,22 @@
+#/*******************************************************************************
+#** @attention COPYRIGHT (C) 2010 CATERPILLAR INC. ALL RIGHTS RESERVED.
+#**
+#** @file    SConscript
+#** @author  James Kieser
+#**
+#** @brief   This is the build file for the common event and diagnostic config library
+#*******************************************************************************/
+#!/usr/bin/python
+Import( 'commonEnv' )
+
+sourceFiles = [ 
+    'Loader_autonomy_diagnostics_config.c',
+    'Loader_autonomy_event_config.c',
+]
+
+loaderdiagnosticEventConfigLib = commonEnv.SharedLibraryWrapper(
+    target = 'LoaderdiagnosticEventConfig',
+    source = sourceFiles
+  )
+
+commonEnv.InstallLibrary( loaderdiagnosticEventConfigLib )

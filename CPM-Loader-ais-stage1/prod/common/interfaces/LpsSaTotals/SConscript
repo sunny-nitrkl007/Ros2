@@ -1,0 +1,45 @@
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+serializationLibs = ['ais_serialization']
+
+inputChannelLibs = list(serializationLibs)
+inputChannelLibs.extend(['ais_channel', baseEnv['BOOST_SIGNALS']])
+
+outputChannelLibs = list(serializationLibs)
+outputChannelLibs.extend(['ais_channel'])
+
+def InstallLibraries(targetPrefix, subDirectory):
+	global baseEnv
+
+	baseEnv.InstallLibrary(baseEnv.SharedLibraryWrapper(
+		target=targetPrefix + '.Channel.Input.so',
+		source=subDirectory + '/InputChannel.cpp',
+		LIBS=inputChannelLibs
+	))
+
+	baseEnv.InstallLibrary(baseEnv.SharedLibraryWrapper(
+		target=targetPrefix + '.Channel.Output.so',
+		source=subDirectory + '/OutputChannel.cpp',
+		LIBS=outputChannelLibs
+	))
+
+	baseEnv.InstallLibrary(baseEnv.SharedLibraryWrapper(
+		target=targetPrefix + '.Restorable.so',
+		source=subDirectory + '/Restorable.cpp',
+		LIBS=serializationLibs
+	))
+
+	baseEnv.InstallLibrary(baseEnv.SharedLibraryWrapper(
+		target=targetPrefix + '.TypeTraits.so',
+		source=subDirectory + '/Csvable.cpp',
+		LIBS=serializationLibs
+	))
+
+
+InstallLibraries('LpsSaTotals', 'Totals')
+InstallLibraries('LpsSaTotalsRequest', 'Request')
+InstallLibraries('LpsSaTotalsResponse', 'Response')
+InstallLibraries('LpsSaTotalsPrinterCnfg', 'PrinterCnfg')
+InstallLibraries('LpsSaTotalsUSBSaveProgress', 'USBSaveProgress')
+

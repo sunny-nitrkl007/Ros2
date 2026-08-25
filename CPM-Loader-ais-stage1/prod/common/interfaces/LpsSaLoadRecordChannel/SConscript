@@ -1,0 +1,36 @@
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaLoadRecordChannel.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS=[ 'ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaLoadRecordChannel.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS=[ 'ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+ifaceRestorable = baseEnv.SharedLibraryWrapper(
+    target='LpsSaLoadRecordChannel.Restorable.so',
+    source='Restorable/Restorable.cpp',
+    LIBS=[ 'ais_serialization' ],
+)
+    
+# Build TypeTraits    
+ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+    target='LpsSaLoadRecordChannel.TypeTraits.so',
+    source='TypeTraits/csvable.cpp',
+    LIBS=[ 'ais_serialization' ],
+)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+baseEnv.InstallLibrary( ifaceRestorable )
+baseEnv.InstallLibrary( ifaceTypeTraits )
+

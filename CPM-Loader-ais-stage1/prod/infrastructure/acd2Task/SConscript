@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+###############################################################################
+## @file      SConscript
+## @brief     SConscript for the autonomyCondition diagnostics and events application.
+##
+## @attention COPYRIGHT (C) 2011 CATERPILLAR INC. ALL RIGHTS RESERVED.
+## @attention All rights reserved
+###############################################################################
+# create environment
+Import( 'baseEnv' )
+localEnv = baseEnv.Clone()
+
+if localEnv[ 'DATALINKMANAGER_SUPPORTED' ]:
+    sourceFiles = [ 
+        'Acd2Task.cpp',
+    ]
+
+    libsList = localEnv.getLibsListFromModule('Acd2Task', debug = False)
+
+    # Add application specific libraries
+    # libsList.append([ 'appLibrary' ])
+
+    acd2Task = localEnv.ProgramWrapper( 
+        target = 'acd2Task',
+        source = sourceFiles,
+        LIBS = libsList
+    )
+
+    localEnv.InstallBinary( acd2Task )

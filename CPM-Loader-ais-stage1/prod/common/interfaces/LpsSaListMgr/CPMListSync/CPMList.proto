@@ -1,0 +1,82 @@
+//******************************************************************************
+// Copyright 2022 Caterpillar Inc. All rights reserved.
+// -----------------------------------------------------------------------------
+// File name: CPMList.proto
+//
+// Description:  Represents a Caterpillar Production Measurement (CPM) list.
+//******************************************************************************/
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package cat.cpm.list;
+
+// Message representing a list.
+message List
+{
+    // Enumeration of all supported list types
+    enum TYPE
+    {
+        INVALID = 0;  // Default value is an invalid type
+        TRUCK = 1;
+        MATERIAL = 2;
+        CUSTOM1 = 3;
+        CUSTOM2 = 4;
+        CUSTOM3 = 5;
+        CUSTOM4 = 6;
+    }
+
+    // Message representing an entry in the contents of the list
+    message Entry
+    {
+        // Name of the list entry, which could be an empty string.
+        string name = 1;
+
+        // Identifier of the list entry - Optional.
+        google.protobuf.UInt32Value id = 2;
+
+        // Target weight in tonnes for truck list - Optional.
+        google.protobuf.FloatValue target_weight = 3;
+
+        // Density in kg/m^3 for material list - Optional.
+        google.protobuf.FloatValue density = 4;
+    }
+
+    // Message representing the contents of the list
+    message Content
+    {
+        // Name of the list, which could be an empty string.
+        string name = 1;
+
+        // Entries in the list, which could be an empty.
+        repeated Entry entries = 2;
+    }
+
+    // Type of list represented in this message.
+    TYPE type = 1;
+
+    // Revision timestamp of the list.
+    google.protobuf.Timestamp revision = 2;
+
+    // The content of the list in its entirety - Optional
+    // If the content of the list is omitted, this message is reporting the
+    // revision timestamp of the list currently held by the sender.
+    Content content = 3;
+
+    // The maximum number of entries that this list is allowed to contain.
+    // This field is provided by the device to the back office.
+    // The back office uses this to determine how many list items this
+    // device supports.  If this value is 0, or missing, then the back office
+    // assumes the default logic: limit the length to 50 unless the device
+    // sends a file with > 50 entries, then limit the length to 500.
+    uint32 max_list_length = 4;
+
+    // The maximum string length allowed for name fields.
+    // This field is provided by the device to the back office.
+    // The back office uses this to determine the maximum strings lengths
+    // this device supports.  If this value is 0, or missing, then the back
+    // office assumes the default logic: limit the name length to 50 unless
+    // the device is a HEX product, then assume a limit of 16.
+    uint32 max_name_length = 5;
+}

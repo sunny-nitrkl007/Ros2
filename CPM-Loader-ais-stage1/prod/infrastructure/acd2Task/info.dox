@@ -1,0 +1,24 @@
+/**
+@defgroup Autonomy Condition Diagnostics 2 Task [Infrastructure]
+@section Description
+Application specific process that uses the ac2dLib library
+
+@section Detailed Description
+Application specific process that uses the ac2dLib library
+
+To make a project specific version, copy this directory to prod/infrastruction and update
+the path in the SConscript.
+
+@section Flags
+- author=CAT
+- lastCodeReview=
+- exemptFromStyleStandards=no
+- frozen=no
+- jointDevelopment=No - Cat IP
+- background=Cat Internal
+- dateOfFirstDisclosure=
+- firstOptionStatus=N/A Cat Developed IP
+- relatedToInventions=[]
+- coreToInventions=[]
+*/
+

@@ -59,7 +59,6 @@ bool CalNVMReinitFlag = false;
 using namespace task;
 
 // This is the one and only one instance of this task.
-LpsSaWeighApp thisTask("LpsSaWeighApp");
 
 static float extractValFromString(const std::string& str);
 
@@ -72,7 +71,12 @@ RETURN VALUE:
 *******************************************************************************/
 AbstractTaskCore* task::getTaskImplementation(void)
 {
-    return &thisTask;
+    rclcpp::init(0, nullptr);
+    std::cout<<"[ROS2][Initialized]";
+    static LpsSaWeighApp l_thisTask("LpsSaWeighApp");
+    std::cout<<"[CPM][Object initialized]";
+    temp_thisTask=&l_thisTask;
+    return dynamic_cast<Task *>(&l_thisTask);
 }
 
 /******************************************************************************
@@ -120,8 +124,8 @@ LpsSaWeighApp::LpsSaWeighApp( const std::string& taskName ):
     LpsSaWeighScsReqstIn(nullptr),
     LpsSaWeighScsRespOut(nullptr),
     LpsSaWeighScsTxOut(nullptr),
-    rosNode_(nullptr),
-    executor_(),
+    LpsSaWeighScsRespOut_ROS2(nullptr),
+    LpsSaWeighScsTxOut_ROS2(nullptr),
     LpsSaJobMgrScsReqstOut(nullptr),
     ReadyToFlashStatusOutput(nullptr),
     PwmIn(nullptr),
@@ -150,7 +154,9 @@ LpsSaWeighApp::LpsSaWeighApp( const std::string& taskName ):
     prevWeighRangeIndicator_(LPS_IN_WEIGH_RANGE_NOT_WEIGHING),
     calLibMtx_(),
     transmitPeriodTime_(0.1f),
-    transmitPeriodCount_(0)
+    transmitPeriodCount_(0),
+    rosNode_(nullptr),
+    executor_()
 
 {
     OelBootupFlag = FALSE;
@@ -174,6 +180,7 @@ RETURN VALUE:
 *******************************************************************************/
 bool LpsSaWeighApp::initialize( )
 {
+
     if (ADVANCED == getApplicationVariant()) {
         AIS_LOG_INFO("LpsSaWeighApp::initialize for the ADVANCED application variant");
     }
@@ -550,26 +557,27 @@ bool LpsSaWeighApp::initialize( )
         return false;
     }
 
-    // ROS2/DDS shared node. One node for the whole app; spin_some() in
-    // executive() drives its callbacks.
-    // rclcpp::init() must run once, before any Node is constructed -- this
-    // app builds as its own standalone process (SConscript Program()
-    // target, one task per process), so there's no risk of double-init
-    // from another task sharing this process.
-    if (!rclcpp::ok()) {
-        rclcpp::init(0, nullptr);
-    }
     rosNode_ = std::make_shared<rclcpp::Node>("weigh_app_node");
     executor_.add_node(rosNode_);
 
-    LpsSaWeighScsTxOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
-    if (!LpsSaWeighScsTxOut) {
-         AIS_LOG_ERROR("Interface LpsSaWeighTxChannelOutput not configured.");
+    if (!task::InterfaceDb::bind("LpsSaWeighTxChannelOutput", LpsSaWeighScsTxOut)) {
+        AIS_LOG_ERROR("Interface LpsSaWeighTxChannelOutput not configured.");
          return false;
     }
 
-    LpsSaWeighScsRespOut = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
-    if (!LpsSaWeighScsRespOut) {
+    LpsSaWeighScsTxOut_ROS2 = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighTxChannel>(rosNode_, "lps_sa_weigh_tx_channel");
+    if (!LpsSaWeighScsTxOut_ROS2) {
+         AIS_LOG_ERROR("Interface LpsSaWeighScsTxOut_ROS2 not configured.");
+         return false;
+    }
+
+    if (!task::InterfaceDb::bind("LpsSaWeighRespChannelOutput", LpsSaWeighScsRespOut)) {
+        AIS_LOG_ERROR("Interface LpsSaWeighRespChannelOutput not configured.");
+        return false;
+    }
+
+    LpsSaWeighScsRespOut_ROS2 = new ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighRespChannel>(rosNode_, "lps_sa_weigh_resp_channel");
+    if (!LpsSaWeighScsRespOut_ROS2) {
         AIS_LOG_ERROR("Interface LpsSaWeighRespChannelOutput not configured.");
         return false;
     }
@@ -664,9 +672,8 @@ RETURN VALUE:
 
 bool LpsSaWeighApp::executive( )
 {
-    // ROS2/DDS: drain pending callbacks for the 3 Stage-1 wrapper objects.
-    // Must run before their get()/publish() call sites below -- same
-    // thread, synchronous, no mutex needed.
+    // ROS2/DDS: drain pending callbacks
+    // Must run before their get()/publish() --
     executor_.spin_some();
 
     static bool cal_data_published = false;

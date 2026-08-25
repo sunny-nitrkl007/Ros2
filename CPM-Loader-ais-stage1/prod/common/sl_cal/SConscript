@@ -1,0 +1,24 @@
+#!/usr/bin/python
+Import( 'commonEnv' )
+myEnv = commonEnv.Clone();
+
+# Include the super-project directory so that we can find libsl
+# source files.
+Repository(myEnv[ 'SSP_DIR' ])
+
+myEnv.Append(CPPPATH = [
+    '#/libsl/include_R2012B',
+    '#/libsl/include',
+    '#/eta-ais/prod/platformCommon/content/tgt_gcc_5.1.0_a6n2/lib_a4/hmpl/include'
+])
+
+sourceFiles = \
+    Glob('#/libsl/src/lib/sl_cal/*.c')
+
+sl_cal = myEnv.SharedLibrary(
+    target = 'sl_cal',
+    source = sourceFiles
+)
+
+myEnv.InstallLibrary( sl_cal )
+

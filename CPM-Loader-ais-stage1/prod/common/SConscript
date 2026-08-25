@@ -1,0 +1,34 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for common/
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+import os
+import glob
+Import( 'baseEnv' )
+commonEnv = baseEnv.Clone();
+Export( 'commonEnv' )
+#Addon----------------------------------------
+BASE_PATH = '/home/u_via/repo/ssp-CPM_Loader-ais'
+
+for d in glob.glob(BASE_PATH + '/ros2_jazzy_sdk/include/*'):
+    if os.path.isdir(d):
+        commonEnv.Append(CPPPATH=[d])
+#------------------------------------------------
+commonEnv.buildit( 'interfaces', ['suse'] )
+#commonEnv.buildit( 'jhm2', ['suse'] )
+#commonEnv.buildit( 'task', ['suse'] )
+#commonEnv.buildit( 'csvUtil', ['suse'] )
+#commonEnv.buildit( 'vehicleConfigUtils', ['suse'] )
+#commonEnv.buildit( 'version', ['suse'] )
+#commonEnv.buildit( 'machineSerialNumber', ['suse'] )
+commonEnv.buildit( 'LoaderdiagnosticEventConfig', ['suse'] )
+commonEnv.buildit( 'sl_cal', ['suse'] )

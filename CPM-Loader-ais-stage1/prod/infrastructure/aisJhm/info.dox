@@ -1,0 +1,21 @@
+/**
+@defgroup Jhm Task [Infrastructure]
+@section Description
+Simple display of Truck data
+
+@section Detailed Description
+Curses display of Truck data
+
+@section Flags
+- author=Joshua Struble
+- lastCodeReview=
+- exemptFromStyleStandards=no
+- frozen=no
+- jointDevelopment=No - Cat IP
+- background=Cat Internal
+- dateOfFirstDisclosure=
+- firstOptionStatus=N/A Cat Developed IP
+- relatedToInventions=[]
+- coreToInventions=[]
+*/
+

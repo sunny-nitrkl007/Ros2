@@ -1,0 +1,63 @@
+Automatically Generate Input/Output Channel Interfaces
+April 20, 2008
+
+Howto:
+Run the generateChannels.pl script to generate the basic input and output channel
+interface that is used by a variety of applications that use the 
+channel protocol, such as the IPC comms system and the data logger.
+
+See './generateChannels.pl -h' for usage information.
+
+Principal of Operation:
+The channel.cpp, channel.h, and SConscript files are templates, the 
+genChannel.awk script performs string substitutions on these files
+to generate the actual source code that gets compiled.  The 
+generateChannels.pl script is simply calling awk on the genChannel.awk 
+file numerous times with the correct variables set that makes the
+appropriate substitutions in the templated source files.
+
+---
+
+Automatically Generate TypeTraits interface
+September 15, 2008
+
+Howto:
+Run the generateTypeTraits.pl script to generate an interface
+that can be used by a variety of programs that need to load
+a data type based on its trait and do something special with it.
+An example is the csvable trait, where an arbitrary data type
+can be loaded from its serialized form as a csvable object and
+have its contents printed in csv format.
+
+See './generateTypeTraits.pl -h' for usage information.
+
+Principal of Operation:
+Basically the same as generateChannel.pl, except it executes an awk
+script called genTypeTraits.awk.
+
+
+-- 
+
+Combined autogen scripts into one scripts: generate.pl
+January 23, 2012  (updated 03/13/2014 -- remove compression information)
+
+./generate.pl has a new usage:
+
+Code Generation:
+-r = Restorable (generate Restorable)
+--csvable / --textWritable (generate TypeTraits)
+-a = All of the above (generate Channel, TypeTraits, Restorable)
+
+SConscript-only Generation:
+-s = Only generate a SConscript based off of the specified options (do not generate the code)
+-f = Generates a SConscript by examining the directory structure of an existing interface
+
+The -i, -p, and -d options are required for all of the above options with the exception of -f.  
+The code generation options above can be used on an existing interface to append the specified
+feature to the interface.  (i.e. if the specified interface already exists, just append the
+specified generated code and write an approprioate SConscript).
+
+Note: the interface's SConscript will be overwritten by this script.  If there are additional items specified
+in an existing SConscript, they need to be re-added to the SConscript after using this script.
+
+Note: The Channel portion of the interface is always generated if it does not exist.

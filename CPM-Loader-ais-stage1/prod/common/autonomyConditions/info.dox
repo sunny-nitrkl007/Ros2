@@ -1,0 +1,22 @@
+/**
+@defgroup autonomyConditions [Common] Autonomy Errors and Diagnostics
+@section Description
+Framework for reporting errors and diagnostics from the autonomy system
+
+@section Detailed Description
+Autonomy conditions define a base interface class consisting of a condition name, message, and optional debounce and time-to-live parameters.  The autonomy task object uses this common interface for raising, suppressing, and clearing conditions set by user code.
+
+This module also contains a script for generating source code new conditions.  A sub-folder called "conditions" contains all of the autonomy conditions that exist within the AHS system.
+
+@section Flags
+- author=Michael Bode, Joe Manaojlovich
+- lastCodeReview=
+- exemptFromStyleStandards=no
+- frozen=no
+- background=Pathfinder
+- jointDevelopment=no
+- dateOfFirstDisclosure=2012-06-22
+- dateOfExclusivityExpiration=2013-12-31
+- relatedToInventions=
+- firstOptionStatus=Non-Exclusive License In Place Under AIS 09-25-2012 License Agreement 12-2014
+*/

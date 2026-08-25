@@ -1,0 +1,15 @@
+###############################################################################
+## @file      SConscript
+## @author    Josh Struble
+## @date      March 08, 2013
+## @brief     SConscript for the www part of the jhm2 application
+###############################################################################
+#!/usr/bin/python
+Import( 'aisJhm2Env' )
+
+aisJhm2Env.InstallWeb( 'Cat_logo.gif' )
+aisJhm2Env.InstallWeb( 'Command.gif' )
+aisJhm2Env.InstallWeb( 'command.ico' )
+aisJhm2Env.InstallWeb( 'index.html' )
+aisJhm2Env.InstallWeb( 'stylesheet.css' )
+aisJhm2Env.InstallWeb( 'aisJhmScripts.js' )

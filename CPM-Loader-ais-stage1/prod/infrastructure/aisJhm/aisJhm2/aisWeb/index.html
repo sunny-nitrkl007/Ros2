@@ -1,0 +1,83 @@
+
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<html>
+  <head>
+    <title>AIS jhmWeb</title>
+    <link rel="shortcut icon" href="/command.ico">
+    <link rel="stylesheet" type="text/css" href="stylesheet.css" />
+    <script src="aisJhmScripts.js"></script>
+  </head>
+  <body onload="SetupPage()">
+    <table width="100%"> 
+      <tr background: #CCC>
+         <td class="logoCell"><img id="CatLogo" border="0" src="Cat_logo.gif" align="left"></td>
+         <td class="logoCell"><img id="Command" border="0" src="Command.gif" align="right"></td>
+      </tr>
+    </table>
+    <!--=============================================================================================-->
+      <!-- Put some distance between the Header and the parameters table -->
+      <br />
+
+       <!-- Middle: GPS, ABS, Logger -->
+       <div  class="oneThird">
+
+           <!--- --------------------------------------------------------------
+           -----   GPS1
+           -------------------------------------------------------------------- --->
+           <table width="100%">
+                <tr width="100%">
+                   <td class="paramSectionHeader" colspan="6"><b>Primary GPS</b></td>
+               </tr>
+               <tr width="100%">
+                   <td class="paramColumnHeader"><b>Parameter</b></td>
+                   <td class="paramColumnHeader" align="center"><b>Value</b></td>
+                   <td class="paramColumnHeader" align="center"><b>Units</b></td>
+               </tr>
+               <tr width="100%">
+                   <td class="paramName">EastingTop</td>
+                   <td class="paramValue">
+                      <div id="EastingTop" align="center">---------</div>
+                   </td>
+                   <td class="paramUnits" align="center"></td>
+               </tr>               
+               <tr width="100%">
+                   <td class="paramName">EastingBottom Rms</td>
+                   <td class="paramValue">
+                      <div id="EastingBottom" align="center">---------</div>
+                   </td>
+                   <td class="paramUnits" align="center">mm</td>
+               </tr>
+               <tr width="100%">
+                   <td class="paramName">NorthingTop</td>
+                   <td class="paramValue">
+                      <div id="NorthingTop" align="center">---------</div>
+                   </td>
+                   <td class="paramUnits" align="center"></td>
+               </tr>
+               <tr width="100%">
+                   <td class="paramName">NorthingBottom</td>
+                   <td class="paramValue">
+                      <div id="NorthingBottom" align="center">---------</div>
+                   </td>
+                   <td class="paramUnits" align="center">mm</td>
+               </tr>               
+               <tr width="100%">
+                   <td class="paramName">Elevation</td>
+                   <td class="paramValue">
+                      <div id="Elevation" align="center">---------</div>
+                   </td>
+                   <td class="paramUnits" align="center">mm</td>
+               </tr>      
+            </table>
+       
+       </div>
+
+	<div>
+		<A HREF="cgi-bin/jhm2CgiApp.cgi?requestType=CommandRequest&commandRequested=ExecuteButtonPress"> Execute Command</A>
+       </div>
+ 
+    <br style="clear: oneThird;"/>
+    <br></br>
+  </body>
+</html>
+

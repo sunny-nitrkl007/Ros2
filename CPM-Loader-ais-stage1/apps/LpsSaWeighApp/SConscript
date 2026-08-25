@@ -1,0 +1,178 @@
+#!/usr/bin/python
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for the testTask application.
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+import os
+import glob
+
+Import( 'testEnv' )
+myEnv = testEnv.Clone();
+BASE_PATH = '/home/u_via/repo/ssp-CPM_Loader-ais'
+targetAppVariant = myEnv.get('TARGET_APP_VARIANT', None)
+
+# Please people, stop creating so many warnings!
+#myEnv.Append(CCFLAGS = ['-Werror', '-Wno-unused-function', '-Wno-unused-variable'])
+
+# Add the root of this repository to the search path
+myEnv.Append(CPPPATH = ['#'])
+
+# Include the super-project directory so that we can find lps_common
+# source files.
+Repository(myEnv[ 'SSP_DIR' ])
+
+myEnv.Append(CPPPATH = [
+    '#/lps_weighing/include',
+    '#/lps_cal/include',
+    '#/lps_common/include',
+    '#/lps_app_common/include',
+    '#/lps_weighing/src',
+    '#/lps_cal/src',
+    '#/lps_cal/src/imu',
+    '#/lps_cal/src/imu/_sharedutils',
+    '#/eta-ais/prod/platformCommon/content/tgt_gcc_5.1.0_a6n2/lib_a4/hmpl/include',
+    '#/libsl/include_PostR2014a',
+    '#/libsl/include',
+    '#/sss/include',
+    '#/TES-common-ais/prod/common/chrono',
+])
+
+
+#Addon------------------------------
+
+ros2_libs = []
+
+ros2_lib_dir = BASE_PATH + '/ros2_models/lib'
+
+for so in glob.glob(os.path.join(ros2_lib_dir, '*', 'lib*.so')):
+    ros2_libs.append(os.path.basename(so)[3:-3])
+
+print(ros2_libs)
+
+for d in glob.glob(BASE_PATH + '/ros2_jazzy_sdk/include/*'):
+    if os.path.isdir(d):
+        myEnv.Append(CPPPATH=[d])
+
+#ros2wrapper
+for d in glob.glob(BASE_PATH + '/CPM-Loader-ais/prod/common/ros2wrapper/*'):
+    if os.path.isdir(d):
+        myEnv.Append(CPPPATH=[d])
+         
+
+myEnv.Append(
+    CPPPATH=[
+        BASE_PATH + '/ros2_models/include'
+    ]
+)
+
+
+ROS_LIB_PATHS = [
+    BASE_PATH + '/ros2_jazzy_sdk/lib',
+    BASE_PATH + '/ros2_models/lib/cpm_common_interfaces',
+    BASE_PATH + '/ros2_models/lib/job_mgr_interfaces',
+    BASE_PATH + '/ros2_models/lib/weigh_app_interfaces',
+]
+
+myEnv.Append(LIBPATH=ROS_LIB_PATHS)
+
+myEnv.Append(
+    LINKFLAGS=[
+        flag
+        for p in ROS_LIB_PATHS
+        for flag in (
+            '-Wl,-rpath,' + p,
+            '-Wl,-rpath-link,' + p
+        )
+    ]
+)
+
+
+ 
+#------------------------------------------------------
+
+
+# Include the super-project directory so that we can find
+# toa_wl_00_x86_64-b and toa_wl_inf source files.
+Repository(myEnv['SSP_DIR'] + '/tipoff_assist')
+
+# Add tipoff assist paths
+myEnv.Append(CPPPATH = [
+    '#/toa_wl00_inf/include',
+    '#/toa_wl00_x86_64-b/include/',
+    '#/toa_wl00_x86_64-b/src/',
+    '#/toa_wl00/c_src/',
+])
+
+sourceFiles = \
+    Glob('*.cpp') + \
+    Glob('src_app/*.c') + \
+    Glob('src_nvm/*.c') + \
+    Glob('#/lps_weighing/src/*.c') + \
+    Glob('#/lps_cal/src/*.c') + \
+    Glob('#/lps_cal/src/imu/*.c') + \
+    Glob('#/lps_cal/src/imu/_sharedutils/*.c') + \
+    Glob('#/lps_common/src/LpsCommonLookUpTblUtility.c') + \
+    Glob('#/lps_common/src/LpsCommonWeight.c') + \
+    Glob('#/lps_common/src/cpm_filter.c') + \
+    Glob('#/toa_wl00_x86_64-b/src/*.c') + \
+    Glob('#/toa_wl00/c_src/*.c') + \
+    Glob('#/toa_wl00_inf/src/toa_wl00_model_if.c')
+            
+if targetAppVariant is not None:
+    sourceFiles += Glob(targetAppVariant + '/*.cpp')
+
+base_libs = [    'ais_task',
+                 'commTask',
+                 'ais_config',
+                 'ais_log',
+                 'nvm',
+                 'hal_canv3',
+                 'hal_boot',
+#                 'hal_util',
+#                 'hal_error',
+                 'dbg_log',
+                 'oel_u',
+                 'oel_rtos_posix',
+                 'oel_rtos',
+                 'ksw',
+                 'socketCanBase',
+                 'sl_cal',
+                 'version',
+                 'rclcpp',
+                 'rcl',
+                 'rcutils',
+                 'rmw',
+                 'rmw_implementation',
+                 'rcl_yaml_param_parser',
+                 'rcl_logging_interface',
+                 'rcl_interfaces__rosidl_typesupport_cpp',
+                 'rosidl_typesupport_cpp',
+                 'rosidl_runtime_c',
+                 'tracetools',
+                 'ament_index_cpp',
+                 'rcpputils',
+                 File(BASE_PATH + '/ros2_jazzy_sdk/lib/liblibstatistics_collector.so'),
+                 'statistics_msgs__rosidl_typesupport_cpp',
+                 'rosgraph_msgs__rosidl_typesupport_cpp',
+                 'type_description_interfaces__rosidl_typesupport_c',
+                 'std_msgs__rosidl_typesupport_cpp'   
+        ]
+
+
+LpsSaWeighApp = myEnv.Program(
+        target = 'LpsSaWeighApp',
+        source = sourceFiles,
+        LIBS = base_libs + ros2_libs
+    )
+
+myEnv.InstallBinary( LpsSaWeighApp )
+
+myEnv.Alias("LpsSaWeighApp", "#bin/LpsSaWeighApp")

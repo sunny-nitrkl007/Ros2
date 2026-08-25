@@ -7,23 +7,15 @@
 #include <limits>
 #include <string>
 
-#include <rclcpp/rclcpp.hpp>
-#include <ros2_wrapper/RosInputInterface.h>
-#include <ros2_wrapper/RosOutputInterface.h>
+#include "rclcpp/rclcpp.hpp"
+#include "ros2wrapper/RosInputInterface.h"
+#include "ros2wrapper/RosOutputInterface.h"
 
-#include <cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp>
+#include "cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp"
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
 #include <cpm_common_interfaces/msg/weigh_reqst_channel_command.hpp>
 
-// New, separate class -- deliberately not a change to the shared
-// LpsSaWeighAppInf header, which stays unchanged. Other components still
-// hold their own instance of that class and call methods this app never
-// needs, so editing it in place would break those callers. This class
-// instead exposes only what's actually used: start(), sendRequest(),
-// waitForTxData(). Threading note: RosInputInterface<T> is poll-only (no
-// callback mechanism), so waitForTxData() is a single-shot poll of whatever
-// the executor already delivered this tick, not a real blocking wait.
 class DDSWeighAppInf {
 public:
     static constexpr std::chrono::milliseconds timeoutDurationDefault() { return std::chrono::milliseconds(250); }
@@ -67,10 +59,6 @@ public:
         return (nullptr != requestOutput_) && (nullptr != responseInput_) && (nullptr != txInput_);
     }
 
-    /*
-     * Stop the interface service. No connections to tear down under the
-     * poll-based wrapper (nothing was subscribed to in the first place).
-     */
     bool stop() {
         return true;
     }
@@ -98,14 +86,13 @@ public:
 
     /*
      * Poll for tx data that reflects the changes made by the last request.
-     * Drains both responseInput_ (to tighten the freshness gate once our
-     * request's response arrives) and txInput_, then reports whether the
+     * Drains both responseInput_ and txInput_, then reports whether the
      * most recent tx data is new enough to reflect that response. Returns
      * false, same as a real timeout, if nothing new enough has arrived by
-     * this tick -- there is no actual multi-tick wait to perform it.
+     * this tick --
      */
     bool waitForTxData(cpm_common_interfaces::msg::LpsSaWeighTxChannel& txData, const std::chrono::milliseconds& timeoutDuration = timeoutDurationDefault()) {
-        (void)timeoutDuration; // retained for call-site compatibility; no real blocking wait is possible, see class comment
+        (void)timeoutDuration;
 
         drainResponseInput();
         drainTxInput();

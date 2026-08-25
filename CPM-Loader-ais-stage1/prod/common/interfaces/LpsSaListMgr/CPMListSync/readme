@@ -1,0 +1,2 @@
+From this directory, run the shell script "run_protoc"
+pf@a5devbox:~/git/ssp-CPM_Loader-ais/CPM-Loader-ais/prod/common/interfaces/LpsSaListMgr/CPMListSync$ . run_protoc

@@ -1,0 +1,41 @@
+###############################################################################
+## @file      SConscript
+## @author    Bryan Salesky (bsalesky@rec.ri.cmu.edu)
+## @date      May 16, 2008
+## @brief     SConscript for interfaces.
+##
+## @attention Copyright (C) 2008
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+baseEnv.buildit('AutonomyConditionDiagnostics', [])
+baseEnv.buildit('LpsSaWeighDebugChannel', ['suse'])
+baseEnv.buildit('LpsSaWeighInitDebugChannel', ['suse'])
+baseEnv.buildit('LpsSaJobMgrDebugChannel', ['suse'])
+baseEnv.buildit('LpsSaWeighReqstChannel', ['suse'])
+baseEnv.buildit('LpsSaWeighRespChannel', ['suse'])
+baseEnv.buildit('LpsSaWeighTxChannel', ['suse'])
+baseEnv.buildit('LpsSaJobMgrReqstChannel', ['suse'])
+baseEnv.buildit('LpsSaJobMgrRespChannel', ['suse'])
+baseEnv.buildit('LpsSaJobMgrTxChannel', ['suse'])
+baseEnv.buildit('Machine', ['suse'] )
+#baseEnv.buildit('LpsCalCmdReqstChannel', ['suse'])
+#baseEnv.buildit('LpsCalCmdRespChannel', ['suse'])
+baseEnv.buildit('LpsSaNvmCalDataChannel', ['suse'])
+baseEnv.buildit('LpsSaNvmCalOnTheFlyDataChannel', ['suse'])
+baseEnv.buildit('AisJhm2TxChannel', ['suse'])
+baseEnv.buildit('LpsSaListMgr', [])
+baseEnv.buildit('LpsSaLoadRecordChannel', [])
+baseEnv.buildit('LpsSaTotals', [])
+baseEnv.buildit('LpsSaUI', [])
+baseEnv.buildit('WorkOrderAssist', [])
+baseEnv.buildit('CycleSeg', [])
+baseEnv.buildit('WidgetsDebugData', ['suse'])
+baseEnv.buildit('TipoffModelTestPoints', ['suse'] )
+baseEnv.buildit('DemoAppTxChannel', ['suse'])
+baseEnv.buildit('DemoAppReqstChannel', ['suse'])

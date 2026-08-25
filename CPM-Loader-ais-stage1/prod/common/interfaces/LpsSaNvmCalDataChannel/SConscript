@@ -1,0 +1,57 @@
+###############################################################################
+## @file      SConscript
+## @author    autogen
+##
+## @attention Copyright (C) 2017
+## @attention National Robotics Engineering Center
+## @attention Carnegie Mellon University
+## @attention All rights reserved
+## @attention Carnegie Mellon Proprietary
+###############################################################################
+#!/usr/bin/python
+Import( 'baseEnv' )
+
+baseEnv.Append(CPPPATH = [ 
+    		'#/lps_cal/include',
+			]);
+
+# Build Channel.Input.so
+ifaceChannelInput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaNvmCalDataChannel.Channel.Input.so',
+    source='Channel/Input/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel', baseEnv['BOOST_SIGNALS'] ],
+)
+
+# Build Channel.Output.so
+ifaceChannelOutput = baseEnv.SharedLibraryWrapper(
+    target='LpsSaNvmCalDataChannel.Channel.Output.so',
+    source='Channel/Output/channel.cpp',
+    LIBS = ['ais_serialization', 'ais_channel' ],
+)
+
+# Build Restorable
+#ifaceRestorable = baseEnv.SharedLibraryWrapper(
+#    target='LpsSaNvmCalDataChannel.Restorable.so',
+#    source='Restorable/Restorable.cpp',
+#    LIBS = ['ais_serialization'],
+#)
+    
+# Build TypeTraits    
+#ifaceTypeTraits = baseEnv.SharedLibraryWrapper(
+#  target='LpsSaNvmCalDataChannel.TypeTraits.so',
+#  source=[
+#       'TypeTraits/csvable.cpp',
+#        'TypeTraits/textWritable.cpp',
+#   ],
+#   LIBS = ['ais_serialization'],
+#)
+
+baseEnv.InstallLibrary( ifaceChannelInput )
+baseEnv.InstallLibrary( ifaceChannelOutput )
+#baseEnv.InstallLibrary( ifaceRestorable )
+#baseEnv.InstallLibrary( ifaceTypeTraits )
+
+baseEnv.Alias("LpsSaNvmCalDataChannel", "#lib/libLpsSaNvmCalDataChannel.Channel.Input.so")
+baseEnv.Alias("LpsSaNvmCalDataChannel", "#lib/libLpsSaNvmCalDataChannel.Channel.Output.so")
+#baseEnv.Alias("LpsSaNvmCalDataChannel", "#lib/libLpsSaNvmCalDataChannel.Restorable.so")
+#baseEnv.Alias("LpsSaNvmCalDataChannel", "#lib/libLpsSaNvmCalDataChannel.TypeTraits.so")

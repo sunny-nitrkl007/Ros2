@@ -1,0 +1,60 @@
+#*****************************************************************************
+# @file      SConscript for Jhm2RequestProcessor module
+# @author    Josh Struble
+# @date      3/19/2013
+#
+# @attention Copyright (C) 2013 Caterpillar Inc. All rights reserved.
+#*****************************************************************************
+#!/usr/bin/python
+Import('aisJhm2Env')
+myEnv = aisJhm2Env.Clone();
+
+targetAppVariant = myEnv.get('TARGET_APP_VARIANT', None)
+
+# Add the root of this repository to the search path
+myEnv.Append(CPPPATH = ['#'])
+
+# Include the super-project directory so that we can find lps_common
+# source files.
+Repository(myEnv['SSP_DIR'])
+
+# Include paths
+myEnv.Append(CPPPATH = [
+    '#/lps_common/include',
+    '#prod/infrastructure/catdl'
+])
+
+sourceFiles = [
+    # This file is built in various apps, so we need to give the object a unique path for this app.
+    myEnv.Object('LpsCommonWeight', '#/lps_common/src/LpsCommonWeight.c'),
+    myEnv.Object('LpsCommonLookUpTblUtility', '#/lps_common/src/LpsCommonLookUpTblUtility.c'),
+    'AisJhm2RequestProcessor.cpp',
+    'AisJhm2DisplayState.cpp',
+    'AisJhm2TargetWtSelection.cpp',
+    'ShowHideConfig.cpp',
+    'AisJhm2BEMSim.cpp',
+    'AisJhm2CANProcess.cpp',
+    'AisJhm2USBSave.cpp',
+    'AisJhm2Totals.cpp',
+    'AisJhm2Ticket.cpp',
+    'AisJhm2LFT.cpp',
+    'BEMSim/BEMSimCnfgStorage.cpp',
+    'BEMSim/BEMSimCnfgMgr.cpp',
+    'BEMSim/BEMSimAlgorithm.cpp',
+    'AisJhm2Keypad.cpp',
+    'AisJhm2FrequentList.cpp',
+    'AisJhm2ServiceHistory.cpp',
+    'AisJhm2WorkTool.cpp',
+    'AisJhm2PayloadServiceDashboard.cpp',
+    'AisJhm2Recipes.cpp',
+]
+
+if targetAppVariant is not None:
+    sourceFiles += Glob(targetAppVariant + '/*.cpp')
+    
+aisJhm2RequestProc = myEnv.Library(
+        target = 'aisJhm2RequestProc',
+        source = sourceFiles)
+
+myEnv.InstallLibrary(aisJhm2RequestProc)
+

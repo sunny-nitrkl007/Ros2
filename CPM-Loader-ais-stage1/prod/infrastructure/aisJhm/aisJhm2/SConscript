@@ -1,0 +1,19 @@
+###############################################################################
+## @file      SConscript
+## @author    Josh Struble
+## @date      March 08, 2013
+## @brief     SConscript for the aisJhm2 application
+###############################################################################
+#!/usr/bin/python
+Import( 'infEnv' )
+aisJhm2Env = infEnv.Clone();
+
+# Please people, stop creating so many warnings!
+aisJhm2Env.Append(CCFLAGS = ['-Werror', '-Wno-unused-function', '-Wno-maybe-uninitialized'])
+
+Export( 'aisJhm2Env' )
+
+aisJhm2Env.buildit( 'AisJhm2RequestProcessor', ['suse'] )
+aisJhm2Env.buildit( 'aisJhm2DataServer', ['suse'] )
+#aisJhm2Env.buildit( 'aisWeb', ['suse'] )
+

@@ -1,0 +1,3 @@
+#!/bin/sh
+~/git/ssp-CPM_Loader-ais/eta-ais/prod/platformCommon/content/tgt_gcc_4.4.3_ubuntu/lib_oss/grpc-a/protoc/protoc --version
+~/git/ssp-CPM_Loader-ais/eta-ais/prod/platformCommon/content/tgt_gcc_4.4.3_ubuntu/lib_oss/grpc-a/protoc/protoc @protoc_args CPMList.proto
