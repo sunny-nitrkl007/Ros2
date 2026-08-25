@@ -154,6 +154,9 @@ private:
     bool weighAppTxDataReceived_;
     DDSWeighAppInf weighAppInf_; // WeighApp Interface
 
+    // FIX: raw SCS dual-publish handle, legacy consumers still need this channel over SCS.
+    LpsSaWeighReqstChannelOutput* LpsSaWeighScsReqstOut;
+
     // ---- ROS2/DDS shared node + executor
     rclcpp::Node::SharedPtr rosNode_;
     rclcpp::executors::SingleThreadedExecutor executor_;

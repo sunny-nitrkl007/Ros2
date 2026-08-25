@@ -1165,8 +1165,24 @@ void LpsSaJobMgrApp::LpsSaJobMgrScsSendCmd(LpsSaWeighReqstChannel::Command comma
     }
     }
 
-    if (!weighAppInf_.sendRequest(request)) {
-        AIS_LOG_ERROR("Failed to send weigh app request.");
+    if (weighAppInf_.sendRequest(request)) {
+        AIS_LOG_ERROR("[ROS2] Published weigh app request, command=%d", static_cast<int>(command));
+    } else {
+        AIS_LOG_ERROR("[ROS2] Failed to send weigh app request.");
+    }
+
+    // FIX: dual-publish the same request onto the real SCS channel.
+    if (nullptr != LpsSaWeighScsReqstOut) {
+        LpsSaWeighReqstChannel requestScs;
+        requestScs.appName = getTaskName();
+        requestScs.appRequestId = LpsSaWeighReqstChannelStorage::getNextAppRequestId();
+        requestScs.command = command;
+
+        if (LpsSaWeighScsReqstOut->publish(requestScs)) {
+            AIS_LOG_ERROR("[SCS] Published weigh app request, command=%d", static_cast<int>(command));
+        } else {
+            AIS_LOG_ERROR("[SCS] Failed to publish weigh app request over raw SCS.");
+        }
     }
 }
 

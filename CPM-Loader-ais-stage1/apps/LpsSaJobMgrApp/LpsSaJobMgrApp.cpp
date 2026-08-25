@@ -72,6 +72,7 @@ RETURN VALUE:
 LpsSaJobMgrApp::LpsSaJobMgrApp(const std::string& taskName):
     Task(taskName), LpsJobMgrJobTrackerInfoTbl(),
     LpsSaJobMgrScsTxOut(nullptr), LpsSaJobMgrScsReqstIn(nullptr), LpsSaJobMgrScsDebugOut(nullptr), LpsSaJobMgrRespChannelOutput_(nullptr), weighAppTxDataReceived_(false), weighAppInf_(),
+    LpsSaWeighScsReqstOut(nullptr),
     rosNode_(nullptr), executor_(),
     LpsSaSwitchInput(nullptr), LpsSaOutputChannelOut(nullptr), AisJhm2TxInputScs(nullptr), displayStateInput_(nullptr),
     ShmClockInputScs(nullptr), dataLinkDataInput_(nullptr), loadRecordOutputChannel_(nullptr),
@@ -279,6 +280,12 @@ bool LpsSaJobMgrApp::initialize( )
         }
 
         weighAppTxDataReceived_ = false;
+
+        // FIX: also bind the real SCS output, not fatal if missing (null-guarded below).
+        LpsSaWeighScsReqstOut = dynamic_cast<LpsSaWeighReqstChannelOutput*>( InterfaceDb::fetch("LpsSaWeighReqstChannelOutput") );
+        if (nullptr == LpsSaWeighScsReqstOut) {
+            AIS_LOG_ERROR("Interface LpsSaWeighReqstChannelOutput (raw SCS dual-publish) not configured.");
+        }
     }
 
     // Get the load record output channel
