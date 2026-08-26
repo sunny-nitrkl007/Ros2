@@ -12,22 +12,14 @@ data so the rest of the system can use it.
 That conversation currently happens over the platform's internal
 communication service (SCS), a mechanism that only works between processes
 running together in this system. This work replaces that transport with
-ROS2 and DDS, an industry-standard publish/subscribe messaging layer, while
+ROS2 and DDS, while
 leaving everything else about how the two applications behave completely
 untouched.
 
-## Why
-
-DDS is a widely used, well-supported standard for exactly this kind of
-inter-process messaging, and moving onto it opens the door to interacting
-with these applications from outside the original closed system —
-diagnostics tools, simulators, other services — without needing to speak
-the platform's proprietary protocol. It's also a step toward a more modern,
-maintainable communication layer overall.
 
 ## What did NOT change
 
-This is a communication-only migration. The weighing calculations, the
+Current scope covers communication-only migration. The weighing calculations, the
 calibration logic, the diagnostic conditions, the state machines, the
 timing — none of that changed. If a request came in and triggered a
 recalibration before, it still does exactly that, in exactly the same way.
@@ -55,42 +47,22 @@ Everywhere else, the code that actually uses these interfaces reads almost
 identically to before, because the wrapper deliberately kept the same
 shape.
 
-## Design choice: polling, not callbacks
-
-Both applications already worked on a simple polling model — once per
-work cycle, check if anything new has arrived, react if so, then move on.
-Rather than introducing a callback-driven, multi-threaded model (which is
-what a more "native" ROS2 integration might look like by default), we kept
-that same polling rhythm: once per cycle, the application asks ROS2 to
-deliver anything that's arrived, and the wrapper hands it over exactly the
-way the old interface did.
-
-This was a deliberate choice. It avoids introducing multi-threading and
-the synchronization concerns that come with it, into code that was never
-designed with that in mind, and it keeps the applications' overall
-behavior as predictable and easy to reason about as it was before.
 
 ## Current scope
 
-This covers one specific, well-understood slice of the communication
-between the two applications — enough to prove the approach works
-end-to-end, without touching every message path at once. The remaining
+This covers one specific slice of the communication
+between the two applications — just to confirm the approach works
+end-to-end. The remaining
 communication paths still run on the original transport for now and are
 expected to move over later, following the same pattern established here.
 
 A few other applications on the machine read some of this same data
 independently, the old way, over the original transport — a diagnostics
 data server, a condition-monitoring service, a test-tooling app. So those
-three data paths currently go out twice: once over ROS2 like everything
+three data paths currently go out twice for now: once over ROS2 like everything
 else here, and once over the original transport, unchanged, so those
-other applications don't notice anything changed. See
-`DUAL-PUBLISH-README.md` for the details on that piece specifically.
+other applications don't notice anything changed. Later this will be replaced by the bridge between the jobmanager/weighapp and other applications.
 
-## Status
-
-The converted communication path builds and runs, and has been validated
-end-to-end on the intended message types. Wiring this into the platform's
-real build system, and running it on real hardware, is the next step.
 
 ## Files touched
 
@@ -118,7 +90,3 @@ exactly as it always was, unedited, so the application builds as a
 complete whole rather than needing to be assembled against a separate
 checkout.
 
-**Docs:**
-- `README.md` — this file
-- `TECHNICAL-OVERVIEW.md` — a closer look at how the wrapper layer works internally
-- `DUAL-PUBLISH-README.md` — the legacy-consumer dual-send fix specifically
