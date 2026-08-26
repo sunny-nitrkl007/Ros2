@@ -72,15 +72,53 @@ behavior as predictable and easy to reason about as it was before.
 
 ## Current scope
 
-This first stage covers one specific, well-understood slice of the
-communication between the two applications — enough to prove the approach
-works end-to-end, without touching every message path at once. The
-remaining communication paths still run on the original transport for now
-and are expected to move over in later stages, following the same pattern
-established here.
+This covers one specific, well-understood slice of the communication
+between the two applications — enough to prove the approach works
+end-to-end, without touching every message path at once. The remaining
+communication paths still run on the original transport for now and are
+expected to move over later, following the same pattern established here.
+
+A few other applications on the machine read some of this same data
+independently, the old way, over the original transport — a diagnostics
+data server, a condition-monitoring service, a test-tooling app. So those
+three data paths currently go out twice: once over ROS2 like everything
+else here, and once over the original transport, unchanged, so those
+other applications don't notice anything changed. See
+`DUAL-PUBLISH-README.md` for the details on that piece specifically.
 
 ## Status
 
 The converted communication path builds and runs, and has been validated
 end-to-end on the intended message types. Wiring this into the platform's
 real build system, and running it on real hardware, is the next step.
+
+## Files touched
+
+**Changed — communication wiring only, logic untouched:**
+- `apps/LpsSaJobMgrApp/LpsSaJobMgrApp.h` / `.cpp` — the interface member
+  types and the few lines at startup that build them
+- `apps/LpsSaJobMgrApp/LpsSaJobMgrScs.cpp` — the request-sending call site
+  (plus, separately, the dual-send addition described above)
+- `apps/LpsSaWeighApp/LpsSaWeighApp.h` / `.cpp` — same, for the Weighing app
+- `apps/LpsSaWeighApp/LpsSaScs.cpp` — the response and status-broadcast
+  call sites (plus the same dual-send addition)
+
+**New — the wrapper layer itself:**
+- `prod/common/ros2wrapper/RosInputInterface.h`
+- `prod/common/ros2wrapper/RosOutputInterface.h`
+- `prod/common/interfaces/LpsSaWeighReqstChannel/DDSWeighAppInf.hpp` — the
+  ROS2-backed version of the small helper class that manages this
+  particular request/response/status conversation; kept as its own file
+  rather than editing the original in place, since other, unrelated parts
+  of the system still use the original as-is
+
+**Everything else** in this tree — the weighing/calibration math, the
+job-tracking logic, NVM storage, diagnostics, all of it — is present
+exactly as it always was, unedited, so the application builds as a
+complete whole rather than needing to be assembled against a separate
+checkout.
+
+**Docs:**
+- `README.md` — this file
+- `TECHNICAL-OVERVIEW.md` — a closer look at how the wrapper layer works internally
+- `DUAL-PUBLISH-README.md` — the legacy-consumer dual-send fix specifically
