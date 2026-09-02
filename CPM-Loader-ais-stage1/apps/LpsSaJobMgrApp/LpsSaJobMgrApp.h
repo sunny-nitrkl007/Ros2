@@ -57,6 +57,9 @@ DESCRIPTION:
 #include "cpm_common_interfaces/msg/lps_sa_weigh_reqst_channel.hpp"
 #include <cpm_common_interfaces/msg/lps_sa_weigh_resp_channel.hpp>
 #include <cpm_common_interfaces/msg/lps_sa_weigh_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/ais_jhm2_tx_channel.hpp>
+#include <cpm_common_interfaces/msg/lps_sa_job_mgr_reqst_channel.hpp>
+#include <job_mgr_interfaces/msg/lps_sa_job_mgr_resp_channel.hpp>
 
 #include "LpsSaJobMgrTasks.h"
 #include "LpsSaJobMgrCnfg.h"
@@ -147,9 +150,9 @@ private:
 
     /*SCS  Interfaces*/
     LpsSaJobMgrTxChannelOutput        *LpsSaJobMgrScsTxOut;/* from job manager write param to UI*/
-    LpsSaJobMgrReqstChannelInput      *LpsSaJobMgrScsReqstIn;/*get request from UI*/
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>* LpsSaJobMgrScsReqstIn;/*get request from UI*/
     LpsSaJobMgrDebugChannelOutput     *LpsSaJobMgrScsDebugOut;/*Debug symbols*/
-    LpsSaJobMgrRespChannelOutput      *LpsSaJobMgrRespChannelOutput_;
+    ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>* LpsSaJobMgrRespChannelOutput_;
 
     bool weighAppTxDataReceived_;
     DDSWeighAppInf weighAppInf_; // WeighApp Interface
@@ -164,7 +167,7 @@ private:
     SwitchInputScsInput               *LpsSaSwitchInput;
     OutputChannelOutput             *LpsSaOutputChannelOut;
 
-    AisJhm2TxChannelInput              *AisJhm2TxInputScs;
+    ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>* AisJhm2TxInputScs;
 
     LpsSaUIDisplayStateInterfaceInputChannel* displayStateInput_;
 
@@ -220,7 +223,7 @@ private:
     void LpsSaJobMgrScsSHMRead(void);
     void LpsSaJobMgrScsDataLinkDataRead(void);
     void LpsSaJobMgrScsEddtRead();
-    bool sendReqstResponse(const LpsSaJobMgrReqstChannel& request, bool success);
+    bool sendReqstResponse(const cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel& request, bool success);
     ReqPloadCtrlSysStat_t GetActiveButtonStatus (void);
     void LpsSaJobMgrScsChkHornAction(void);
     bool LpsSaJobMgrHornOnStoreAction(void);

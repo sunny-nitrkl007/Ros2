@@ -195,13 +195,22 @@ bool LpsSaJobMgrApp::initialize( )
     tzInfo_.index = -1;
 
     /* Initialsing SCS interface*/
+    // ROS2/DDS node created here (moved up from just before the WeighApp
+    // interface block) so channels converted to ros2_wrapper below can
+    // construct their wrapper objects in place.
+    if (!rclcpp::ok()) {
+        rclcpp::init(0, nullptr);
+    }
+    rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
+    executor_.add_node(rosNode_);
+
     LpsSaJobMgrScsTxOut  = dynamic_cast<LpsSaJobMgrTxChannelOutput*>( InterfaceDb::fetch("LpsSaJobMgrTxChannelOutput") );
-    LpsSaJobMgrScsReqstIn  = dynamic_cast<LpsSaJobMgrReqstChannelInput*>( InterfaceDb::fetch("LpsSaJobMgrReqstChannelInput") );
+    LpsSaJobMgrScsReqstIn = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::LpsSaJobMgrReqstChannel>(rosNode_, "lps_sa_job_mgr_reqst_channel");
     LpsSaJobMgrScsDebugOut = dynamic_cast<LpsSaJobMgrDebugChannelOutput*>( InterfaceDb::fetch("LpsSaJobMgrDebugChannelOutput") );
-    LpsSaJobMgrRespChannelOutput_ = dynamic_cast<LpsSaJobMgrRespChannelOutput*>(InterfaceDb::fetch("LpsSaJobMgrRespChannelOutput"));
+    LpsSaJobMgrRespChannelOutput_ = new ros2_wrapper::RosOutputInterface<job_mgr_interfaces::msg::LpsSaJobMgrRespChannel>(rosNode_, "lps_sa_job_mgr_resp_channel");
     LpsSaSwitchInput = dynamic_cast<SwitchInputScsInput*>( InterfaceDb::fetch("SwitchInputScsInput") );
     LpsSaOutputChannelOut = dynamic_cast<OutputChannelOutput*>( InterfaceDb::fetch("OutputChannelOutput") );
-    AisJhm2TxInputScs  = dynamic_cast<AisJhm2TxChannelInput*>( InterfaceDb::fetch("AisJhm2TxChannelInput") );
+    AisJhm2TxInputScs = new ros2_wrapper::RosInputInterface<cpm_common_interfaces::msg::AisJhm2TxChannel>(rosNode_, "ais_jhm2_tx_channel");
 
     if (!task::InterfaceDb::bind("DisplayStateInput", displayStateInput_)) {
         AIS_LOG_ERROR("No DisplayStateInput input channel defined.");
@@ -259,12 +268,6 @@ bool LpsSaJobMgrApp::initialize( )
         AIS_LOG_ERROR("autonomyConditionDiagnosticsTxInputChannel_ Interface not configured.");
         everythingOk = false;
     }
-
-    if (!rclcpp::ok()) {
-        rclcpp::init(0, nullptr);
-    }
-    rosNode_ = std::make_shared<rclcpp::Node>("job_mgr_node");
-    executor_.add_node(rosNode_);
 
     { // Initialize the WeighApp interface
         ros2_wrapper::RosOutputInterface<cpm_common_interfaces::msg::LpsSaWeighReqstChannel>* requestOutput =

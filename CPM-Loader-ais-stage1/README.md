@@ -56,6 +56,13 @@ end-to-end. The remaining
 communication paths still run on the original transport for now and are
 expected to move over later, following the same pattern established here.
 
+That slice is three data paths between the Job Manager and the Weighing app:
+- **`LpsSaWeighReqstChannel`** — Job Manager asks the Weighing app to do
+  something (zero the scale, capture a calibration reference, clear a warning)
+- **`LpsSaWeighRespChannel`** — the Weighing app's reply to that request
+- **`LpsSaWeighTxChannel`** — the Weighing app's continuous stream of live
+  payload and status data
+
 A few other applications on the machine read some of this same data
 independently, the old way, over the original transport — a diagnostics
 data server, a condition-monitoring service, a test-tooling app. So those
